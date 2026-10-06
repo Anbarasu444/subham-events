@@ -19,6 +19,7 @@ The User App starts quickly and predictably: a branded native splash, an ordered
 6. **Initial route decision** hook: bootstrap decides the first route (today: home placeholder; M5 adds auth state; M6 the shell) — implemented as a small `StartupRouter` so later milestones extend rather than rewrite.
 7. **Cold-start baseline**: measure time from process start to first frame (debug-off profile build) on the iOS simulator and an Android emulator/device; record in `progress.md` against the ≤ 2.5 s budget (architecture/quality.md §4).
 8. **Tests**: bootstrap order and failure handling (unit), "Couldn't start" screen and splash removal (widget), StartupRouter (unit).
+9. **Brand colour**: change the theme seed to **`#FF7E7E`** (user, 2026-10-06; replaces the M3 placeholder `#8E3B5F`), check light/dark contrast (text on primary ≥ 4.5:1, adjust tones if needed), and use it for the splash background. Logo: **text/icon placeholder** until branding exists (later change expected).
 
 ## Out of scope
 - Firebase, Crashlytics, authentication, FCM (M5, M18)
@@ -57,16 +58,17 @@ Native splash assets/config, bootstrap pipeline, CrashReporter interface, FreeRA
 - Notification: N/A.
 
 ## Risks and assumptions
-- Splash artwork: until the user supplies a logo/brand colours, a neutral placeholder mark and the M3 seed colour are used (open question 1).
+- Splash artwork: placeholder mark until a logo exists; brand colour `#FF7E7E`. Light coral backgrounds need care for white-text contrast.
 - FreeRASP requires release signing hashes / Apple team ID for meaningful results; placeholders until GI-5/GI-11 are resolved.
-- Android build environment issue (GI-6) must be resolved for Android acceptance.
+- Android builds work on the user's Mac (GI-6 resolved); Claude's own Gradle downloads time out, so Android acceptance checks may need the user to run them.
 
-## Open questions (answer before or at START)
-1. Logo / splash artwork and brand colours — supply now, or use a placeholder until branding is ready?
-2. Approve adding `flutter_native_splash`, `package_info_plus` and `freerasp`?
-3. Was the Android build (GI-6) and the database setup / migration run (M3 AC-6) completed on your Mac?
+## Open questions
+1. ~~Artwork~~ — answered: no logo yet; use a placeholder; theme colour `#FF7E7E` for now (may change later).
+2. ~~New packages~~ — answered: approved (`flutter_native_splash`, `package_info_plus`, `freerasp`).
+3. ~~GI-6 / M3 AC-6~~ — answered: Android build and DB setup/migrations work on the user's Mac.
 
 ## Change log
 | Date | Change | Requested by |
 |---|---|---|
 | 2026-10-06 | Initial DRAFT created at the M3 approval gate | CLAUDE.md Rule 4 |
+| 2026-10-06 | Open questions answered before START: placeholder logo, theme colour `#FF7E7E` (added as in-scope item 9), packages approved, Android build + DB setup confirmed working | User |

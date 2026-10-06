@@ -24,6 +24,7 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-06 | M3 User App Foundation | START MILESTONE M3 | Validation passed (M2 COMPLETED and approved; spec exists with open questions answered; no blockers; User App phase). Spec → CONFIRMED; status → IN_PROGRESS | — | Package installs need user permission | `START MILESTONE M3` issued by user |
 | 2026-10-06 | M3 User App Foundation | Set IN_REVIEW | Backend NestJS 11 foundation (config, envelope, errors, logging, health, money, TypeORM migrations); local DB setup script; user_app skeleton (flavors, Dio client, errors/state, theme, widgets, storage, diagnostics) | Backend 33 unit + 9 e2e, Flutter 32 tests, analyze/lint clean; iOS simulator build + launch OK; code + security reviews PASS WITH FINDINGS, fixed | Android build blocked by Gradle download (GI-6); DB migration run needs user (AC-6) | Awaiting `APPROVE MILESTONE M3` |
 | 2026-10-06 | M3 User App Foundation | APPROVE MILESTONE M3 | Status → **COMPLETED**. Android build (GI-6) and DB migration run (GI-13) not confirmed — carried as open checks. M4 Splash & App Bootstrap set to NOT_STARTED; spec DRAFT created | See M3 IN_REVIEW entry | GI-6, GI-13 | `APPROVE MILESTONE M3` issued by user |
+| 2026-10-06 | M4 Splash & App Bootstrap (NOT_STARTED) | Spec questions answered | Placeholder logo, theme colour #FF7E7E (spec item 9 added), packages approved; GI-6 and GI-13 resolved (Android build and DB migrations work on user's Mac) | — | — | User answers |
 
 ## Status summary
 - Governance initialization: **complete**.

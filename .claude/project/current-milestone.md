@@ -23,7 +23,7 @@ Branded native splash, ordered bootstrap with failure handling, global error cap
 - None.
 
 ## Blocked work
-- None. Before START please answer the M4 spec open questions (artwork, new packages, GI-6 / GI-13 status).
+- None. M4 open questions answered (placeholder logo, theme `#FF7E7E`, packages approved, Android build + DB confirmed).
 
 ## Tests completed
 - N/A (not started).
@@ -37,7 +37,7 @@ Branded native splash, ordered bootstrap with failure handling, global error cap
 | Documentation | NOT_STARTED |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5 (package ID), GI-6 (Android build), GI-7 (version — M4 scope), GI-8…GI-12, GI-13 (DB migration run not confirmed — needed before M5).
+- See `known-issues.md`: GI-4, GI-5 (package ID), GI-7 (version — M4 scope), GI-8…GI-12. GI-6 and GI-13 resolved (user confirmed).
 - Business rules on hold: R3 (before M15), R6 (before M28/M29), R10 (before M26). R11 final policy by M21. Assumptions A1–A12, O1, O2 per `domain-model.md` §9.
 
 ## Files changed
