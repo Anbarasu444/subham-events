@@ -1,0 +1,167 @@
+# Flutter Reference Architecture (user_app, vendor_app)
+
+> M1 deliverable for spec item 6 / AC-5. Applies to `user_app` from M3 and to `vendor_app` from M24 (phase lock). Code sharing: ADR-0009 (Accepted) — two separate codebases, no shared package; each app implements this reference independently.
+> Toolchain observed on the dev machine: Flutter 3.44.9 stable (Dart SDK constraint `^3.13.5` in `user_app/pubspec.yaml`). Package identifiers are still `com.example.*`; the final application IDs are a user decision recorded in M3.
+
+## 1. Folder structure (feature-first)
+
+```text
+lib/
+  main_staging.dart | main_prod.dart   # flavor entry points → bootstrap(AppConfig)
+  app/
+    bootstrap.dart        # ordered init: bindings, Firebase, ObjectBox, FreeRASP, error handlers
+    app.dart              # GetMaterialApp, theme, initial route
+    config/app_config.dart  # flavor, apiBaseUrl, feature flags (no secrets)
+    routes/app_routes.dart  # route name constants
+    routes/app_pages.dart   # GetPage list with bindings + middlewares
+    bindings/initial_binding.dart  # app-wide singletons
+  core/                    # feature-agnostic app infrastructure (owned by this app only — ADR-0009)
+    network/              # ApiClient (Dio), interceptors, ApiException mapping, pagination models
+    auth/                 # AuthService (Firebase), token provider, session state
+    storage/              # SecureStore (encrypted prefs), ObjectBox store, cache manager config
+    error/                # Failure types, Result<T>
+    security/             # FreeRASP setup + threat handlers
+    notifications/        # FCM service, deep-link router (M18)
+    theme/                # design tokens, ThemeData, text styles
+    widgets/              # shared UI: AppButton, AsyncStateView (loading/empty/error/retry), skeletons
+    utils/                # formatters (money in rupees → display, ADR-0014), date/time (UTC → local)
+  features/
+    <feature>/
+      data/
+        models/           # DTOs (fromJson/toJson) matching api-contracts.md
+        datasources/      # <feature>_remote_data_source.dart (ApiClient), <feature>_local_data_source.dart (ObjectBox)
+        repositories/     # <feature>_repository_impl.dart
+      domain/
+        entities/         # immutable app models (independent of JSON)
+        repositories/     # abstract <feature>_repository.dart
+      presentation/
+        bindings/         # <feature>_binding.dart (Get.lazyPut)
+        controllers/      # <feature>_controller.dart (GetxController)
+        views/            # screens
+        widgets/          # feature-only widgets
+test/                     # mirrors lib/
+integration_test/
+```
+
+A use-case layer is **not** mandatory; add `domain/usecases/` only when logic spans several repositories (keeps controllers small without ceremony).
+
+## 2. Layer responsibilities
+
+| Layer | Does | Must not |
+|---|---|---|
+| View (widget) | Render state, forward user intents to controller, `Obx` only around reactive parts | Call Dio/Firebase/ObjectBox, hold business rules |
+| Controller (GetX) | Hold screen state (`Rx`), call repositories, map `Result` to UI state, navigation | Parse JSON, build HTTP requests, compute money/permissions |
+| Repository | Combine remote + local sources, caching policy, map DTO → entity, return `Result<T>` | Know about widgets or GetX |
+| Data source | One technology each: ApiClient, ObjectBox, secure store | Contain business decisions |
+| Core services | App-wide singletons (`ApiClient`, `AuthService`, `SecureStore`, `ConnectivityService`) registered in `InitialBinding` with `permanent: true` | Hold feature state |
+
+## 3. State model
+
+Each screen exposes one `Rx<ViewState<T>>`:
+
+```dart
+sealed class ViewState<T> { }
+class Loading<T> extends ViewState<T> {}
+class Content<T> extends ViewState<T> { final T data; final bool isStale; }
+class Empty<T>   extends ViewState<T> {}
+class Error<T>   extends ViewState<T> { final Failure failure; }   // carries retry ability
+```
+
+`AsyncStateView` (core widget) renders loading skeleton / empty / error-with-retry / content consistently (CLAUDE.md §19).
+
+## 4. Result and error model
+
+```dart
+sealed class Result<T> { }   // Ok<T>(value) | Err<T>(Failure)
+
+sealed class Failure {        // user-safe message key + optional code from API
+  NetworkFailure      // offline, DNS, connection refused
+  TimeoutFailure
+  UnauthorizedFailure // 401 after refresh attempt → triggers sign-out flow
+  ForbiddenFailure    // 403
+  NotFoundFailure     // 404
+  ValidationFailure   // 422, carries field errors from API envelope
+  ConflictFailure     // 409 (e.g. state changed concurrently)
+  RateLimitedFailure  // 429, carries retryAfter
+  ServerFailure       // 5xx
+  UnknownFailure
+}
+```
+
+`ApiException → Failure` mapping lives only in `core/network/error_mapper.dart`, keyed on HTTP status + API `error.code` (`api-contracts.md` §4).
+
+## 5. Networking (Dio)
+
+`ApiClient` (single Dio instance per app):
+
+| Setting | Value |
+|---|---|
+| Base URL | `AppConfig.apiBaseUrl` + `/api/v1` (per flavor) |
+| Timeouts | connect 10 s, send 20 s (media uploads go directly to ImageKit with their own longer timeout, not through the API), receive 20 s |
+| Headers | `Accept: application/json`, `X-Request-Id` (UUID per request), `X-Client: user_app/<version>+<build>`, `Accept-Language` |
+
+Interceptor order:
+1. `RequestIdInterceptor`
+2. `AuthInterceptor` — attaches Firebase ID token when signed in; single-flight forced refresh + one replay on `401 AUTH_TOKEN_EXPIRED` (see `identity-access.md` §5)
+3. `RetryInterceptor` — retries **only idempotent** requests (GET, PUT/DELETE, or requests carrying an `Idempotency-Key`) on network errors, 502/503/504, max 2 retries, exponential backoff with jitter (0.5 s, 1.5 s); honours `Retry-After` on 429
+4. `LoggingInterceptor` — dev/staging only; redacts `Authorization`, phone numbers, tokens
+5. `ErrorInterceptor` — converts `DioException` to `ApiException`
+
+Pagination helper understands both cursor (`meta.page.nextCursor`) and offset meta (ADR-0013).
+
+## 6. Routing and guards
+
+- `GetMaterialApp` with `getPages` from `AppPages`; named routes only, constants in `AppRoutes`.
+- Route groups: `public` (splash, onboarding, home browse, vendor browse/details), `auth` (sign-in, OTP), `protected` (events, checklist, wishlist, enquiries, bookings, payments, profile…).
+- `AuthGuardMiddleware` (GetMiddleware) on protected routes: if no signed-in session → redirect to sign-in with `returnTo` argument; after sign-in the app navigates to `returnTo`.
+- Deep links and notification taps are resolved by `DeepLinkRouter` into internal route + arguments, then pass through the same guards (`media-and-deep-links.md` §5).
+- Bindings attached per `GetPage`; controllers are created lazily and disposed with the route (no global feature controllers).
+
+## 7. Local storage responsibilities
+
+| Store | Use for | Never for |
+|---|---|---|
+| `encrypted_shared_preferences` (`SecureStore`) | Small sensitive values: cached minimal profile, onboarding flags, last FCM token, locale | Large data, lists |
+| ObjectBox | Structured read caches (e.g. categories, my events list, checklist snapshot) with `cachedAt` for TTL; offline read of recently viewed data | Authoritative payment/booking/permission state; queued writes (no offline writes until a milestone specifies them) |
+| `flutter_cache_manager` / `cached_network_image` | Remote images/media with size-appropriate variants (`media-and-deep-links.md`) | Private media URLs beyond their signed-URL TTL |
+
+Firebase Auth persists its own session (platform keychain/keystore). Sign-out clears SecureStore user keys, ObjectBox user boxes and image cache entries for private media.
+
+Stale-data policy: repositories return cached data as `Content(isStale: true)` immediately, refresh in background, and show a subtle "offline / last updated" indicator. Payment, booking and permission screens always fetch fresh and show an error if offline.
+
+## 8. Environment flavors (ADR-0012)
+
+| Flavor | Entry | Firebase project | API base URL | Razorpay (vendor) |
+|---|---|---|---|---|
+| staging | `main_staging.dart` | `<app>-staging` | from define file: local backend now (`config/staging.local.json`, git-ignored) / hosted staging later (`config/staging.json`) | test key id |
+| prod | `main_prod.dart` | `<app>-prod` | prod API (`config/prod.json`) | live key id |
+
+Android product flavors + iOS schemes/configurations; `applicationIdSuffix` `.stg` for staging so both builds coexist. Values come from `--dart-define-from-file` (non-secret only). See `environments.md`.
+
+## 9. Bootstrap order (M4 implements)
+
+1. `WidgetsFlutterBinding.ensureInitialized()`; keep native splash (`flutter_native_splash.preserve`).
+2. Error handlers (`FlutterError.onError`, `PlatformDispatcher.onError`) → crash reporting.
+3. `Firebase.initializeApp(options: flavor options)`.
+4. FreeRASP start (non-blocking; threat callbacks routed to `SecurityService`).
+5. Open ObjectBox store; init SecureStore.
+6. Register `InitialBinding` services.
+7. Resolve auth state (cached Firebase user) → initial route; remove splash.
+Budget: cold start to first frame ≤ 2.5 s on a mid-range device (`quality.md`).
+
+## 10. FreeRASP placement
+
+- Initialized in bootstrap; callbacks go to `core/security/security_service.dart`.
+- Policy (defense-in-depth, never the only control): dev/staging → log only; prod → root/jailbreak/hook/tamper detected ⇒ log + report to backend (M22) and block payment-related screens; debugger/emulator ⇒ log only. Final reactions per threat are confirmed in M22 (User App Hardening).
+- Signing certificate hashes and team IDs are configuration, not secrets, but are kept per flavor.
+
+## 11. Theming / design tokens
+
+- `core/theme/tokens.dart`: color palette (light + dark), spacing scale (4-pt grid: 4, 8, 12, 16, 24, 32), radii, elevation, typography scale, motion durations (150/250/350 ms).
+- `ThemeData` built from tokens with Material 3; widgets reference `Theme.of(context)` / token extensions, never hard-coded values.
+- Accessibility: minimum touch target 48×48 dp, text scaling up to 200% without clipping, contrast ≥ 4.5:1 for body text.
+- Vendor app uses the same token structure with its own brand accent (decided at M24).
+
+## 12. Testing per layer
+
+Controllers and repositories unit-tested with fakes (`mocktail`), widgets with `flutter_test`, critical flows with `integration_test`. See `quality.md`.

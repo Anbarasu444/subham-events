@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **DRAFT** — becomes CONFIRMED when the user issues `START MILESTONE M1` |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M1` on 2026-10-06 |
 | Phase | Architecture |
 | Depends on | Governance initialization complete (recorded in `progress.md`) |
 | Primary owner agent | architecture-manager (with backend-, database-, security-, notification-, payment-manager as reviewers) |
@@ -84,3 +84,8 @@ Produce the platform-wide technical architecture and the key technology decision
 | Date | Change | Requested by |
 |---|---|---|
 | 2026-10-06 | Initial DRAFT created during governance initialization | User (governance reconciliation) |
+| 2026-10-06 | CONFIRMED by `START MILESTONE M1`. Note: ADR-0003 and ADR-0004 were already ratified (Accepted) by the user before START; GI-2 executed before START, so the related out-of-scope line is historical. | User |
+| 2026-10-06 | User decisions during review: media storage = ImageKit.io (ADR-0007 Accepted, no Google Cloud Storage); no 2FA at launch (ADR-0008 updated); user creates Firebase projects and commits M1 personally. | User |
+| 2026-10-06 | User decisions during review: ADR-0006 TypeORM with migration scripts; ADR-0009 two separate codebases (no shared package); ADR-0010 hosting deferred — localhost + local PostgreSQL. All Accepted; affected docs updated. | User |
+| 2026-10-06 | User decisions during review: ADR-0008 Firebase (Google, phone) for users/vendors, username + password for admins; ADR-0011 Node 24; ADR-0012 staging + prod only; ADR-0015 backend starts in M3. All Accepted; docs updated. ADR-0014: user requested rupees with decimals — pending confirmation of storage type (CLAUDE.md §21 conflict). | User |
+| 2026-10-06 | Final review decisions: ADR-0013 Accepted; event payments record-only confirmed; ADR-0014 deferred to M2. Milestone approved by `APPROVE MILESTONE M1` → COMPLETED. | User |
