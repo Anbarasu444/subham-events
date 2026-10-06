@@ -88,23 +88,27 @@ In-app = row created in `notifications`. Push = FCM to recipient devices (subjec
 | N1 | First sign-in (welcome) | AUTH | User | Yes | No | M5 |
 | N2 | Account suspended / reinstated by admin | AUTH | User/Vendor | Yes | Yes | M46 |
 | N3 | New category published | CATEGORY | Vendors | Yes | No | M42 |
-| N4 | Platform fee changed for a category | CATEGORY | Vendors with drafts in that category | Yes | No | M43 |
+| N4 | Platform fee changed for a category ⏸R6 | CATEGORY | Vendors with drafts in that category | Yes | No | M43 |
 | N5 | Vendor listing submitted for review | VENDOR | Admins (MARKETPLACE_ADMIN) | Yes | No (CMS in-app) | M30/M44 |
 | N6 | Platform fee payment succeeded | PAYMENT | Vendor; Admins (FINANCE_ADMIN) | Yes | Vendor: Yes; Admin: in-app | M29 |
 | N7 | Platform fee payment failed | PAYMENT | Vendor | Yes | Yes | M29 |
 | N8 | Vendor listing approved / rejected (with reason) | VENDOR | Vendor | Yes | Yes | M31/M45 |
 | N9 | New enquiry | BOOKING | Vendor | Yes | Yes | M14/M32 |
 | N10 | Quotation received / revised | BOOKING | User | Yes | Yes | M15/M33 |
-| N11 | Quotation accepted / rejected by user | BOOKING | Vendor | Yes | Yes | M15/M33 |
+| N11 | Quotation accepted / rejected by user ⏸R3 (withdraw/expiry rows added when R3 resolved) | BOOKING | Vendor | Yes | Yes | M15/M33 |
 | N12 | Booking confirmed | BOOKING | User and Vendor | Yes | Yes | M15/M34 |
 | N13 | Booking cancelled (by either party/admin) | BOOKING | Other party (and both if admin) | Yes | Yes | M15/M34/M48 |
 | N14 | Booking completed | BOOKING | User (review prompt) | Yes | Yes | M15/M20 |
-| N15 | Event payment recorded / status changed | PAYMENT | Other party of the booking | Yes | Yes when meaningful (SUCCESS, FAILED, REFUNDED) | M16/M35 |
-| N16 | Checklist item due / overdue | CHECKLIST | User | Yes | Yes (once per item per state) | M9/M17 |
+| N15 | ~~Event payment recorded~~ — **removed (M2):** payment notes are the user's private notes (R5, ❓A2); no notification | — | — | — | — | — |
+| N16 | Checklist item due today / overdue (only items with a due date) | CHECKLIST | User | Yes | Yes (once per item per state, 09:00 event time zone) | M9/M17 |
 | N17 | User reminder fires | CHECKLIST | User | Yes | Yes | M17 |
-| N18 | Invitation generated / shared link opened (aggregated daily) | INVITATION | User | Yes | No | M19 |
-| N19 | Review received | REVIEW | Vendor | Yes | Yes | M20/M37 |
-| N20 | Review hidden by moderation | REVIEW | Review author | Yes | No | M51 |
+| N18 | RSVP received on an invitation (R9) | INVITATION | Invitation owner | Yes (one row per RSVP) | Yes, digested: at most one push per invitation per hour ("3 new RSVPs") | M19 |
+| N19 | Review received — rating immediately (❓A4); comment when approved | REVIEW | Vendor | Yes | Yes | M20/M37 |
+| N20 | Approved review comment later hidden by admin | REVIEW | Review author | Yes | No | M51 |
+| N23 | Review comment submitted for moderation (R7) | REVIEW | Admins (MARKETPLACE_ADMIN, CONTENT_ADMIN) | Yes (CMS) | No | M20/M51 |
+| N24 | Review comment approved / rejected (R7) | REVIEW | Review author | Yes | No | M20/M51 |
+| N25 | Enquiry declined by vendor | BOOKING | User | Yes | Yes | M14/M32 |
+| N26 | Event's booked vendor account deleted/suspended | VENDOR | Event owner | Yes | Yes | M46 |
 | N21 | System announcement by admin | SYSTEM | Targeted audience | Yes | Optional per announcement | M50 |
 | N22 | App update required / maintenance | SYSTEM | All users of an app | Yes | Yes | M50 |
 

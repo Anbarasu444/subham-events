@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **DRAFT** — becomes CONFIRMED when the user issues `START MILESTONE M2` |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M2` on 2026-10-06 |
 | Phase | Architecture |
 | Depends on | M1 COMPLETED and approved (`APPROVE MILESTONE M1`) |
 | Primary owner agent | architecture-manager (database-manager, payment-manager, notification-manager, security-manager as reviewers) |
@@ -79,9 +79,13 @@ Define the platform's complete domain model — entities, relationships, invaria
 9. Invitations: RSVP tracking in scope or share-only?
 10. Vendor: can one vendor account have multiple listings in multiple categories (CLAUDE.md implies yes)? Team members per vendor?
 11. Account deletion: data retention requirements (legal/tax) for financial records.
-12. **Money storage type (ADR-0014, deferred from M1 — mandatory):** rupees with 2 decimals as exact `numeric(12,2)` + decimal string in the API (Option A, recommended) or floating-point double (Option B, requires amending CLAUDE.md §21).
+12. ~~Money storage type~~ — **answered 2026-10-06: exact decimal rupees (ADR-0014 Accepted).**
 
 ## Change log
 | Date | Change | Requested by |
 |---|---|---|
 | 2026-10-06 | Initial DRAFT created during M1 (spec item 12) | M1 scope |
+| 2026-10-06 | CONFIRMED by `START MILESTONE M2` | User |
+| 2026-10-06 | Open question 12 answered: ADR-0014 Accepted (exact decimal rupees) | User |
+| 2026-10-06 | User answers (relayed by the project assistant): R1 allowed, R2 unlimited, R4 no outside vendors, R5 user-only payment notes without confirmation, R7 rating + admin-moderated comment, R8 user-created checklist only, R9 e-invitation (link or image) with RSVP, R11 keep all data and mark deleted. R3, R6, R10 ON HOLD pending client confirmation — deferred to owner milestones M15, M28/M29, M26. | User |
+| 2026-10-06 | R11 clarified by user: keep-everything rule is for development only; final deletion policy to be discussed later (owner M21, release-blocking M72) | User |

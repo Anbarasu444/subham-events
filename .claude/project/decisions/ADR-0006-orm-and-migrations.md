@@ -21,7 +21,7 @@ The backend needs data access on PostgreSQL with transactions, row locking, cons
 - **Migrations** are TypeORM migration classes (TypeScript, `up()`/`down()`), kept in `database/migrations/` and registered in a single TypeORM `DataSource` file used by both the app and the CLI. Generated migrations (`migration:generate`) are always reviewed and hand-edited where TypeORM cannot express the intent (check constraints, partial indexes, triggers, data migrations). Forward-only in shared environments; an applied migration is never edited — a fix is a new migration. `down()` is written for local rollback.
 - npm scripts (added in M3): `migration:generate`, `migration:create`, `migration:run`, `migration:revert`, `migration:show`.
 - TypeORM entities and repositories are imported only in the repository layer (`architecture/backend.md` §2); services receive domain objects. Entity classes live in each module's `repositories/entities/` folder.
-- Money columns follow ADR-0014 (decided in M2). TypeORM returns `numeric`/`bigint` as strings — repositories convert with an exact decimal type, never via JS `number` arithmetic unless ADR-0014 Option B is chosen.
+- Money columns are `numeric(12,2)` rupees (ADR-0014). TypeORM returns them as strings — repositories convert with an exact decimal type, never via JS `number` arithmetic.
 - Row locking for state transitions via `queryBuilder.setLock('pessimistic_write')`; job claiming via `setLock('pessimistic_write').setOnLocked('skip_locked')`.
 - If keeping migrations outside `backend/` causes build/path problems with the TypeORM CLI, M3 may place them at `backend/src/database/migrations/` instead; that choice is recorded in the M3 spec. (CLAUDE.md lists `database/` for migrations; the default is to honour it.)
 

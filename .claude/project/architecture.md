@@ -166,5 +166,5 @@ flowchart TB
 | ADR-0011 | Node.js 24 LTS + npm | **Accepted** |
 | ADR-0012 | Environments: staging + prod (Firebase, ImageKit, Razorpay modes) | **Accepted** |
 | ADR-0013 | Pagination: cursor by default, offset for admin tables | **Accepted** |
-| ADR-0014 | Money: rupees with 2 decimals; exact decimal vs double decided in M2 | Proposed — deferred to M2 |
+| ADR-0014 | Money: exact decimal rupees (numeric(12,2), API "10.10") | **Accepted** (in M2) |
 | ADR-0015 | Backend/database foundation lands in M3 | **Accepted** |

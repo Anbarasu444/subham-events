@@ -126,14 +126,16 @@ GET /api/v1/listings?categoryId=…&city=chennai&minStartingPrice=25000.00&sort=
 - Calendar dates without time (e.g. event date): `"eventDate": "2026-12-14"` plus the event's IANA zone `"timeZone": "Asia/Kolkata"` when time-of-day matters.
 - Clients display in device local time; the server never formats dates for display.
 
-## 8. Money (ADR-0014 — deferred to M2)
+## 8. Money (ADR-0014)
 
-User direction: amounts are expressed in **rupees with 2 decimals** (e.g. `10.10`), currency `INR` only at launch. The exact wire/storage type is decided in M2:
-
-- Option A (recommended, exact): `"agreedBudget": { "amount": "40000.00", "currency": "INR" }` — decimal string, `numeric(12,2)` in PostgreSQL.
-- Option B (floating point): `"agreedBudget": { "amount": 40000.0, "currency": "INR" }` — requires amending CLAUDE.md §21.
-
-Rules that hold either way: totals and fees are computed server-side; clients only format for display; Razorpay calls convert rupees to integer paise at the backend boundary; non-INR currencies → `422`.
+```json
+"agreedBudget": { "amount": "40000.00", "currency": "INR" }
+```
+- `amount`: **rupees as a decimal string with exactly 2 decimals** (`"10.10"`, `"40000.00"`). Never a JSON number, never floating point.
+- `currency`: ISO-4217 code; launch supports `INR` only — other codes → `422`.
+- Requests use the same shape; invalid format (not 2 decimals, exponent, negative where not allowed) → `422 VALIDATION_FAILED`.
+- Totals, fees and balances are computed server-side with exact decimals; clients only format for display.
+- Razorpay calls convert rupees to integer paise inside the backend only; paise never appear in the API.
 
 ## 9. Idempotency
 

@@ -62,6 +62,6 @@
 | Certificate pinning decision | M22 |
 | Admin permission matrix detail | M40 |
 | Account-merge support process (Google ↔ phone conflicts) | M21 or later, if requested |
-| Data retention & account deletion policy (store compliance) | M21 (spec) / M72 |
+| **Account deletion keeps all data (R11 — interim development rule; final policy to be discussed, owner M21)** — conflicts with DPDP Act 2023 erasure rights and Google Play / App Store account-deletion requirements; legal review or switch to anonymisation needed before release | M72 (blocking for store release) |
 | Penetration test | M65 |
 | Admin two-factor verification (not required at launch by user decision) | M53 / M65 |

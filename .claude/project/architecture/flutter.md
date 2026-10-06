@@ -24,7 +24,7 @@ lib/
     notifications/        # FCM service, deep-link router (M18)
     theme/                # design tokens, ThemeData, text styles
     widgets/              # shared UI: AppButton, AsyncStateView (loading/empty/error/retry), skeletons
-    utils/                # formatters (money in rupees → display, ADR-0014), date/time (UTC → local)
+    utils/                # formatters (decimal-rupee strings → display, ADR-0014), date/time (UTC → local)
   features/
     <feature>/
       data/

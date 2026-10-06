@@ -1,17 +1,17 @@
 # Payment Architecture
 
-> M1 deliverable for spec item 8 / AC-7. Detailed state machines and tables are M2; implementation is M29 (platform fee) and M16/M35 (event payments). Money representation: ADR-0014 (rupees with 2 decimals; storage type decided in M2). Amount fields below are in rupees; their exact type follows ADR-0014.
+> M1 deliverable for spec item 8 / AC-7. Detailed state machines and tables are M2; implementation is M29 (platform fee) and M16/M35 (event payments). Money representation: ADR-0014 — exact decimal rupees (`numeric(12,2)`, API `"10.10"`); the backend converts to integer paise only when calling Razorpay.
 
 ## 0. Two separate domains
 
 | | Vendor platform fee | Event / vendor payment |
 |---|---|---|
 | Who pays whom | Vendor → platform | User → vendor (for an event booking) |
-| Money moves through | Razorpay (platform's account) | **Not through the platform at launch** — recorded/tracked (see §2 open question) |
+| Money moves through | Razorpay (platform's account) | **Never through the platform** — the user only notes payments (R5) |
 | Backend module | `platform-fees` | `event-payments` |
-| Table (M2) | `platform_fee_transactions` | `event_payment_transactions` |
+| Table (M2) | `platform_fee_transactions` | `event_payment_notes` |
 | Linked to | Vendor listing submission | Booking ↔ event-vendor relationship |
-| Admin view | Finance tab "Platform fees" | Finance tab "Event payments" |
+| Admin view | Finance tab "Platform fees" | Support view only (❓A2) |
 
 The two modules never import each other, never share a table and never share a status enum (CLAUDE.md §22).
 
@@ -29,7 +29,7 @@ sequenceDiagram
   VA->>API: POST /vendor/platform-fees/orders {listingSubmissionId}  Idempotency-Key
   API->>DB: lock submission, check owner, state = AWAITING_FEE, read fee from category fee schedule
   API->>DB: insert platform_fee_transactions (CREATED, amount, currency, fee_schedule_id)
-  API->>RZ: Orders API create {amount, currency, receipt = transaction id, notes}
+  API->>RZ: Orders API create {amount in paise = rupees × 100, currency, receipt = transaction id, notes}
   RZ-->>API: order_id
   API->>DB: set razorpay_order_id, status PENDING
   API-->>VA: {transactionId, razorpayOrderId, amount, currency, keyId}
@@ -61,9 +61,14 @@ Rules:
 | Amount/currency mismatch on fetch | Mark `REVIEW_REQUIRED`, notify FINANCE_ADMIN, do not advance submission |
 | Refund (admin-initiated) | Out of launch scope unless specified in M43/M49; would be `REFUNDED` via Razorpay Refunds API with webhook confirmation |
 
-### 1.3 States (high level; finalised in M2)
+### 1.3 States (M2)
 
-Order-level transaction: `CREATED → PENDING → SUCCESS | EXPIRED | FAILED` (`FAILED` only when the order itself cannot be paid, e.g. order creation failed permanently); `SUCCESS → REFUNDED` (if refunds are specified); `REVIEW_REQUIRED` reachable from any state when provider data disagrees or a late capture arrives, resolved by finance admin. Individual payment attempts (`ATTEMPTED → CAPTURED | FAILED`) are tracked separately. `EXPIRED`/`FAILED` are terminal for normal flow but still reconciled (§3).
+- Order-level transaction: `CREATED → PENDING` (order created at Razorpay) → `SUCCESS` (verified capture) | `EXPIRED` (order unpaid at expiry). `CREATED → FAILED` (system job when the provider order was never created).
+- `REVIEW_REQUIRED` from any state on provider mismatch or a late capture on an `EXPIRED`/`FAILED` transaction. Resolved only by FINANCE_ADMIN with a reason (audited): `→ SUCCESS` (advances the submission), `→ FAILED`, or `→ REFUNDED`.
+- Refund mechanism at launch is ⏸ R6 (options: manual refund in the Razorpay dashboard recorded by an admin action, or the Refunds API).
+- At most one `SUCCESS` per submission (partial unique index); no new order while a transaction of the submission is `CREATED`, `PENDING` or `REVIEW_REQUIRED` (`409`).
+- Attempts (`platform_fee_payment_attempts`): `ATTEMPTED → CAPTURED | FAILED`, keyed by Razorpay payment id.
+- Amount: `numeric(12,2)` rupees ≥ ₹1.00; converted to integer paise at the Razorpay boundary with an assertion that the result is an integer.
 
 ### 1.4 Webhooks
 
@@ -71,21 +76,21 @@ Order-level transaction: `CREATED → PENDING → SUCCESS | EXPIRED | FAILED` (`
 - Stored raw in `provider_events` (id, type, payload, received_at, processed_at) then processed by the worker; respond 2xx quickly.
 - Subscribed events: `order.paid`, `payment.captured`, `payment.failed` (+ `refund.*` if refunds are specified).
 
-## 2. Event / vendor payments
+## 2. Event / vendor payments — user payment notes (R5)
 
-At launch, the platform **tracks** payments between a user and a vendor for a booking; it does not collect them (no Razorpay for event payments is specified in CLAUDE.md).
+The platform **does not collect any user-to-vendor money** (user decision 2026-10-06). The user may **note** payments they made to a booked vendor, like a checklist entry (R5):
 
-- Records: `event_payment_transactions` linked to booking (and through it the event-vendor relationship): `kind` (`ADVANCE`, `INSTALMENT`, `FINAL`, `REFUND`), `amount` (rupees, ADR-0014), `currency`, `method` (`CASH`, `UPI`, `BANK_TRANSFER`, `CARD`, `OTHER`), `paid_at`, `recorded_by` (user or vendor), `reference`, `status`.
-- Status (high level, M2): `RECORDED → CONFIRMED` (by the counter-party) | `DISPUTED` | `CANCELLED`; refunds are separate negative-direction records, never edits.
-- Budget views compute: listing **starting price** (marketplace info only) ≠ **agreed budget** (event-vendor) ≥/≤ **sum of confirmed payments** (paid) → outstanding balance. All computed server-side.
-- Idempotency key required on recording payments; edits after confirmation are not allowed (cancel + new record).
-
-**Confirmed by the user (2026-10-06):** the platform does **not** collect any user-to-vendor money. Event payments are record-only; collecting them would require a new ADR and explicit user approval.
+- Table `event_payment_notes` (`domain-model.md` §5): `booking_id`, `kind` (`ADVANCE`, `INSTALMENT`, `FINAL`, `OTHER`), `amount` (exact decimal rupees, ADR-0014), `paid_on`, `method` (`CASH`, `UPI`, `BANK_TRANSFER`, `CARD`, `CHEQUE`, `OTHER`), `note`.
+- **No confirmation, no status, no counter-party involvement**: the user creates, edits and (soft-)deletes notes; edits are audited.
+- ❓ A2: notes are private to the user — vendors do not see them and no notifications are sent.
+- Budget figures (`domain-model.md` §7): committed (Σ agreed amounts of active bookings) vs paid (Σ notes) → outstanding. The listing **starting price** never enters budget figures.
+- Not idempotency-critical (no money moves), but creation uses the standard `Idempotency-Key` support to avoid duplicate notes on retries.
+- No Razorpay, no reconciliation, no refunds.
 
 ## 3. Reconciliation & reporting
 
-- Daily job: compare **all** platform-fee transactions touched in the previous day (PENDING, SUCCESS, EXPIRED, FAILED) and all orders' payments with Razorpay payments/settlements; any captured payment not matched to a SUCCESS transaction, or any mismatch → `REVIEW_REQUIRED` + FINANCE_ADMIN notification.
-- Finance reports (M49/M52) read both domains but present them separately.
+- Daily job driven by **Razorpay's list of captured payments** for the previous day: each is matched by `order_id` to a transaction; any capture not matched to a `SUCCESS` transaction (including late captures on old `EXPIRED` orders), or any amount/currency mismatch → `REVIEW_REQUIRED` + FINANCE_ADMIN notification. PENDING transactions older than 15 min are also polled.
+- Finance reports (M49/M52) cover platform fees; event payment notes are user-private (❓A2) and appear only in aggregate, anonymised statistics if at all.
 
 ## 4. Security checklist
 

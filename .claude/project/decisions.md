@@ -24,5 +24,5 @@ Rules:
 | [ADR-0011](decisions/ADR-0011-node-and-package-manager.md) | Node.js 24 LTS and npm | Accepted | 2026-10-06 |
 | [ADR-0012](decisions/ADR-0012-environments-and-firebase-config.md) | Environments: staging and prod | Accepted | 2026-10-06 |
 | [ADR-0013](decisions/ADR-0013-pagination.md) | Pagination: cursor by default, offset for admin tables | Accepted | 2026-10-06 |
-| [ADR-0014](decisions/ADR-0014-money-representation.md) | Money: rupees with 2 decimals — storage type (exact decimal vs double) deferred to M2 | Proposed (deferred to M2) | 2026-10-06 |
+| [ADR-0014](decisions/ADR-0014-money-representation.md) | Money: exact decimal rupees — numeric(12,2), API decimal string | Accepted | 2026-10-06 |
 | [ADR-0015](decisions/ADR-0015-backend-foundation-placement.md) | Backend/database foundation built in M3 | Accepted | 2026-10-06 |

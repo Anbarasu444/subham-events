@@ -16,7 +16,7 @@
 | Platform user | PostgreSQL `users` (`firebase_uid` unique) | Created on first successful `/auth/session` |
 | App role | PostgreSQL `user_roles` (`USER`, `VENDOR`) | A person may be both USER and VENDOR with the same identity |
 | Admin account + sub-role | PostgreSQL `admin_users` (username + argon2id password hash; `role`: `SUPER_ADMIN`, `MARKETPLACE_ADMIN`, `FINANCE_ADMIN`, `SUPPORT_ADMIN`, `CONTENT_ADMIN`) | Separate from `users`; no Firebase; created only by a SUPER_ADMIN (or the bootstrap CLI); never self-service |
-| Account status | `users.status` (`ACTIVE`, `SUSPENDED`, `DELETION_REQUESTED`, `DELETED`) | Checked on every request |
+| Account status | `users.status` (`ACTIVE`, `SUSPENDED`, `DELETED`) — R11: deletion only marks the account | Checked on every request |
 
 Role resolution:
 - User App calls are resolved against `USER` (auto-granted on first sign-in).
