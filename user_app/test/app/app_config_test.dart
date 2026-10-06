@@ -18,4 +18,14 @@ void main() {
     // Tests run without --dart-define, so the define is empty.
     expect(() => AppConfig.fromEnvironment(Flavor.staging), throwsStateError);
   });
+
+  test('withVersion replaces the placeholder version', () {
+    const config = AppConfig(
+      flavor: Flavor.staging,
+      apiBaseUrl: 'http://localhost:3000',
+      appVersion: '0.0.0',
+      buildNumber: '0',
+    );
+    expect(config.withVersion('1.0.0', '7').clientHeader, 'user_app/1.0.0+7');
+  });
 }

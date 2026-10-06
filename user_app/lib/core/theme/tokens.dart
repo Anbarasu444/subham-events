@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 /// Design tokens (architecture/flutter.md §11). Widgets read these through
 /// the theme; never hard-code colours, spacing or durations.
 abstract final class AppColors {
-  /// Brand seed for the Material 3 colour scheme (light and dark).
-  static const seed = Color(0xFF8E3B5F);
+  /// Brand colour (user, 2026-10-06 — may change when branding exists).
+  /// Seeds the Material 3 scheme; the generated `primary` tones keep text
+  /// contrast, so use `colorScheme.primary` for text/buttons, not [brand].
+  /// Fails WCAG contrast for text on white (≈2.3:1): splash and theme seed only.
+  static const brand = Color(0xFFFF7E7E);
+  static const seed = brand;
   static const success = Color(0xFF2E7D32);
   static const warning = Color(0xFFB26A00);
 }
@@ -37,4 +41,7 @@ abstract final class AppDurations {
 abstract final class AppSizes {
   /// Minimum touch target (accessibility).
   static const minTouchTarget = 48.0;
+
+  /// Large decorative icon on full-screen messages.
+  static const heroIcon = 64.0;
 }

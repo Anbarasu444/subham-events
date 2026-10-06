@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **DRAFT** — becomes CONFIRMED when the user issues `START MILESTONE M4` |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M4` on 2026-10-06 |
 | Phase | User App |
 | Depends on | M3 COMPLETED and approved (`APPROVE MILESTONE M3`) |
 | Primary owner agent | user-app-manager (ui-manager, security-manager, performance-manager reviewers) |
@@ -72,3 +72,5 @@ Native splash assets/config, bootstrap pipeline, CrashReporter interface, FreeRA
 |---|---|---|
 | 2026-10-06 | Initial DRAFT created at the M3 approval gate | CLAUDE.md Rule 4 |
 | 2026-10-06 | Open questions answered before START: placeholder logo, theme colour `#FF7E7E` (added as in-scope item 9), packages approved, Android build + DB setup confirmed working | User |
+| 2026-10-06 | CONFIRMED by `START MILESTONE M4` | User |
+| 2026-10-06 | Implementation notes: FreeRASP integrated but disabled until the user supplies the watcher mail and signing identities (GI-14; no address invented); first screen fades in (UI review); bootstrap step order config → app-version → runtime-protection. | M4 implementation |

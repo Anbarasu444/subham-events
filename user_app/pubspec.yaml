@@ -39,6 +39,9 @@ dependencies:
   encrypted_shared_preferences: ^3.0.1
   flutter_cache_manager: ^3.4.5
   cached_network_image: ^4.0.3
+  flutter_native_splash: ^2.4.8
+  package_info_plus: ^10.2.2
+  freerasp: ^8.2.4
 
 dev_dependencies:
   flutter_test:
@@ -93,3 +96,14 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Native splash (M4). Brand colour #FF7E7E (user, 2026-10-06); no logo yet,
+# so the splash is colour-only (Android 12+ shows the launcher icon).
+# Regenerate after changes: dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#FF7E7E"
+  color_dark: "#3A1F1F"
+  android_12:
+    color: "#FF7E7E"
+    color_dark: "#3A1F1F"
+  web: false

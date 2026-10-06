@@ -5,8 +5,9 @@ import '../../../../app/config/app_config.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../../../core/theme/tokens.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/centered_scrollable.dart';
 
-/// Temporary start screen until splash (M4) and main navigation (M6) exist.
+/// Temporary start screen until the main navigation shell exists (M6).
 class HomePlaceholderView extends StatelessWidget {
   const HomePlaceholderView({super.key});
 
@@ -16,15 +17,14 @@ class HomePlaceholderView extends StatelessWidget {
     final theme = Theme.of(context);
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+        child: CenteredScrollable(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Icon(
                 Icons.celebration_outlined,
-                size: 64,
+                size: AppSizes.heroIcon,
                 color: theme.colorScheme.primary,
               ),
               const SizedBox(height: AppSpacing.md),

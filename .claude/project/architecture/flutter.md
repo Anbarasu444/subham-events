@@ -140,26 +140,30 @@ Stale-data policy: repositories return cached data as `Content(isStale: true)` i
 
 Android product flavors (`staging`, `prod`; `applicationIdSuffix` `.stg`); **iOS native schemes/configurations are added in M5** together with the per-flavor Firebase plist — until then iOS runs with `-t lib/main_staging.dart --dart-define-from-file=…`. Values come from `--dart-define-from-file` (non-secret only). See `environments.md`.
 
-## 9. Bootstrap order (M4 implements)
+## 9. Bootstrap order (implemented in M4)
 
-1. `WidgetsFlutterBinding.ensureInitialized()`; keep native splash (`flutter_native_splash.preserve`).
-2. Error handlers (`FlutterError.onError`, `PlatformDispatcher.onError`) → crash reporting.
-3. `Firebase.initializeApp(options: flavor options)`.
-4. FreeRASP start (non-blocking; threat callbacks routed to `SecurityService`).
-5. Open ObjectBox store; init SecureStore.
-6. Register `InitialBinding` services.
-7. Resolve auth state (cached Firebase user) → initial route; remove splash.
+`bootstrap(flavor)` → keep native splash (`FlutterNativeSplash.preserve`) → install error handlers (`FlutterError.onError`, `PlatformDispatcher.onError` → `CrashReporter`) → `Bootstrapper` runs ordered, timed steps:
+
+| Step | Critical | Failure behaviour |
+|---|---|---|
+| `config` (`AppConfig.fromEnvironment`) | Yes | Start-failure screen with retry |
+| `app-version` (`package_info_plus` → `X-Client`) | No | Reported; app starts with placeholder version |
+| `runtime-protection` (FreeRASP, observe mode) | No | Reported; app starts unprotected |
+
+Then `runApp(App(initialRoute: StartupRouter().initialRoute()))`, native splash removed after the first frame, first screen fades in (250 ms). M5 adds Firebase/Crashlytics/auth steps; M6 extends `StartupRouter`. Step timings are logged on every start.
 Budget: cold start to first frame ≤ 2.5 s on a mid-range device (`quality.md`).
 
-## 10. FreeRASP placement
+## 10. FreeRASP placement (implemented in M4)
 
-- Initialized in bootstrap; callbacks go to `core/security/security_service.dart`.
-- Policy (defense-in-depth, never the only control): dev/staging → log only; prod → root/jailbreak/hook/tamper detected ⇒ log + report to backend (M22) and block payment-related screens; debugger/emulator ⇒ log only. Final reactions per threat are confirmed in M22 (User App Hardening).
-- Signing certificate hashes and team IDs are configuration, not secrets, but are kept per flavor.
+- `core/security/runtime_protection.dart`, started once per process from bootstrap; callbacks only **log** (observe mode) — reactions decided in M22.
+- Configuration via `--dart-define`: `TALSEC_WATCHER_MAIL`, `TALSEC_SIGNING_CERT_HASHES` (base64 SHA-256, comma-separated), `TALSEC_IOS_TEAM_ID`. Without them FreeRASP stays off (logged; reported as an error in prod builds).
+- FreeRASP sends threat reports (threat type, app id, device identifiers/model, OS) to Talsec — a third-party data flow that needs an ADR and privacy-policy / store-label disclosure before any distribution (known issue GI-14).
+- Debug/simulator builds trigger `onDebug`/`onSimulator`/`onDevMode`; M22 must gate reactions per flavor.
 
 ## 11. Theming / design tokens
 
-- `core/theme/tokens.dart`: color palette (light + dark), spacing scale (4-pt grid: 4, 8, 12, 16, 24, 32), radii, elevation, typography scale, motion durations (150/250/350 ms).
+- `core/theme/tokens.dart`: brand colour `#FF7E7E` (seed only — fails text contrast on white; use `colorScheme.primary` for text/buttons), spacing scale (4-pt grid), radii, sizes (touch target 48, hero icon 64), motion durations (150/250/350 ms). Elevation/typography tokens are added when the first screens need them.
+- Native splash (`flutter_native_splash`, config in `pubspec.yaml`): colour-only `#FF7E7E` (light) / `#3A1F1F` (dark) until a logo exists.
 - `ThemeData` built from tokens with Material 3; widgets reference `Theme.of(context)` / token extensions, never hard-coded values.
 - Accessibility: minimum touch target 48×48 dp, text scaling up to 200% without clipping, contrast ≥ 4.5:1 for body text.
 - Vendor app uses the same token structure with its own brand accent (decided at M24).

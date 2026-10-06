@@ -9,7 +9,7 @@ Each milestone has (or must have, before START) a spec in `milestones/` with sco
 | M1 | Global Architecture | Architecture | [M1](milestones/M1-global-architecture.md) (COMPLETED 2026-10-06) |
 | M2 | Global Domain Model | Architecture | [M2](milestones/M2-global-domain-model.md) (COMPLETED 2026-10-06) |
 | M3 | User App Foundation | User App | [M3](milestones/M3-user-app-foundation.md) (COMPLETED 2026-10-06) |
-| M4 | Splash & App Bootstrap | User App | [M4](milestones/M4-splash-app-bootstrap.md) (DRAFT) |
+| M4 | Splash & App Bootstrap | User App | [M4](milestones/M4-splash-app-bootstrap.md) (CONFIRMED) |
 | M5 | Authentication | User App | — |
 | M6 | Main Navigation | User App | — |
 | M7 | Home Dashboard | User App | — |

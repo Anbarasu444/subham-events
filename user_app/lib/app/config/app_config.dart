@@ -27,14 +27,9 @@ class AppConfig {
     return AppConfig(
       flavor: flavor,
       apiBaseUrl: apiBaseUrl,
-      appVersion: const String.fromEnvironment(
-        'FLUTTER_BUILD_NAME',
-        defaultValue: '0.0.0',
-      ),
-      buildNumber: const String.fromEnvironment(
-        'FLUTTER_BUILD_NUMBER',
-        defaultValue: '0',
-      ),
+      // Replaced with the installed app's version during start-up (M4).
+      appVersion: '0.0.0',
+      buildNumber: '0',
     );
   }
 
@@ -45,6 +40,13 @@ class AppConfig {
   final String apiBaseUrl;
   final String appVersion;
   final String buildNumber;
+
+  AppConfig withVersion(String version, String build) => AppConfig(
+    flavor: flavor,
+    apiBaseUrl: apiBaseUrl,
+    appVersion: version,
+    buildNumber: build,
+  );
 
   bool get isProd => flavor == Flavor.prod;
 

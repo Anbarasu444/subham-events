@@ -1,5 +1,9 @@
 PODS:
   - Flutter (1.0.0)
+  - freerasp (1.0.0):
+    - Flutter
+  - package_info_plus (0.4.5):
+    - Flutter
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -9,12 +13,18 @@ PODS:
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
+  - freerasp (from `.symlinks/plugins/freerasp/ios`)
+  - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
+  freerasp:
+    :path: ".symlinks/plugins/freerasp/ios"
+  package_info_plus:
+    :path: ".symlinks/plugins/package_info_plus/ios"
   shared_preferences_foundation:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   sqflite_darwin:
@@ -22,6 +32,8 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  freerasp: 39a086c6803f4cdab41ddc1eece3109c20e60170
+  package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
   shared_preferences_foundation: 5086985c1d43c5ba4d5e69a4e8083a389e2909e6
   sqflite_darwin: 5a7236e3b501866c1c9befc6771dfd73ffb8702d
 

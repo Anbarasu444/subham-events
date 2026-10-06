@@ -30,7 +30,8 @@ class AppButton extends StatelessWidget {
         : Text(label);
     return Semantics(
       button: true,
-      label: label,
+      enabled: onTap != null,
+      label: isBusy ? '$label, loading' : label,
       excludeSemantics: true,
       child: switch (variant) {
         AppButtonVariant.primary =>
