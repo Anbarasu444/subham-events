@@ -299,5 +299,5 @@ Listing starting prices appear only in marketplace screens, never in budget figu
 | R6 Platform fee | ⏸ HOLD — client confirmation | M29 (before M28/M29) |
 | R10 Vendor accounts | ⏸ HOLD — client confirmation | M26 (before vendor onboarding) |
 | R11 final deletion policy | Interim rule in force for development; final policy to be discussed | M21 (before account deletion is built); M72 at the latest |
-| A1–A12 | ❓ awaiting confirmation | M2 (answer at review) |
-| O1, O2 | ❓ proposed defaults | M8 (O1), M12 (O2) |
+| A1–A12 | ❓ **Not confirmed at M2 approval** — working assumptions; each must be confirmed (or changed) by the user before its owner milestone starts: A1, A11 → M11; A2, A3 → M16; A4, A5, A12 → M20; A6 → M19; A7 → M15; A8 → M21; A9 → M14 (and M32); A10 → M13 | As listed |
+| O1, O2 | ❓ proposed defaults, not confirmed | M8 (O1), M12 (O2) |

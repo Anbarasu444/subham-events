@@ -20,8 +20,14 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-06 | M2 Global Domain Model | Open question 12 answered | ADR-0014 Accepted: exact decimal rupees (`numeric(12,2)`, API `"10.10"`); money sections of api-contracts, database-schema, payment-architecture updated | N/A | Open questions 1–11 awaiting answers | User decision |
 | 2026-10-06 | M2 Global Domain Model | Set IN_REVIEW | Domain model (34 entities, ERD, 16 state machines, invariants, budget model, data lifecycle), logical schema (Part C), notification matrix and payment architecture updated, M3 spec DRAFT. R3/R6/R10 on hold → deferred to M15/M28-29/M26 | N/A (documentation); security + payment reviews PASS WITH FINDINGS, all findings addressed; performance/notification/documentation done | Assumptions A1–A12, O1, O2 await user confirmation | Awaiting `APPROVE MILESTONE M2` |
 | 2026-10-06 | M2 Global Domain Model | R11 clarified | Keep-all-data deletion rule is interim for development; final policy deferred (owner M21, M72 release blocker); docs updated | N/A | A1–A12, O1, O2 still awaiting confirmation | User instruction |
+| 2026-10-06 | M2 Global Domain Model | APPROVE MILESTONE M2 | Status → **COMPLETED**. Assumptions A1–A12, O1, O2 not confirmed — carried forward with owner milestones. Next milestone M3 User App Foundation set to NOT_STARTED (spec DRAFT exists) | Documentation milestone; reviews done | — | `APPROVE MILESTONE M2` issued by user |
+| 2026-10-06 | M3 User App Foundation | START MILESTONE M3 | Validation passed (M2 COMPLETED and approved; spec exists with open questions answered; no blockers; User App phase). Spec → CONFIRMED; status → IN_PROGRESS | — | Package installs need user permission | `START MILESTONE M3` issued by user |
+| 2026-10-06 | M3 User App Foundation | Set IN_REVIEW | Backend NestJS 11 foundation (config, envelope, errors, logging, health, money, TypeORM migrations); local DB setup script; user_app skeleton (flavors, Dio client, errors/state, theme, widgets, storage, diagnostics) | Backend 33 unit + 9 e2e, Flutter 32 tests, analyze/lint clean; iOS simulator build + launch OK; code + security reviews PASS WITH FINDINGS, fixed | Android build blocked by Gradle download (GI-6); DB migration run needs user (AC-6) | Awaiting `APPROVE MILESTONE M3` |
+| 2026-10-06 | M3 User App Foundation | APPROVE MILESTONE M3 | Status → **COMPLETED**. Android build (GI-6) and DB migration run (GI-13) not confirmed — carried as open checks. M4 Splash & App Bootstrap set to NOT_STARTED; spec DRAFT created | See M3 IN_REVIEW entry | GI-6, GI-13 | `APPROVE MILESTONE M3` issued by user |
 
 ## Status summary
 - Governance initialization: **complete**.
-- M1 Global Architecture: **COMPLETED** (approved 2026-10-06; user commits the files personally).
-- Active milestone: **M2 — Global Domain Model** — IN_REVIEW (awaiting assumption confirmation and `APPROVE MILESTONE M2`).
+- M1 Global Architecture: **COMPLETED** (2026-10-06).
+- M2 Global Domain Model: **COMPLETED** (2026-10-06).
+- M3 User App Foundation: **COMPLETED** (2026-10-06; user commits the files personally).
+- Next milestone: **M4 — Splash & App Bootstrap** (NOT_STARTED, spec DRAFT; awaiting `START MILESTONE M4`).

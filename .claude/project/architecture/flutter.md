@@ -20,6 +20,8 @@ lib/
     auth/                 # AuthService (Firebase), token provider, session state
     storage/              # SecureStore (encrypted prefs), ObjectBox store, cache manager config
     error/                # Failure types, Result<T>
+    state/                # ViewState<T>
+    money/                # decimal-rupee Money (ADR-0014)
     security/             # FreeRASP setup + threat handlers
     notifications/        # FCM service, deep-link router (M18)
     theme/                # design tokens, ThemeData, text styles
@@ -64,7 +66,7 @@ sealed class ViewState<T> { }
 class Loading<T> extends ViewState<T> {}
 class Content<T> extends ViewState<T> { final T data; final bool isStale; }
 class Empty<T>   extends ViewState<T> {}
-class Error<T>   extends ViewState<T> { final Failure failure; }   // carries retry ability
+class Failed<T>  extends ViewState<T> { final Failure failure; }   // carries retry ability (not "Error": avoids shadowing dart:core Error)
 ```
 
 `AsyncStateView` (core widget) renders loading skeleton / empty / error-with-retry / content consistently (CLAUDE.md §19).
@@ -105,7 +107,7 @@ Interceptor order:
 2. `AuthInterceptor` — attaches Firebase ID token when signed in; single-flight forced refresh + one replay on `401 AUTH_TOKEN_EXPIRED` (see `identity-access.md` §5)
 3. `RetryInterceptor` — retries **only idempotent** requests (GET, PUT/DELETE, or requests carrying an `Idempotency-Key`) on network errors, 502/503/504, max 2 retries, exponential backoff with jitter (0.5 s, 1.5 s); honours `Retry-After` on 429
 4. `LoggingInterceptor` — dev/staging only; redacts `Authorization`, phone numbers, tokens
-5. `ErrorInterceptor` — converts `DioException` to `ApiException`
+5. Error mapping — `ApiClient` catches `DioException` and maps it once via `core/network/error_mapper.dart` (no separate interceptor)
 
 Pagination helper understands both cursor (`meta.page.nextCursor`) and offset meta (ADR-0013).
 
@@ -122,7 +124,7 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 | Store | Use for | Never for |
 |---|---|---|
 | `encrypted_shared_preferences` (`SecureStore`) | Small sensitive values: cached minimal profile, onboarding flags, last FCM token, locale | Large data, lists |
-| ObjectBox | Structured read caches (e.g. categories, my events list, checklist snapshot) with `cachedAt` for TTL; offline read of recently viewed data | Authoritative payment/booking/permission state; queued writes (no offline writes until a milestone specifies them) |
+| ObjectBox (added by the first milestone that caches structured data — not in M3) | Structured read caches (e.g. categories, my events list, checklist snapshot) with `cachedAt` for TTL; offline read of recently viewed data | Authoritative payment/booking/permission state; queued writes (no offline writes until a milestone specifies them) |
 | `flutter_cache_manager` / `cached_network_image` | Remote images/media with size-appropriate variants (`media-and-deep-links.md`) | Private media URLs beyond their signed-URL TTL |
 
 Firebase Auth persists its own session (platform keychain/keystore). Sign-out clears SecureStore user keys, ObjectBox user boxes and image cache entries for private media.
@@ -136,7 +138,7 @@ Stale-data policy: repositories return cached data as `Content(isStale: true)` i
 | staging | `main_staging.dart` | `<app>-staging` | from define file: local backend now (`config/staging.local.json`, git-ignored) / hosted staging later (`config/staging.json`) | test key id |
 | prod | `main_prod.dart` | `<app>-prod` | prod API (`config/prod.json`) | live key id |
 
-Android product flavors + iOS schemes/configurations; `applicationIdSuffix` `.stg` for staging so both builds coexist. Values come from `--dart-define-from-file` (non-secret only). See `environments.md`.
+Android product flavors (`staging`, `prod`; `applicationIdSuffix` `.stg`); **iOS native schemes/configurations are added in M5** together with the per-flavor Firebase plist — until then iOS runs with `-t lib/main_staging.dart --dart-define-from-file=…`. Values come from `--dart-define-from-file` (non-secret only). See `environments.md`.
 
 ## 9. Bootstrap order (M4 implements)
 

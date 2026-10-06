@@ -98,7 +98,11 @@
 
 # Part B — Implemented schema
 
-_No tables yet. First migration expected in M3 (foundation: `jobs`, `idempotency_keys` if needed, `audit_logs`) / M5 (`users`, roles)._
+| Migration | Milestone | Change |
+|---|---|---|
+| `1791279600000-Baseline` | M3 | No schema change; proves the TypeORM migration pipeline and creates the `typeorm_migrations` bookkeeping table |
+
+Local databases `event_planner_dev` / `event_planner_test` and roles `migrator` / `app_rw` are created by `database/scripts/setup-local.sql` (run by the user). First domain tables (`users`, `user_roles`, `audit_logs`, `jobs`, `notifications`) expected in M5.
 
 # Part C — Logical schema (planned, M2)
 

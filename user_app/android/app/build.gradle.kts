@@ -29,6 +29,22 @@ android {
         versionName = flutter.versionName
     }
 
+    // Build flavors (ADR-0012). Package ID stays com.example.user_app until the
+    // user chooses the final one (known issue GI-5).
+    flavorDimensions += "environment"
+    productFlavors {
+        create("staging") {
+            dimension = "environment"
+            applicationIdSuffix = ".stg"
+            versionNameSuffix = "-stg"
+            resValue("string", "app_name", "Event Planner STG")
+        }
+        create("prod") {
+            dimension = "environment"
+            resValue("string", "app_name", "Event Planner")
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

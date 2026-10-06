@@ -183,4 +183,16 @@ Each endpoint added in Part B uses:
 
 # Part B — Endpoint catalogue
 
-_None yet. First endpoints expected in M3 (`/health/*`) and M5 (`/auth/*`)._
+### GET /api/v1/health/live
+- Milestone: M3 · Auth: Public · Idempotent: n/a
+- Response 200: `{ "data": { "status": "ok" }, "meta": { "requestId": "…" } }`
+- Errors: none expected (process liveness only; no dependency checks).
+- Authorization: none. Notification side effects: none. Audit: none.
+
+### GET /api/v1/health/ready
+- Milestone: M3 · Auth: Public · Idempotent: n/a
+- Response 200: `{ "data": { "status": "ok", "checks": { "database": "up" } }, "meta": { "requestId": "…" } }`
+- Errors: `503 SERVICE_UNAVAILABLE` when PostgreSQL does not answer `SELECT 1` within 2 s (the API keeps running and reconnects in the background).
+- Authorization: none. Notification side effects: none. Audit: none.
+
+All responses carry `X-Request-Id` (incoming value echoed if it matches `[A-Za-z0-9-]{8,128}`, otherwise a new UUID).
