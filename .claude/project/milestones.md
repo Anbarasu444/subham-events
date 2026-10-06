@@ -1,87 +1,83 @@
 # Milestones
 
-## Governance
-M0 Project Governance
-M1 Global Architecture
-M2 Global Domain Model
+There is **no M0**. Governance setup is project initialization (see `progress.md`). The roadmap starts at M1.
 
-## User App
-M3 Foundation
-M4 Splash/Bootstrap
-M5 Authentication
-M6 Main Navigation
-M7 Home Dashboard
-M8 Event Management
-M9 Checklist
-M10 Event Details
-M11 Budget
-M12 Vendor Discovery
-M13 Vendor Details
-M14 Wishlist/Contact/Enquiry
-M15 Quotations/Booking
-M16 Event Payments
-M17 Reminders
-M18 Notification Center/FCM
-M19 Invitations
-M20 Reviews
-M21 Profile/Menu
-M22 Hardening
-M23 USER APP FREEZE
+Each milestone has (or must have, before START) a spec in `milestones/` with scope and acceptance criteria — see `milestones/_TEMPLATE.md` and CLAUDE.md Rule 8. Backend/database work happens inside whichever milestone needs it (CLAUDE.md Rule 7).
 
-## Vendor App
-M24 Foundation
-M25 Authentication
-M26 Profile
-M27 Admin Categories
-M28 Listing Creation
-M29 Platform Fee/Razorpay
-M30 Submission
-M31 Approval Status
-M32 Enquiries
-M33 Quotations
-M34 Bookings
-M35 Payments
-M36 Notifications
-M37 Reviews
-M38 Hardening
-M39 VENDOR APP FREEZE
+| ID | Name | Phase | Spec |
+|---|---|---|---|
+| M1 | Global Architecture | Architecture | [M1](milestones/M1-global-architecture.md) (DRAFT) |
+| M2 | Global Domain Model | Architecture | — |
+| M3 | User App Foundation | User App | — |
+| M4 | Splash & App Bootstrap | User App | — |
+| M5 | Authentication | User App | — |
+| M6 | Main Navigation | User App | — |
+| M7 | Home Dashboard | User App | — |
+| M8 | Event Management | User App | — |
+| M9 | Checklist | User App | — |
+| M10 | Event Details | User App | — |
+| M11 | Budget Management | User App | — |
+| M12 | Vendor Discovery | User App | — |
+| M13 | Vendor Details | User App | — |
+| M14 | Wishlist / Contact / Enquiry | User App | — |
+| M15 | Quotations & Booking | User App | — |
+| M16 | Event Payments | User App | — |
+| M17 | Reminders | User App | — |
+| M18 | Notification Center + FCM | User App | — |
+| M19 | Digital Invitations | User App | — |
+| M20 | Reviews | User App | — |
+| M21 | User Profile / Menu | User App | — |
+| M22 | User App Hardening | User App | — |
+| M23 | USER APP FREEZE | User App | — |
+| M24 | Vendor Foundation | Vendor App | — |
+| M25 | Vendor Authentication | Vendor App | — |
+| M26 | Vendor Profile | Vendor App | — |
+| M27 | Admin Category Discovery | Vendor App | — |
+| M28 | Vendor Listing Creation | Vendor App | — |
+| M29 | Platform Fee (Razorpay) | Vendor App | — |
+| M30 | Category Submission | Vendor App | — |
+| M31 | Vendor Approval Status | Vendor App | — |
+| M32 | Vendor Enquiries | Vendor App | — |
+| M33 | Vendor Quotations | Vendor App | — |
+| M34 | Vendor Bookings | Vendor App | — |
+| M35 | Vendor Payment Tracking | Vendor App | — |
+| M36 | Vendor Notifications | Vendor App | — |
+| M37 | Vendor Reviews | Vendor App | — |
+| M38 | Vendor Hardening | Vendor App | — |
+| M39 | VENDOR APP FREEZE | Vendor App | — |
+| M40 | Admin CMS Foundation | Admin CMS | — |
+| M41 | Admin Dashboard | Admin CMS | — |
+| M42 | Category Management | Admin CMS | — |
+| M43 | Platform Fee Management | Admin CMS | — |
+| M44 | Vendor Application Review | Admin CMS | — |
+| M45 | Vendor Approval / Rejection | Admin CMS | — |
+| M46 | User Management | Admin CMS | — |
+| M47 | Event Management | Admin CMS | — |
+| M48 | Booking Management | Admin CMS | — |
+| M49 | Payment Management | Admin CMS | — |
+| M50 | Notification Management | Admin CMS | — |
+| M51 | Content Management | Admin CMS | — |
+| M52 | Reports & Analytics | Admin CMS | — |
+| M53 | Admin Hardening | Admin CMS | — |
+| M54 | ADMIN CMS FREEZE | Admin CMS | — |
+| M55 | User ↔ Vendor Integration | Integration | — |
+| M56 | Vendor ↔ Admin Integration | Integration | — |
+| M57 | User ↔ Admin Integration | Integration | — |
+| M58 | Notification Integration | Integration | — |
+| M59 | Payment Integration | Integration | — |
+| M60 | Media / Storage Integration | Integration | — |
+| M61 | End-to-End Booking Flow | Integration | — |
+| M62 | End-to-End Event Flow | Integration | — |
+| M63 | End-to-End Vendor Flow | Integration | — |
+| M64 | Full QA | Production | — |
+| M65 | Security Audit | Production | — |
+| M66 | Performance Audit | Production | — |
+| M67 | Database Optimization | Production | — |
+| M68 | API Optimization | Production | — |
+| M69 | Notification Reliability | Production | — |
+| M70 | Payment Reliability | Production | — |
+| M71 | Disaster / Recovery Testing | Production | — |
+| M72 | Production Readiness | Production | — |
+| M73 | Release | Production | — |
 
-## Admin CMS (Next.js + shadcn/ui)
-M40 Foundation
-M41 Dashboard
-M42 Category Management
-M43 Platform Fees
-M44 Vendor Review
-M45 Approval/Rejection
-M46 Users
-M47 Events
-M48 Bookings
-M49 Payments
-M50 Notifications
-M51 Content
-M52 Reports
-M53 Hardening
-M54 ADMIN CMS FREEZE
-
-## Integration
-M55 User-Vendor
-M56 Vendor-Admin
-M57 User-Admin
-M58 Notification Integration
-M59 Payment Integration
-M60 Media Integration
-M61 Booking E2E
-M62 Event E2E
-M63 Vendor E2E
-
-## Production
-M64 Full QA
-M65 Security Audit
-M66 Performance Audit
-M67 DB Optimization
-M68 API Optimization
-M69 Notification Reliability
-M70 Payment Reliability
-M71 Recovery Testing
-M72 Production Readiness
-M73 Release
+Names are normalized to the root `CLAUDE.md` naming (governance initialization, 2026-10-06).
