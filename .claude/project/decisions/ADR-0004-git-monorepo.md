@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Proposed** — strategy defined; execution needs explicit user permission (known issue GI-2) |
+| Status | **Accepted** — ratified by user 2026-10-06; executed (GI-2 resolved, root monorepo on `main`) |
 | Date | 2026-10-06 |
 | Milestone | Governance initialization |
 | Deciders | User (ratifies) · Claude (proposes) |

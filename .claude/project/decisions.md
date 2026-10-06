@@ -13,6 +13,6 @@ Rules:
 |---|---|---|---|
 | [ADR-0001](decisions/ADR-0001-governance-model.md) | Governance model: root CLAUDE.md authoritative, no M0, specs before START | Accepted | 2026-10-06 |
 | [ADR-0002](decisions/ADR-0002-cross-layer-milestone-scope.md) | Milestones are vertical slices (cross-layer rule) | Accepted | 2026-10-06 |
-| [ADR-0003](decisions/ADR-0003-nestjs-version.md) | NestJS major version: 11.x | Proposed | 2026-10-06 |
-| [ADR-0004](decisions/ADR-0004-git-monorepo.md) | Git strategy: single root monorepo | Proposed | 2026-10-06 |
+| [ADR-0003](decisions/ADR-0003-nestjs-version.md) | NestJS major version: 11.x | Accepted | 2026-10-06 |
+| [ADR-0004](decisions/ADR-0004-git-monorepo.md) | Git strategy: single root monorepo | Accepted | 2026-10-06 |
 | [ADR-0005](decisions/ADR-0005-claude-code-configuration.md) | Claude Code configuration: skills/agents format and settings.json | Accepted | 2026-10-06 |

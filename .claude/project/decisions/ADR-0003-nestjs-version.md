@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Proposed** — awaiting user ratification (listed for ratification in M1, open question AC-10) |
+| Status | **Accepted** — ratified by user 2026-10-06 (upgrade to 11.x executes when backend work first begins) |
 | Date | 2026-10-06 |
 | Milestone | Governance initialization (ratify in M1; execute when backend work first begins) |
 | Deciders | User (ratifies) · Claude (proposes) |
