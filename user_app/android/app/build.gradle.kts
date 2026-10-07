@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("com.google.gms.google-services")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -27,6 +28,11 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    // Flavor app names are set with resValue (disabled by default in AGP 9).
+    buildFeatures {
+        resValues = true
     }
 
     // Build flavors (ADR-0012). Package ID stays com.example.user_app until the

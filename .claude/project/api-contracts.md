@@ -196,3 +196,23 @@ Each endpoint added in Part B uses:
 - Authorization: none. Notification side effects: none. Audit: none.
 
 All responses carry `X-Request-Id` (incoming value echoed if it matches `[A-Za-z0-9-]{8,128}`, otherwise a new UUID).
+
+### POST /api/v1/auth/session
+- Milestone: M5 · Auth: Bearer Firebase ID token (revocation checked); the platform user may not exist yet · Idempotent: naturally (repeat calls return the same user)
+- Request: no body. Identity comes only from the verified token.
+- Response 200: `{ "data": { "user": { "id", "displayName", "phone", "email", "status", "roles": ["USER"], "createdAt" }, "isNewUser": true } }`
+- Errors: 401 `AUTH_REQUIRED` / `AUTH_TOKEN_EXPIRED` / `AUTH_TOKEN_INVALID` / `AUTH_TOKEN_REVOKED`; 403 `ACCOUNT_SUSPENDED` / `ACCOUNT_DELETED`; 429 `RATE_LIMITED` (60/min per IP, checked before token verification); 503 `AUTH_PROVIDER_UNAVAILABLE`.
+- Rules: first call creates the user (role `USER`); email stored only when `email_verified`; phone refreshed from the token.
+- Side effects: audit `AUTH_SIGN_UP` (first) or `AUTH_SIGN_IN`; notification N1 `WELCOME` (in-app only, first call).
+
+### POST /api/v1/auth/sign-out
+- Milestone: M5 · Auth: Bearer (registered user) · Response: 204
+- Revokes the user's Firebase refresh tokens (all devices); routes without revocation checks accept the current ID token until it expires (≤ 1 h).
+- Errors: 401/403 as above; 429 `RATE_LIMITED`; 503 `AUTH_PROVIDER_UNAVAILABLE`. Audit: `AUTH_SIGN_OUT`.
+
+### GET /api/v1/me
+- Milestone: M5 · Auth: Bearer (registered user)
+- Response 200: `{ "data": { "id", "displayName", "phone", "email", "status", "roles", "createdAt" } }`
+- Errors: 401 `AUTH_REQUIRED` (no token, or the identity has no platform user yet — the app then calls `/auth/session`), other auth errors as above.
+
+All non-public routes are protected by default (global guard); only `/health/*` is public.

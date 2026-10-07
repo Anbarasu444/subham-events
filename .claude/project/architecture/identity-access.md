@@ -112,6 +112,13 @@ sequenceDiagram
 - **No two-factor verification at launch** (user decision 2026-10-06; accepted risk, revisit in M53/M65).
 - All admin requests are audited with admin id, sub-role, request id and IP; login successes and failures are audited.
 
+## 7a. Implementation notes (M5)
+
+- Rate limits are checked inside the global auth guard **before** token verification (per IP; 60/min on `/auth/*` because mobile carrier NAT shares IPs). Requires `trust proxy` when hosted (GI-10).
+- The app never signs a user out for temporary problems (offline, 5xx, `AUTH_PROVIDER_UNAVAILABLE`): it keeps the Firebase session and shows "Couldn't reach the server — Try again" (`ProfilePendingSession`). It signs out only for `AUTH_TOKEN_REVOKED/INVALID`, a second expired token, or `ACCOUNT_SUSPENDED/DELETED`.
+- Sign-out revokes refresh tokens on **all devices** — confirmed by the user 2026-10-07 (current ID tokens stay valid ≤ 1 h on routes without revocation checks).
+- No profile data is stored on the device (GI-12).
+
 ## 8. Failure paths summary
 
 | Situation | API response | Client behaviour |

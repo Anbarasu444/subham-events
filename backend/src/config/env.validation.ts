@@ -46,6 +46,11 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsString()
   DATABASE_MIGRATION_URL?: string;
+
+  /** Firebase project used to verify ID tokens (ADR-0012). */
+  @IsOptional()
+  @IsString()
+  FIREBASE_PROJECT_ID?: string;
 }
 
 /**

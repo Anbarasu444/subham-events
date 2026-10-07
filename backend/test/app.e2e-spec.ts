@@ -14,6 +14,10 @@ import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
 import { MoneyDto } from '../src/common/money/money.dto';
 import { DatabaseHealth } from '../src/database/database-health';
+import { Public } from '../src/modules/auth/auth.decorators';
+import { TokenVerifier } from '../src/modules/auth/token-verifier';
+import { UsersService } from '../src/modules/users/users.service';
+import { FakeTokenVerifier } from './fakes';
 
 class FakeDatabaseHealth extends DatabaseHealth {
   up = true;
@@ -32,6 +36,7 @@ class EchoDto {
 }
 
 /** Test-only endpoint to exercise validation and the money DTO end to end. */
+@Public()
 @Controller('__test')
 class EchoController {
   @Post('echo')
@@ -53,6 +58,10 @@ describe('API foundation (e2e)', () => {
     })
       .overrideProvider(DatabaseHealth)
       .useValue(db)
+      .overrideProvider(TokenVerifier)
+      .useValue(new FakeTokenVerifier())
+      .overrideProvider(UsersService)
+      .useValue({ findAccessByFirebaseUid: () => Promise.resolve(null) })
       .compile();
     app = moduleRef.createNestApplication();
     configureApp(app);
@@ -160,5 +169,20 @@ describe('API foundation (e2e)', () => {
       .send(JSON.stringify({ title: 'x'.repeat(1_100_000) }))
       .expect(413);
     expect(res.body.error.code).toBe('PAYLOAD_TOO_LARGE');
+  });
+
+  it('protected routes require a token (global guard)', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/me')
+      .expect(401);
+    expect(res.body.error.code).toBe('AUTH_REQUIRED');
+  });
+
+  it('maps an expired token to AUTH_TOKEN_EXPIRED', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/me')
+      .set('Authorization', 'Bearer fail:EXPIRED')
+      .expect(401);
+    expect(res.body.error.code).toBe('AUTH_TOKEN_EXPIRED');
   });
 });

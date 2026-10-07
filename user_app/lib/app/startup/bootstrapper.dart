@@ -4,11 +4,19 @@ import '../../core/crash/crash_reporter.dart';
 /// shows the start-failure screen; a failing non-critical step is reported and
 /// start-up continues (architecture/flutter.md §9).
 class BootstrapStep {
-  const BootstrapStep(this.name, this.run, {this.critical = false});
+  const BootstrapStep(
+    this.name,
+    this.run, {
+    this.critical = false,
+    this.timeout = const Duration(seconds: 3),
+  });
 
   final String name;
   final Future<void> Function() run;
   final bool critical;
+
+  /// A step must never stall start-up (e.g. slow network): it fails instead.
+  final Duration timeout;
 }
 
 class StepTiming {
@@ -40,7 +48,7 @@ class Bootstrapper {
     for (final step in steps) {
       final watch = Stopwatch()..start();
       try {
-        await step.run();
+        await step.run().timeout(step.timeout);
         timings.add(StepTiming(step.name, watch.elapsed, succeeded: true));
       } catch (error, stack) {
         timings.add(StepTiming(step.name, watch.elapsed, succeeded: false));

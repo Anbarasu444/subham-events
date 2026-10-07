@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:user_app/app/routes/app_routes.dart';
 import 'package:user_app/app/startup/bootstrapper.dart';
@@ -55,5 +57,20 @@ void main() {
 
   test('StartupRouter starts at home until auth and shell exist', () {
     expect(const StartupRouter().initialRoute(), AppRoutes.home);
+  });
+
+  test('a hanging step times out instead of stalling start-up', () async {
+    final order = <String>[];
+    final result = await Bootstrapper([
+      BootstrapStep(
+        'slow-network',
+        () => Completer<void>().future,
+        timeout: const Duration(milliseconds: 20),
+      ),
+      BootstrapStep('next', () async => order.add('next')),
+    ], reporter).run();
+    expect(result.succeeded, isTrue);
+    expect(order, ['next']);
+    expect(reporter.errors.single.error, isA<TimeoutException>());
   });
 }

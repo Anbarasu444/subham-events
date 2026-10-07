@@ -16,7 +16,11 @@ class ApiClient {
   ApiClient(this._dio);
 
   /// Production wiring: base URL, timeouts, headers and interceptors.
-  factory ApiClient.create(AppConfig config, {HttpClientAdapter? adapter}) {
+  factory ApiClient.create(
+    AppConfig config, {
+    HttpClientAdapter? adapter,
+    AuthInterceptor? authInterceptor,
+  }) {
     final dio = Dio(
       BaseOptions(
         baseUrl: '${config.apiBaseUrl}/api/v1',
@@ -33,7 +37,7 @@ class ApiClient {
     if (adapter != null) dio.httpClientAdapter = adapter;
     dio.interceptors.addAll([
       RequestIdInterceptor(),
-      AuthInterceptor(),
+      if (authInterceptor != null) authInterceptor..attach(dio),
       RetryInterceptor(dio),
       if (config.enableHttpLogging) LoggingInterceptor(),
     ]);
@@ -78,6 +82,9 @@ class ApiClient {
   ) async {
     try {
       final response = await request();
+      if (response.statusCode == 204) {
+        return Ok(ApiResponse<T>(data: decode(null)));
+      }
       return Ok(ApiResponse.fromEnvelope(response.data, decode));
     } on DioException catch (e) {
       return Err(mapDioException(e));

@@ -1,0 +1,7 @@
+// Flavor "prod" (ADR-0012). Values must match config/prod/GoogleService-Info.plist.
+FLAVOR=prod
+PRODUCT_BUNDLE_IDENTIFIER=com.example.userApp
+APP_DISPLAY_NAME=Event Planner
+// URL schemes: Google sign-in callback and Firebase phone-auth reCAPTCHA fallback.
+GOOGLE_REVERSED_CLIENT_ID=com.googleusercontent.apps.prod-google-sign-in-not-configured
+FIREBASE_ENCODED_APP_ID=app-1-860575204143-ios-cb2b510e9e9f4544a5d7da

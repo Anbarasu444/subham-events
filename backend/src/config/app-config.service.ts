@@ -25,6 +25,10 @@ export class AppConfigService {
     return this.config.get('LOG_LEVEL', { infer: true });
   }
 
+  get firebaseProjectId(): string | undefined {
+    return this.config.get('FIREBASE_PROJECT_ID', { infer: true }) || undefined;
+  }
+
   get databaseUrl(): string {
     return this.config.get('DATABASE_URL', { infer: true });
   }

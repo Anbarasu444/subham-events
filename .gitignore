@@ -33,11 +33,9 @@ key.properties
 **/*serviceAccount*.json
 **/*-firebase-adminsdk-*.json
 
-# Firebase client config is not secret but is environment-specific.
-# Decision deferred to M1 (see open decisions); kept ignored until then.
-**/google-services.json
-**/GoogleService-Info.plist
-**/firebase_options.dart
+# Firebase client config files (google-services.json, GoogleService-Info.plist,
+# firebase_options*.dart) are public identifiers and ARE committed
+# (user decision 2026-10-06, ADR-0012). Service-account keys are not.
 
 # ---------- Claude Code (local only) ----------
 .claude/settings.local.json

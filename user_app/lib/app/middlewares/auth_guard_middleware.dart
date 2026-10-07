@@ -1,15 +1,24 @@
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
-/// Guards protected routes. Authentication arrives in M5; until then there are
-/// no protected routes and every user is a guest, so nothing is redirected.
+import '../../core/auth/session_service.dart';
+import '../routes/app_routes.dart';
+
+/// Sends guests to sign-in and resumes the requested route afterwards
+/// (architecture/flutter.md §6). The backend still authorizes every call.
 class AuthGuardMiddleware extends GetMiddleware {
-  AuthGuardMiddleware({this.isSignedIn = _guest});
+  AuthGuardMiddleware({bool Function()? isSignedIn})
+    : _isSignedIn = isSignedIn ?? (() => Get.find<SessionService>().isSignedIn);
 
-  final bool Function() isSignedIn;
-
-  static bool _guest() => false;
+  final bool Function() _isSignedIn;
 
   @override
-  RouteSettings? redirect(String? route) => null;
+  RouteSettings? redirect(String? route) {
+    if (_isSignedIn()) return null;
+    final target = Uri(
+      path: AppRoutes.signIn,
+      queryParameters: {'returnTo': ?route},
+    );
+    return RouteSettings(name: target.toString());
+  }
 }

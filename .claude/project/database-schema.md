@@ -101,6 +101,8 @@
 | Migration | Milestone | Change |
 |---|---|---|
 | `1791279600000-Baseline` | M3 | No schema change; proves the TypeORM migration pipeline and creates the `typeorm_migrations` bookkeeping table |
+| `1791300000000-AuthFoundation` | M5 | `users`, `user_roles`, `audit_logs` (UPDATE/DELETE revoked from `app_rw`), `notifications`, `rate_limit_counters` per Part C |
+| `1791300000001-AuditLogsImmutable` | M5 | Triggers make `audit_logs` append-only for every role (UPDATE/DELETE/TRUNCATE raise) |
 
 Local databases `event_planner_dev` / `event_planner_test` and roles `migrator` / `app_rw` are created by `database/scripts/setup-local.sql` (run by the user). First domain tables (`users`, `user_roles`, `audit_logs`, `jobs`, `notifications`) expected in M5.
 

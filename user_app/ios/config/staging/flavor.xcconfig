@@ -1,0 +1,7 @@
+// Flavor "staging" (ADR-0012). Values must match config/staging/GoogleService-Info.plist.
+FLAVOR=staging
+PRODUCT_BUNDLE_IDENTIFIER=com.example.userApp.stg
+APP_DISPLAY_NAME=Event Planner STG
+// URL schemes: Google sign-in callback and Firebase phone-auth reCAPTCHA fallback.
+GOOGLE_REVERSED_CLIENT_ID=com.googleusercontent.apps.860575204143-eff1c7fumk6asq0sv7vne0s52k5p9lb4
+FIREBASE_ENCODED_APP_ID=app-1-860575204143-ios-b8f8ddccd9b95456a5d7da

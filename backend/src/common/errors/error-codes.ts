@@ -40,6 +40,15 @@ export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 export const DEFAULT_MESSAGES: Partial<Record<ErrorCode, string>> = {
   BAD_REQUEST: 'The request could not be understood.',
   AUTH_REQUIRED: 'Please sign in to continue.',
+  AUTH_TOKEN_EXPIRED: 'Your session has expired.',
+  AUTH_TOKEN_INVALID: 'Your session is not valid. Please sign in again.',
+  AUTH_TOKEN_REVOKED: 'You have been signed out. Please sign in again.',
+  ACCOUNT_SUSPENDED: 'This account is suspended.',
+  ACCOUNT_DELETED: 'This account has been deleted.',
+  FORBIDDEN_ROLE: 'You do not have access to this.',
+  FORBIDDEN_PERMISSION: 'You do not have permission to do this.',
+  AUTH_PROVIDER_UNAVAILABLE:
+    'Sign-in is temporarily unavailable. Please try again.',
   NOT_FOUND: 'The requested resource was not found.',
   CONFLICT: 'The request conflicts with the current state.',
   PAYLOAD_TOO_LARGE: 'The request is too large.',

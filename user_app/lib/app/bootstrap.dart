@@ -1,9 +1,17 @@
+import 'dart:async';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../core/auth/auth_service.dart';
+import '../core/auth/firebase_auth_service.dart';
+import '../core/auth/unavailable_auth_service.dart';
 import '../core/crash/crash_reporter.dart';
+import '../core/crash/crashlytics_reporter.dart';
 import '../core/crash/error_handlers.dart';
 import '../core/security/runtime_protection.dart';
 import 'app.dart';
@@ -18,7 +26,7 @@ void bootstrap(Flavor flavor) {
   final binding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: binding);
 
-  const CrashReporter reporter = ConsoleCrashReporter();
+  final reporter = SwitchableCrashReporter(const ConsoleCrashReporter());
   installErrorHandlers(reporter);
 
   startApp(flavor, reporter);
@@ -26,9 +34,10 @@ void bootstrap(Flavor flavor) {
 
 /// Runs the ordered start-up steps and shows either the app or the
 /// start-failure screen. Also used by the failure screen's retry.
-Future<void> startApp(Flavor flavor, CrashReporter reporter) async {
+Future<void> startApp(Flavor flavor, SwitchableCrashReporter reporter) async {
   AppConfig? config;
   PackageInfo? package;
+  AuthService auth = const UnavailableAuthService();
 
   final result = await Bootstrapper([
     BootstrapStep('config', () async {
@@ -37,6 +46,19 @@ Future<void> startApp(Flavor flavor, CrashReporter reporter) async {
     BootstrapStep('app-version', () async {
       package = await PackageInfo.fromPlatform();
       config = config!.withVersion(package!.version, package!.buildNumber);
+    }),
+    BootstrapStep('firebase', () async {
+      // Uses the per-flavor native config (google-services.json / plist).
+      if (Firebase.apps.isEmpty) await Firebase.initializeApp();
+      auth = FirebaseAuthService();
+      final crashlytics = FirebaseCrashlytics.instance;
+      // No crash uploads from debug builds. Not awaited: Crashlytics may
+      // fetch its settings over the network and must not delay start-up.
+      unawaited(crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode));
+      reporter.delegate = CrashlyticsReporter(
+        crashlytics,
+        const ConsoleCrashReporter(),
+      );
     }),
     BootstrapStep('runtime-protection', () async {
       final id = package?.packageName;
@@ -58,7 +80,12 @@ Future<void> startApp(Flavor flavor, CrashReporter reporter) async {
 
   if (result.succeeded) {
     runApp(
-      App(config: config!, initialRoute: const StartupRouter().initialRoute()),
+      App(
+        config: config!,
+        auth: auth,
+        reporter: reporter,
+        initialRoute: const StartupRouter().initialRoute(),
+      ),
     );
   } else {
     runApp(StartupFailureApp(onRetry: () => startApp(flavor, reporter)));
