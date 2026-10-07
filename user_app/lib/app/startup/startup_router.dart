@@ -1,7 +1,7 @@
 import '../routes/app_routes.dart';
 
-/// Decides the first screen after start-up. M5 adds the auth state and M6 the
-/// navigation shell; they extend this instead of changing bootstrap.
+/// Decides the first screen after start-up: the navigation shell (Home tab).
+/// Later milestones extend this instead of changing bootstrap.
 class StartupRouter {
   const StartupRouter();
 

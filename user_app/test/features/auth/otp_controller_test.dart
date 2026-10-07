@@ -19,7 +19,7 @@ const _profile = MeProfile(id: 'u1', roles: ['USER']);
 const _args = OtpArgs(
   phoneE164: '+919800000001',
   verificationId: 'v1',
-  returnTo: '/account',
+  returnTo: '/?tab=events',
 );
 
 void main() {
@@ -53,7 +53,7 @@ void main() {
     ).thenAnswer((_) async => const Ok(_profile));
     controller.onCodeChanged('123456');
     await Future<void>.delayed(Duration.zero);
-    expect(routes, ['/account']);
+    expect(routes, ['/?tab=events']);
   });
 
   test('a wrong code shows a message and clears the field', () async {
@@ -86,7 +86,7 @@ void main() {
       ).thenAnswer((_) async => const Ok(_profile));
       await controller.submit();
       verify(() => auth.confirmSmsCode(any(), any())).called(1);
-      expect(routes, ['/account']);
+      expect(routes, ['/?tab=events']);
     },
   );
 
@@ -98,7 +98,7 @@ void main() {
       ).thenAnswer((_) async => const Ok(_profile));
       authState.add(const AuthUser(uid: 'x'));
       await Future<void>.delayed(Duration.zero);
-      expect(routes, ['/account']);
+      expect(routes, ['/?tab=events']);
     },
   );
 
@@ -113,8 +113,10 @@ void main() {
     );
   });
 
-  test('only known protected routes are accepted as returnTo', () {
-    expect(safeReturnTo('/account'), '/account');
+  test('only known shell routes are accepted as returnTo', () {
+    expect(safeReturnTo('/?tab=events'), '/?tab=events');
+    expect(safeReturnTo('/?tab=menu'), '/?tab=menu');
+    expect(safeReturnTo('/?tab=../x'), isNull);
     expect(safeReturnTo('/diagnostics'), isNull);
     expect(safeReturnTo('https://evil.example'), isNull);
     expect(safeReturnTo(null), isNull);

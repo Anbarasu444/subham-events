@@ -34,4 +34,4 @@ class OtpBinding extends Bindings {
 
 /// Only known in-app routes may be used after sign-in (no arbitrary targets).
 String? safeReturnTo(String? route) =>
-    route != null && AppRoutes.protectedRoutes.contains(route) ? route : null;
+    route != null && AppRoutes.returnRoutes.contains(route) ? route : null;

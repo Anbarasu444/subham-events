@@ -31,8 +31,11 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-06 | M5 Authentication | START MILESTONE M5 | Validation passed (M4 COMPLETED and approved; spec exists). Spec → CONFIRMED; status → IN_PROGRESS. Firebase follow-ups still open → Firebase-dependent checks blocked; independent work started | — | Firebase app IDs / Google provider / service-account path | `START MILESTONE M5` issued by user |
 | 2026-10-07 | M5 Authentication | Set IN_REVIEW | Firebase Google + phone sign-in (app), backend token verification, users/roles/audit/notifications, rate limits, sign-out, refresh, iOS flavors, Crashlytics with redaction | Backend 46 unit + 19 e2e (incl. 8 PostgreSQL); Flutter 78; iOS + Android staging/prod builds; reviews PASS WITH FINDINGS, fixed | Real-device sign-in check by user (AC-2) | Awaiting `APPROVE MILESTONE M5` |
 | 2026-10-07 | M5 Authentication | Real sign-in verified | Phone sign-in → OTP → My account → sign-out verified on the iOS simulator against the real backend, DB and Firebase (user, role, welcome notification, audit rows confirmed). Fixed: deep-link handling swallowing Firebase callback; Firebase SMS region policy (user added India) | Flutter 78 tests still pass | — | Awaiting `APPROVE MILESTONE M5` |
+| 2026-10-07 | M5 Authentication | APPROVE MILESTONE M5 | Status → **COMPLETED**. M6 Main Navigation set to NOT_STARTED; spec DRAFT created | See M5 entries | — | `APPROVE MILESTONE M5` issued by user |
+| 2026-10-07 | M6 Main Navigation | START MILESTONE M6 | Validation passed (M5 COMPLETED and approved; spec exists). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M6` issued by user |
+| 2026-10-07 | M6 Main Navigation | Set IN_REVIEW | Bottom-navigation shell (Home, Explore, My Events, Menu), nested per-tab navigation, guest gating, Menu with Planning/Account sections and Coming-soon pages, sign-out resets tabs | Flutter analyze clean, 96 tests; iOS simulator checks; UI + code reviews PASS WITH FINDINGS, fixed | Optional Android back check | Awaiting `APPROVE MILESTONE M6` |
 
 ## Status summary
 - Governance initialization: **complete**.
-- M1–M4: **COMPLETED** (2026-10-06).
-- Active milestone: **M5 — Authentication** — IN_REVIEW (awaiting `APPROVE MILESTONE M5`).
+- M1–M5: **COMPLETED** (M5 approved 2026-10-07; user commits the M5 files personally).
+- Active milestone: **M6 — Main Navigation** — IN_REVIEW (awaiting `APPROVE MILESTONE M6`).

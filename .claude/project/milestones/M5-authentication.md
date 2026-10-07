@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **CONFIRMED** — ratified by `START MILESTONE M5` on 2026-10-06 |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M5` on 2026-10-06; milestone COMPLETED 2026-10-07 |
 | Phase | User App |
 | Depends on | M4 COMPLETED and approved (`APPROVE MILESTONE M4`) |
 | Primary owner agent | user-app-manager + backend-manager + database-manager (security-manager, notification-manager, code-reviewer reviewers) |
@@ -95,3 +95,4 @@ Working Google + phone sign-in on the staging flavor (iOS and Android), verified
 | 2026-10-06 | Open questions 2–5 answered (Apple sign-in deferred to pre-release, commit config files, packages approved, package ID unchanged); question 1 partly answered — Firebase project `subam-events`, config files placed; follow-ups listed | User |
 | 2026-10-06 | CONFIRMED by `START MILESTONE M5` while open question 1 follow-ups (app IDs, Google provider/SHA-1, staging project, service-account path) were still open — Firebase-dependent verification is blocked on them; independent work proceeds | User |
 | 2026-10-07 | User decisions: keep vendor_app Firebase files (GI-20); separate prod Firebase project before release (GI-18); sign-out signs out all devices | User |
+| 2026-10-07 | `APPROVE MILESTONE M5` → COMPLETED. Google login completion on a device left optional (sheet verified). | User |

@@ -10,8 +10,8 @@ Each milestone has (or must have, before START) a spec in `milestones/` with sco
 | M2 | Global Domain Model | Architecture | [M2](milestones/M2-global-domain-model.md) (COMPLETED 2026-10-06) |
 | M3 | User App Foundation | User App | [M3](milestones/M3-user-app-foundation.md) (COMPLETED 2026-10-06) |
 | M4 | Splash & App Bootstrap | User App | [M4](milestones/M4-splash-app-bootstrap.md) (COMPLETED 2026-10-06) |
-| M5 | Authentication | User App | [M5](milestones/M5-authentication.md) (CONFIRMED) |
-| M6 | Main Navigation | User App | — |
+| M5 | Authentication | User App | [M5](milestones/M5-authentication.md) (COMPLETED 2026-10-07) |
+| M6 | Main Navigation | User App | [M6](milestones/M6-main-navigation.md) (CONFIRMED) |
 | M7 | Home Dashboard | User App | — |
 | M8 | Event Management | User App | — |
 | M9 | Checklist | User App | — |

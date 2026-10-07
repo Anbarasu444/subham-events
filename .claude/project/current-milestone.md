@@ -4,58 +4,55 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M5** |
-| Milestone name | Authentication |
+| Milestone ID | **M6** |
+| Milestone name | Main Navigation |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M5-authentication.md` (status: CONFIRMED 2026-10-06) |
-| Started date | 2026-10-06 |
+| Spec | `.claude/project/milestones/M6-main-navigation.md` (status: CONFIRMED 2026-10-07) |
+| Started date | 2026-10-07 |
 | Completed date | — |
-| Approval status | Awaiting `APPROVE MILESTONE M5` |
+| Approval status | Awaiting `APPROVE MILESTONE M6` (optional: Android back-button check on a device/emulator) |
 
 ## Objective
-Guest browsing plus Google and phone sign-in via Firebase; backend token verification, user creation and server-side roles; protected routes, refresh, sign-out and all failure paths.
+Permanent bottom-navigation shell (Home, Explore, My Events, Menu) with per-tab navigation, state preservation and guest gating; replaces the temporary home placeholder.
 
 ## Completed work (acceptance-criteria evidence)
 | AC | Evidence | Status |
 |---|---|---|
-| AC-1 | `AuthGuardMiddleware` + `safeReturnTo` (tests); `/account` protected; guests browse public screens | Done |
-| AC-2 | **Verified on the iOS simulator (2026-10-07) with the real backend, database and Firebase:** phone sign-in with the Firebase test number → OTP → home shows "My account"; DB: 1 ACTIVE user with role USER, 1 in-app WELCOME notification (push NEVER), audit AUTH_SIGN_UP (provider phone); My account → Sign out (confirm dialog) → `POST /auth/sign-out` 204, audit AUTH_SIGN_OUT, app back to guest. Google: Apple's Google sign-in sheet opens correctly and Cancel returns cleanly; completing a Google login was left to the user (credentials). Android staging/prod build with Firebase. Fixed during the check: Flutter default deep-link handling swallowed the Firebase reCAPTCHA return link (disabled on iOS/Android), duplicate phone line on My account, iOS app name in system prompts; found a Firebase Console setting (SMS region policy allow-list was empty) — user added India | Done (Google login completion by user optional) |
-| AC-3 | DB e2e against `event_planner_test`: user created once (incl. 3 concurrent first sign-ins), role USER, email only when verified, audit `AUTH_SIGN_UP`/`AUTH_SIGN_IN` | Done |
-| AC-4 | Guard unit tests (all failure codes, roles, status) + API e2e (missing/expired token) + DB e2e (suspended → 403); Flutter interceptor/session tests sign out on revoked/suspended/deleted | Done |
-| AC-5 | Interceptor tests: one forced refresh + replay; concurrent requests share one refresh; failed refresh offline keeps the session | Done |
-| AC-6 | Sign-out revokes refresh tokens (DB e2e, audited), clears local data and private image cache (session tests); "all devices" confirmed by the user | Done |
-| AC-7 | Migrations applied by the user on `event_planner_dev` and by tests on `event_planner_test`; audit log append-only (trigger, e2e); N1 welcome row in-app only (e2e) | Done |
-| AC-8 | Crashlytics reporter replaces errors with redacted copies (tests); no service-account key or secret in the repo; backend verified with the real key (fake token → `AUTH_TOKEN_INVALID`, DB ready) | Done |
-| AC-9 | iOS flavors (schemes, configs, per-flavor plist, bundle ids); prod build has no `NSAllowsLocalNetworking` (verified) — GI-9 resolved | Done |
-| AC-10 | Backend: lint, typecheck, 46 unit + 19 e2e (incl. 8 DB) pass, build OK. Flutter: analyze clean, 78 tests pass. Code, security, UI reviews done and fixed | Done |
+| AC-1 | App starts on the shell (Home tab) — iOS simulator screenshot; home placeholder and old account screen removed | Done |
+| AC-2 | Widget tests: lazy tab build, state kept when switching, re-select returns to root | Done |
+| AC-3 | Widget tests: pages inside a tab keep the bar; system back (`handlePopRoute`) pops inside the tab, then goes Home, then exits; verified on iOS simulator (Settings page inside Menu keeps the bar). **Android device/emulator back check: not run by Claude (no emulator available)** | Done (Android manual check optional) |
+| AC-4 | Guest My Events prompt (simulator + test); sign-in return reopens the shell on the requested tab (`offAllNamed('/?tab=events')` test); returnTo allow-list tests | Done |
+| AC-5 | Menu: signed-in header, sections Planning (Schedule, Checklist, Budget, Messages) and Account (My profile, Settings, Help), Sign out; guests see Settings/Help + Sign in; pending-profile state keeps signed-in menu with Try again + Sign out; Diagnostics staging only (tests); entries open "Coming soon" inside the tab | Done |
+| AC-6 | 200 % text on 320×568 without overflow (test); section/empty-state titles marked as headings; tab labels without duplicate tooltips; light theme verified on simulator | Done |
+| AC-7 | `flutter analyze` clean; 96 tests pass; only `user_app/` and `.claude/project/` changed | Done |
+| AC-8 | UI and code reviews done; performance: lazy tabs, tickers off for hidden tabs; docs updated | Done |
 
 ## Reviews
 | Review | Status | Notes |
 |---|---|---|
-| Code review | Done — code-reviewer PASS WITH FINDINGS | Fixed: no sign-out on temporary errors (`ProfilePendingSession` + retry), single-flight sign-out keeping the first message, keep Firebase identity on retryable backend failure, Android auto-verification completes sign-in, resend errors shown, rate limit before token verification, OTP/sign-in tests added, DB e2e run |
-| Security review | Done — security-manager PASS WITH FINDINGS (no Critical/High) | Fixed: rate limit before auth (per IP, 60/min for carrier NAT), append-only audit trigger, offline refresh keeps session, redaction of OTP codes/verification ids, `returnTo` allow-list. Recorded: GI-18 (separate prod project), GI-19 (App Check/SMS abuse), GI-20 (vendor_app files — kept by user), GI-10 (trust proxy) |
-| UI/UX review | Done — ui-manager PASS WITH FINDINGS | Fixed: code field cleared on resend/wrong code, +91 prefix + validation hint, submit from keyboard, autofill hints, "Wrong number? Edit", sign-out error handling, neutral live-region messages, no PII on home, clearer network message |
-| Performance review | Done | Fixed a 7 s start-up stall (Crashlytics settings fetch) and added per-step start-up timeouts; first frame ~2.4 s (debug, simulator); token refresh shared; status cache ≤ 60 s |
-| Notification review | Done | N1 welcome: in-app only, `push_policy = NEVER`, created once in the sign-up transaction (DB e2e) |
-| Documentation | Done | api-contracts Part B (`/auth/session`, `/auth/sign-out`, `/me`), database-schema Part B (2 migrations), identity-access §7a, known issues GI-9/12/15 updated, GI-18…GI-25 added |
+| Code review | Done — PASS WITH FINDINGS | Fixed: forced sign-out reason shown again (Menu + My Events), pending-profile state in Menu, sign-in return test, system-back test, tab stacks reset on sign-out, tickers off for hidden tabs, guard middleware documented as kept for later. Tracked: move Menu sign-out logic into a controller in M21 |
+| UI/UX review | Done — PASS WITH FINDINGS | Fixed: Menu grouped into Planning / Account, consistent chevrons, Menu icon, no duplicate tab tooltip, heading semantics, Home heading "Welcome" |
+| Performance review | Done | Tabs built lazily and kept alive; hidden tabs' tickers disabled; Obx scope limited to shell/tab state |
+| Security review | Done (inline) | Guest gating is UX only; no protected data fetched for guests; returnTo restricted to known shell routes |
+| Notification review | N/A | — |
+| Documentation | Done | flutter.md §6 (shell), spec change log, progress |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8…GI-12, GI-14 (FreeRASP activation), GI-15 (redaction — M5 scope), GI-16 (cold-start measurement — by M22).
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-25.
 - Business rules on hold: R3 (before M15), R6 (before M28/M29), R10 (before M26). R11 final policy by M21. Assumptions A1–A12, O1, O2 per `domain-model.md` §9.
 
 ## Files changed
-- `backend/`: `package.json`/lock (firebase-admin), `.env.example`, `src/app.module.ts`, `src/config/*`, `src/common/errors/error-codes.ts`, `src/common/ids/*`, `src/modules/{auth,users,rbac,audit,notifications,rate-limit}/**`, `src/modules/health/health.controller.ts` (@Public), tests `test/{auth.e2e-spec,app.e2e-spec,fakes,stubs/*}.ts`, `test/jest-e2e.json`
-- `database/migrations/`: `1791300000000-AuthFoundation.ts`, `1791300000001-AuditLogsImmutable.ts`
-- `user_app/`: `pubspec.*` (firebase_core, firebase_auth, google_sign_in, firebase_crashlytics), `lib/core/auth/**`, `lib/core/crash/{redaction,crashlytics_reporter}.dart`, `lib/core/network/{api_client,interceptors/auth_interceptor}.dart`, `lib/core/widgets/app_text_field.dart`, `lib/features/auth/**`, `lib/features/home/...`, `lib/app/{app,bootstrap,bindings,middlewares,routes,startup/bootstrapper}`, tests; Android `settings.gradle.kts`, `app/build.gradle.kts`, `app/google-services.json`; iOS `config/{staging,prod}/*`, `Flutter/*-{staging,prod}.xcconfig`, `Flutter/{Debug,Release}.xcconfig`, `Runner.xcodeproj` (configs, schemes, build phase), `Runner/Info.plist`, `Podfile(.lock)`
-- Root `.gitignore` (Firebase client configs committed — user decision)
-- `.claude/project/`: api-contracts, database-schema, identity-access, known-issues, M5 spec, milestones, current-milestone, progress
+- `user_app/lib/features/shell/**` (new), `features/{home,explore,events,menu}/presentation/views/*` (new tab screens, menu, coming soon), `core/widgets/{empty_state_view,session_message}.dart` (new), `app/routes/{app_routes,app_pages}.dart`, `app/startup/startup_router.dart`, `app/middlewares/auth_guard_middleware.dart` (doc), `features/auth/presentation/bindings/auth_bindings.dart`; removed `features/home/.../home_placeholder_view.dart`, `features/auth/.../account_view.dart`
+- Tests: `test/features/shell/shell_test.dart` (new), `test/features/auth/otp_controller_test.dart`
+- Also since M5 approval (M5 follow-ups found in the real sign-in check, already in M5 records): iOS `Info.plist` (deep linking off, bundle name), Android manifest (deep linking off), auth error-code debug logging
+- `.claude/project/`: `architecture/flutter.md`, M6 spec, milestones, current-milestone, progress
 
 ## Files pending approval
-- M4 committed by the user (`d7565c3`). Gate records (this file, progress, known issues, M4 spec, M5 spec draft) are uncommitted.
+- M5 and M6 files are uncommitted (last commit `d7565c3` = M4); the user commits personally.
 
 ## Next milestone
-- M6 — Main Navigation (spec drafted at the M5 gate).
+- M7 — Home Dashboard (spec drafted at the M6 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
@@ -63,18 +60,19 @@ Guest browsing plus Google and phone sign-in via Firebase; backend token verific
 
 ---
 
-## Previous milestone — M4 Splash & App Bootstrap: COMPLETED
+## Previous milestone — M5 Authentication: COMPLETED
 
 | Field | Value |
 |---|---|
 | Status | **COMPLETED** |
 | Started | 2026-10-06 |
-| Completed / approved | 2026-10-06 — `APPROVE MILESTONE M4` issued by the user (committed `d7565c3`) |
-| Spec | `milestones/M4-splash-app-bootstrap.md` (CONFIRMED) |
+| Completed / approved | 2026-10-07 — `APPROVE MILESTONE M5` issued by the user |
+| Spec | `milestones/M5-authentication.md` (CONFIRMED) |
 
-Evidence at approval: native splash light/dark + fade-in verified on iOS simulator; ordered bootstrap with start-failure screen; CrashReporter + global handlers; real app version (GI-7 resolved); FreeRASP observe mode (off until user config — GI-14); Flutter analyze clean, 44 tests; UI + security reviews PASS WITH FINDINGS (fixed / recorded). Not done at approval: AC-6 cold-start measurement (GI-16, owner M22).
+Evidence at approval: backend 46 unit + 19 e2e (incl. 8 PostgreSQL) tests; Flutter 78 tests; iOS + Android staging/prod builds; real phone sign-in → My account → sign-out verified on the iOS simulator against the real backend, database and Firebase; code, security, UI reviews PASS WITH FINDINGS (fixed / recorded GI-18…GI-25). Google sign-in sheet verified; completing a Google login left optional.
 
 ## Earlier milestones
+- M4 Splash & App Bootstrap: COMPLETED 2026-10-06 (committed `d7565c3`).
 - M3 User App Foundation: COMPLETED 2026-10-06 (committed `e78060f`).
 - M2 Global Domain Model: COMPLETED 2026-10-06 (committed `658d59d`).
 - M1 Global Architecture: COMPLETED 2026-10-06 (committed `1c21c35`).

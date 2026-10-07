@@ -111,13 +111,14 @@ Interceptor order:
 
 Pagination helper understands both cursor (`meta.page.nextCursor`) and offset meta (ADR-0013).
 
-## 6. Routing and guards
+## 6. Routing and guards (shell since M6)
 
-- `GetMaterialApp` with `getPages` from `AppPages`; named routes only, constants in `AppRoutes`.
-- Route groups: `public` (splash, onboarding, home browse, vendor browse/details), `auth` (sign-in, OTP), `protected` (events, checklist, wishlist, enquiries, bookings, payments, profile…).
-- `AuthGuardMiddleware` (GetMiddleware) on protected routes: if no signed-in session → redirect to sign-in with `returnTo` argument; after sign-in the app navigates to `returnTo`.
-- Deep links and notification taps are resolved by `DeepLinkRouter` into internal route + arguments, then pass through the same guards (`media-and-deep-links.md` §5).
-- Bindings attached per `GetPage`; controllers are created lazily and disposed with the route (no global feature controllers).
+- `GetMaterialApp` with `getPages` from `AppPages`; named routes in `AppRoutes`.
+- **Shell** (`/`, `features/shell`): bottom `NavigationBar` with **Home, Explore, My Events, Menu** (`ShellTab`). `/?tab=<name>` opens a given tab. Each tab has its own nested `Navigator` (key per tab in `ShellController`); tabs are built lazily on first visit, kept alive in an `IndexedStack`, and hidden tabs have tickers disabled.
+- Pages that belong to a tab are pushed on that tab's navigator (bottom bar stays). Full-screen flows (sign-in, OTP, diagnostics) use the root GetX navigator.
+- Re-selecting the active tab pops it to its first page. System back: pop inside the tab → go to Home → exit.
+- Guests: Home, Explore, Menu (Settings, Help) are open; My Events shows a sign-in prompt. Sign-in returns to the originating tab via `returnTo` (allow-list `AppRoutes.returnRoutes`). On sign-out every tab returns to its first page.
+- `AuthGuardMiddleware` remains for future full-screen protected routes. Deep links and notification taps (M18) will resolve to `/?tab=…` plus a page inside the tab.
 
 ## 7. Local storage responsibilities
 
