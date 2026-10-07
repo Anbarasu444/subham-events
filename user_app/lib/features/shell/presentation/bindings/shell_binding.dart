@@ -3,6 +3,9 @@ import 'package:get/get.dart';
 import '../../../../core/auth/session_service.dart';
 import '../../../../core/crash/crash_reporter.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../checklist/data/datasources/checklist_remote_data_source.dart';
+import '../../../checklist/data/repositories/checklist_repository_impl.dart';
+import '../../../checklist/domain/repositories/checklist_repository.dart';
 import '../../../events/data/datasources/events_remote_data_source.dart';
 import '../../../events/data/repositories/events_repository_impl.dart';
 import '../../../events/domain/repositories/events_repository.dart';
@@ -21,6 +24,14 @@ class ShellBinding extends Bindings {
       () => EventsRepositoryImpl(EventsRemoteDataSource(Get.find<ApiClient>())),
       fenix: true,
     );
+    // Checklist (M9): changes refresh event progress everywhere.
+    Get.lazyPut<ChecklistRepository>(
+      () => ChecklistRepositoryImpl(
+        ChecklistRemoteDataSource(Get.find<ApiClient>()),
+        Get.find<EventsRepository>().notifyChanged,
+      ),
+      fenix: true,
+    );
     Get.lazyPut(
       () => MyEventsController(
         Get.find<EventsRepository>(),
@@ -31,7 +42,10 @@ class ShellBinding extends Bindings {
     Get.lazyPut(
       () => HomeController(
         Get.find<SessionService>(),
-        buildDashboardSources(Get.find<EventsRepository>()),
+        buildDashboardSources(
+          Get.find<EventsRepository>(),
+          Get.find<ChecklistRepository>(),
+        ),
         reporter: Get.find<CrashReporter>(),
       ),
     );

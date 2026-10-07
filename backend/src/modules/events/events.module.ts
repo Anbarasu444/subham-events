@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
+import { ChecklistModule } from '../checklist/checklist.module';
 import { IdempotencyModule } from '../idempotency/idempotency.module';
 import { EventAutoCompleteJob } from './event-auto-complete.job';
 import { EventEntity } from './event.entity';
@@ -12,6 +13,7 @@ import { EventsService } from './events.service';
     TypeOrmModule.forFeature([EventEntity]),
     AuditModule,
     IdempotencyModule,
+    ChecklistModule,
   ],
   controllers: [EventsController],
   providers: [EventsService, EventAutoCompleteJob],

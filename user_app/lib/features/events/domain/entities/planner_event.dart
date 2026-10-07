@@ -20,6 +20,36 @@ enum EventStatus {
   };
 }
 
+/// Checklist progress of an event (M9).
+class ChecklistSummary {
+  const ChecklistSummary({
+    required this.total,
+    required this.done,
+    required this.overdue,
+  });
+
+  static const empty = ChecklistSummary(total: 0, done: 0, overdue: 0);
+
+  final int total;
+  final int done;
+  final int overdue;
+
+  int get pending => total - done;
+
+  /// 0.0–1.0; 0 when the checklist is empty.
+  double get progress => total == 0 ? 0 : done / total;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ChecklistSummary &&
+      other.total == total &&
+      other.done == done &&
+      other.overdue == overdue;
+
+  @override
+  int get hashCode => Object.hash(total, done, overdue);
+}
+
 /// A user's event (M8). [eventDate] is a calendar date (local midnight).
 class PlannerEvent {
   const PlannerEvent({
@@ -36,6 +66,7 @@ class PlannerEvent {
     required this.totalBudget,
     required this.status,
     required this.version,
+    this.checklist = ChecklistSummary.empty,
   });
 
   final String id;
@@ -55,6 +86,12 @@ class PlannerEvent {
 
   /// Server version for optimistic concurrency on edit.
   final int version;
+
+  /// Checklist progress (M9).
+  final ChecklistSummary checklist;
+
+  /// The checklist can be changed only while the event is being planned.
+  bool get checklistEditable => status == EventStatus.planning;
 
   /// Allowed actions mirror the backend rules; the server stays authoritative.
   bool get canCancel => status == EventStatus.planning;

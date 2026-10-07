@@ -62,6 +62,15 @@ class EventCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xs),
                 _Line(icon: Icons.event_outlined, text: when),
                 _Line(icon: Icons.place_outlined, text: event.city),
+                if (event.checklist.total > 0)
+                  _Line(
+                    icon: Icons.checklist_outlined,
+                    text: [
+                      '${event.checklist.done}/${event.checklist.total} tasks done',
+                      if (event.checklist.overdue > 0)
+                        '${event.checklist.overdue} overdue',
+                    ].join(' · '),
+                  ),
                 if (event.status == EventStatus.planning) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Text(

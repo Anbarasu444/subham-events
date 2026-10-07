@@ -13,8 +13,8 @@ Each milestone has (or must have, before START) a spec in `milestones/` with sco
 | M5 | Authentication | User App | [M5](milestones/M5-authentication.md) (COMPLETED 2026-10-07) |
 | M6 | Main Navigation | User App | [M6](milestones/M6-main-navigation.md) (COMPLETED 2026-10-07) |
 | M7 | Home Dashboard | User App | [M7](milestones/M7-home-dashboard.md) (COMPLETED) |
-| M8 | Event Management | User App | [M8](milestones/M8-event-management.md) (CONFIRMED — IN_REVIEW) |
-| M9 | Checklist | User App | — |
+| M8 | Event Management | User App | [M8](milestones/M8-event-management.md) (COMPLETED) |
+| M9 | Checklist | User App | [M9](milestones/M9-checklist.md) (CONFIRMED — IN_REVIEW) |
 | M10 | Event Details | User App | — |
 | M11 | Budget Management | User App | — |
 | M12 | Vendor Discovery | User App | — |

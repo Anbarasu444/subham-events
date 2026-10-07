@@ -17,10 +17,15 @@ abstract class EventsRepository {
   /// Emits after any successful change, so lists and the dashboard reload.
   Stream<void> get changes;
 
+  /// Announces a change made through another feature that alters what an
+  /// event shows (e.g. checklist progress, M9).
+  void notifyChanged();
+
   Future<Result<EventsPage>> list({
     required EventScope scope,
     String? cursor,
     int limit = 20,
+    EventStatus? status,
   });
 
   Future<Result<PlannerEvent>> get(String id);

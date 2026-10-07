@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **CONFIRMED** — ratified by `START MILESTONE M8` on 2026-10-07 |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M8` on 2026-10-07; milestone COMPLETED 2026-10-07 |
 | Phase | User App |
 | Depends on | M7 COMPLETED and approved (`APPROVE MILESTONE M7`) |
 | Primary owner agent | user-app-manager + backend-manager + database-manager (security-manager, performance-manager, ui-manager, code-reviewer reviewers) |
@@ -85,3 +85,4 @@ A signed-in user can create, view, edit, cancel, reopen and delete (soft) their 
 | 2026-10-07 | CONFIRMED by `START MILESTONE M8` | User |
 | 2026-10-07 | Implementation decisions after reviews (recorded, low risk — CLAUDE.md §31): stale-version error is 412 `PRECONDITION_FAILED` with `version` in the PATCH body (api-contracts §4 catalogue; AC-2 wording updated from 409); reopen allowed when the date is today or later (domain-model §4.6 clarified); time zones restricted to Region/City IANA names (or UTC) that PostgreSQL also knows; cursors bound to their list scope; idempotency keys stuck "in progress" are reclaimed after 60 s; a new create key when the form input changes | Claude |
 | 2026-10-07 | Set IN_REVIEW (signed-in simulator check not run — user asked to continue; covered by e2e + widget tests) | Claude |
+| 2026-10-07 | `APPROVE MILESTONE M8` → COMPLETED | User |

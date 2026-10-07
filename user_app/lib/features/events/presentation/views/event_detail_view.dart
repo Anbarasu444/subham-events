@@ -9,6 +9,8 @@ import '../../../../core/widgets/async_state_view.dart';
 import '../../domain/entities/planner_event.dart';
 import '../../domain/repositories/events_repository.dart';
 import '../controllers/event_detail_controller.dart';
+import '../../../checklist/presentation/checklist_navigation.dart';
+import '../../../checklist/presentation/widgets/checklist_progress.dart';
 import '../events_navigation.dart';
 import '../widgets/event_status_chip.dart';
 
@@ -144,6 +146,8 @@ class _Body extends StatelessWidget {
           label: 'Total budget',
           value: event.totalBudget?.format() ?? 'Not set',
         ),
+        const SizedBox(height: AppSpacing.md),
+        _ChecklistCard(event: event),
         const SizedBox(height: AppSpacing.lg),
         Obx(() {
           final running = c.running.value;
@@ -308,6 +312,50 @@ class _Body extends StatelessWidget {
     NotFoundFailure() => 'This event no longer exists.',
     _ => '${failureTitle(failure)}. ${failureMessage(failure)}'.trim(),
   };
+}
+
+/// Checklist progress; opens the event's checklist (M9).
+class _ChecklistCard extends StatelessWidget {
+  const _ChecklistCard({required this.event});
+
+  final PlannerEvent event;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => Navigator.of(context).push(
+        ChecklistNavigation.route(eventId: event.id, eventTitle: event.title),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          children: [
+            const ExcludeSemantics(child: Icon(Icons.checklist_outlined)),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      'Checklist',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  ChecklistProgress(summary: event.checklist),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            const ExcludeSemantics(child: Icon(Icons.chevron_right)),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _Row extends StatelessWidget {

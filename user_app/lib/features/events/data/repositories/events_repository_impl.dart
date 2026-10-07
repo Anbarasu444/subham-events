@@ -18,16 +18,29 @@ class EventsRepositoryImpl implements EventsRepository {
   @override
   Stream<void> get changes => _changes.stream;
 
+  /// Coalesces bursts (e.g. ticking several checklist tasks quickly) into
+  /// one refresh of event lists, the event page and Home.
+  @override
+  void notifyChanged() {
+    _notifyTimer?.cancel();
+    _notifyTimer = Timer(notifyDelay, () => _changes.add(null));
+  }
+
+  static const notifyDelay = Duration(milliseconds: 400);
+  Timer? _notifyTimer;
+
   @override
   Future<Result<EventsPage>> list({
     required EventScope scope,
     String? cursor,
     int limit = 20,
+    EventStatus? status,
   }) async {
     final result = await _remote.list(
       scope: scope.name,
       cursor: cursor,
       limit: limit,
+      status: status?.name.toUpperCase(),
     );
     return switch (result) {
       Ok(:final value) => Ok(

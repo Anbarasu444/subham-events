@@ -11,6 +11,7 @@ import {
   type CursorPageMeta,
 } from '../../common/pagination/cursor';
 import { AuditService } from '../audit/audit.service';
+import { ChecklistSummaryService } from '../checklist/checklist-summary.service';
 import { EventEntity, type EventStatus } from './event.entity';
 import {
   DEFAULT_EVENT_TIME_ZONE,
@@ -58,6 +59,7 @@ export class EventsService {
     @InjectRepository(EventEntity)
     private readonly events: Repository<EventEntity>,
     private readonly audit: AuditService,
+    private readonly checklists: ChecklistSummaryService,
   ) {}
 
   async create(
@@ -155,7 +157,14 @@ export class EventsService {
       d: last.eventDate,
       i: last.id,
     }));
-    return { items: items.map(toEventDto), page };
+    const summaries = await this.checklists.forEvents(
+      items.map((e) => e.id),
+      now,
+    );
+    return {
+      items: items.map((e) => toEventDto(e, summaries.get(e.id))),
+      page,
+    };
   }
 
   async get(userId: string, id: string): Promise<EventDto> {
@@ -165,7 +174,7 @@ export class EventsService {
       deletedAt: IsNull(),
     });
     if (!event) throw notFound();
-    return toEventDto(event);
+    return toEventDto(event, await this.checklists.forEvent(event.id));
   }
 
   async update(
@@ -230,7 +239,12 @@ export class EventsService {
       }
     }
 
-    if (changed.length === 0) return toEventDto(event);
+    if (changed.length === 0) {
+      return toEventDto(
+        event,
+        await this.checklists.forEvent(event.id, new Date(), manager),
+      );
+    }
     const saved = await manager.getRepository(EventEntity).save(event);
     await this.audit.record(manager, {
       actorType: 'USER',
@@ -242,7 +256,11 @@ export class EventsService {
       ip: context.ip,
       summary: { fields: changed },
     });
-    return toEventDto(saved);
+    // A date or time-zone change can change what is overdue.
+    return toEventDto(
+      saved,
+      await this.checklists.forEvent(saved.id, new Date(), manager),
+    );
   }
 
   async transition(
@@ -276,7 +294,10 @@ export class EventsService {
       ip: context.ip,
       summary: { from, to: target },
     });
-    return toEventDto(saved);
+    return toEventDto(
+      saved,
+      await this.checklists.forEvent(saved.id, now, manager),
+    );
   }
 
   /** Soft delete (R11): the row is kept and hidden. */

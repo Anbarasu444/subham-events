@@ -86,6 +86,16 @@ class ApiClient {
     decode,
   );
 
+  Future<Result<ApiResponse<T>>> put<T>(
+    String path, {
+    required T Function(Object? data) decode,
+    Object? body,
+    CancelToken? cancelToken,
+  }) => _send(
+    () => _dio.put<Object?>(path, data: body, cancelToken: cancelToken),
+    decode,
+  );
+
   /// DELETE; a 204 response decodes `null`.
   Future<Result<ApiResponse<T>>> delete<T>(
     String path, {

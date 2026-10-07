@@ -10,6 +10,9 @@ import '../../domain/dashboard_section.dart';
 import '../../../events/presentation/events_navigation.dart';
 import '../../../events/presentation/widgets/event_card.dart';
 import '../../../../core/utils/date_format.dart';
+import '../../../checklist/presentation/checklist_navigation.dart';
+import '../../../checklist/presentation/widgets/checklist_progress.dart';
+import '../../data/checklist_progress_source.dart';
 import '../../data/upcoming_event_source.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/dashboard_section_card.dart';
@@ -101,7 +104,11 @@ class HomeTabView extends GetView<HomeController> {
         icon: Icons.checklist_outlined,
         state: state,
         onRetry: retry,
-        emptyMessage: 'Your checklist will appear once you create an event.',
+        emptyMessage: signedIn
+            ? 'Plan an upcoming event to see its checklist here.'
+            : 'Your checklist will appear once you create an event.',
+        contentBuilder: (context, data) =>
+            _ChecklistProgressCard(data: data as ChecklistProgressData),
       ),
       DashboardSectionId.budget => DashboardSectionCard(
         title: 'Budget overview',
@@ -149,6 +156,73 @@ class _UpcomingEvent extends StatelessWidget {
       event: next,
       today: dateOnly(DateTime.now()),
       onTap: () => EventsNavigation.openEvent(next),
+    );
+  }
+}
+
+class _ChecklistProgressCard extends StatelessWidget {
+  const _ChecklistProgressCard({required this.data});
+
+  final ChecklistProgressData data;
+
+  void _open() => Get.find<ShellController>().pushInTab(
+    ShellTab.events,
+    ChecklistNavigation.route(
+      eventId: data.event.id,
+      eventTitle: data.event.title,
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final summary = data.event.checklist;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          data.event.title,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        if (summary.total == 0)
+          Text('No tasks yet.', style: theme.textTheme.bodyMedium)
+        else ...[
+          ChecklistProgress(summary: summary),
+          if (summary.pending == 0)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Text('All tasks done!', style: theme.textTheme.bodyMedium),
+            ),
+          for (final task in data.nextTasks)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Text(
+                [
+                  task.title,
+                  if (task.isOverdue)
+                    'overdue'
+                  else if (task.dueDate != null)
+                    'due ${formatLongDate(task.dueDate!)}',
+                ].join(' · '),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: task.isOverdue ? theme.colorScheme.error : null,
+                ),
+              ),
+            ),
+        ],
+        const SizedBox(height: AppSpacing.sm),
+        AppButton(
+          label: summary.total == 0 ? 'Add tasks' : 'Open checklist',
+          icon: Icons.checklist_outlined,
+          variant: AppButtonVariant.secondary,
+          onPressed: _open,
+        ),
+      ],
     );
   }
 }

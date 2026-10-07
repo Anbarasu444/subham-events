@@ -23,6 +23,9 @@ class FakeEventsRepository implements EventsRepository {
   @override
   Stream<void> get changes => _changes.stream;
 
+  @override
+  void notifyChanged() => _changes.add(null);
+
   Result<T>? _failure<T>() {
     final failure = failNext;
     failNext = null;
@@ -37,6 +40,7 @@ class FakeEventsRepository implements EventsRepository {
     required EventScope scope,
     String? cursor,
     int limit = 20,
+    EventStatus? status,
   }) async {
     calls.add('list:${scope.name}:${cursor ?? ''}');
     final failure = _failure<EventsPage>();
@@ -149,6 +153,7 @@ class FakeEventsRepository implements EventsRepository {
     EventInput input, {
     EventStatus status = EventStatus.planning,
     int version = 1,
+    ChecklistSummary checklist = ChecklistSummary.empty,
   }) => PlannerEvent(
     id: id,
     eventType: input.eventType,
@@ -163,6 +168,7 @@ class FakeEventsRepository implements EventsRepository {
     totalBudget: input.totalBudget,
     status: status,
     version: version,
+    checklist: checklist,
   );
 
   static PlannerEvent copyWith(
@@ -183,6 +189,7 @@ class FakeEventsRepository implements EventsRepository {
     totalBudget: e.totalBudget,
     status: status ?? e.status,
     version: e.version + 1,
+    checklist: e.checklist,
   );
 }
 
@@ -192,6 +199,7 @@ PlannerEvent testEvent(
   required DateTime date,
   String title = 'Asha & Ravi Wedding',
   EventStatus status = EventStatus.planning,
+  ChecklistSummary checklist = ChecklistSummary.empty,
 }) => FakeEventsRepository.fromInput(
   id,
   EventInput(
@@ -201,4 +209,5 @@ PlannerEvent testEvent(
     city: 'Chennai',
   ),
   status: status,
+  checklist: checklist,
 );

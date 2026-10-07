@@ -9,15 +9,23 @@ import '../../../../core/theme/tokens.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/session_message.dart';
 import '../../../shell/presentation/controllers/shell_tab.dart';
+import '../../../checklist/presentation/views/checklist_picker_view.dart';
 import 'coming_soon_view.dart';
 
 /// One Menu entry (M6 user decision). [guestVisible] entries are shown to
-/// guests; the rest need a signed-in user.
+/// guests; the rest need a signed-in user. Entries without a [page] open a
+/// "Coming soon" placeholder until their milestone builds them.
 class MenuEntry {
-  const MenuEntry(this.title, this.icon, {this.guestVisible = false});
+  const MenuEntry(
+    this.title,
+    this.icon, {
+    this.guestVisible = false,
+    this.page,
+  });
   final String title;
   final IconData icon;
   final bool guestVisible;
+  final WidgetBuilder? page;
 }
 
 class MenuSection {
@@ -26,10 +34,12 @@ class MenuSection {
   final List<MenuEntry> entries;
 }
 
+Widget _checklistPage(BuildContext _) => const ChecklistPickerView();
+
 const menuSections = [
   MenuSection('Planning', [
     MenuEntry('Schedule', Icons.schedule_outlined),
-    MenuEntry('Checklist', Icons.checklist_outlined),
+    MenuEntry('Checklist', Icons.checklist_outlined, page: _checklistPage),
     MenuEntry('Budget', Icons.account_balance_wallet_outlined),
     MenuEntry('Messages', Icons.chat_bubble_outline),
   ]),
@@ -56,7 +66,9 @@ class _MenuTabViewState extends State<MenuTabView> {
     // Pushed on the Menu tab's own navigator, so the bottom bar stays.
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ComingSoonView(title: entry.title, icon: entry.icon),
+        builder:
+            entry.page ??
+            (_) => ComingSoonView(title: entry.title, icon: entry.icon),
       ),
     );
   }

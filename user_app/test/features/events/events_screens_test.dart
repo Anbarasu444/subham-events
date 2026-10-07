@@ -5,6 +5,7 @@ import 'package:user_app/app/config/app_config.dart';
 import 'package:user_app/core/auth/session.dart';
 import 'package:user_app/core/auth/session_service.dart';
 import 'package:user_app/core/utils/date_format.dart';
+import 'package:user_app/features/checklist/domain/repositories/checklist_repository.dart';
 import 'package:user_app/features/events/domain/entities/planner_event.dart';
 import 'package:user_app/features/events/domain/repositories/events_repository.dart';
 import 'package:user_app/features/events/presentation/controllers/my_events_controller.dart';
@@ -14,6 +15,7 @@ import 'package:user_app/features/shell/presentation/controllers/shell_controlle
 import 'package:user_app/features/shell/presentation/controllers/shell_tab.dart';
 import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 
+import '../../helpers/fake_checklist_repository.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/test_session.dart';
 
@@ -43,7 +45,9 @@ void main() {
     final repo = FakeEventsRepository(events: events, today: _today);
     Get.put<EventsRepository>(repo);
     Get.put(MyEventsController(repo, session));
-    Get.put(HomeController(session, buildDashboardSources(repo)));
+    final checklists = FakeChecklistRepository(onChanged: repo.notifyChanged);
+    Get.put<ChecklistRepository>(checklists);
+    Get.put(HomeController(session, buildDashboardSources(repo, checklists)));
     Get.put(ShellController(initialTab: tab));
     await tester.pumpWidget(const GetMaterialApp(home: ShellView()));
     await tester.pumpAndSettle();
@@ -193,6 +197,9 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'Cancel event'));
     await tester.pumpAndSettle();
     expect(repo.events.single.status, EventStatus.cancelled);
+    // The status chip sits at the top of the page.
+    await tester.drag(find.byType(ListView).last, const Offset(0, 2000));
+    await tester.pumpAndSettle();
     expect(find.text('Cancelled'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Reopen event'), findsOneWidget);
 
@@ -218,11 +225,12 @@ void main() {
         testEvent('near', date: _inDays(2), title: 'Mehendi'),
       ],
     );
-    expect(find.text('Mehendi'), findsOneWidget);
+    // Upcoming event card (and the Checklist card names the same event).
+    expect(find.text('Mehendi'), findsWidgets);
     expect(find.text('Reception'), findsNothing);
     expect(find.text('Create event'), findsOneWidget);
 
-    await tester.tap(find.text('Mehendi'));
+    await tester.tap(find.text('Mehendi').first);
     await tester.pumpAndSettle();
     expect(Get.find<ShellController>().current.value, ShellTab.events);
     expect(find.text('Event'), findsOneWidget);

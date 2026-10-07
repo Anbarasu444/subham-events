@@ -13,9 +13,15 @@ class EventsRemoteDataSource {
     required String scope,
     String? cursor,
     required int limit,
+    String? status,
   }) => _api.get(
     '/events',
-    query: {'scope': scope, 'limit': limit, 'cursor': ?cursor},
+    query: {
+      'scope': scope,
+      'limit': limit,
+      'cursor': ?cursor,
+      'status': ?status,
+    },
     decode: EventModel.listFromJson,
   );
 

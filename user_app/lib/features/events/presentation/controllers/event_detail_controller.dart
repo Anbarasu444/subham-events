@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 
 import '../../../../core/error/failure.dart';
@@ -35,16 +37,32 @@ class EventDetailController extends GetxController {
     _ => null,
   };
 
+  StreamSubscription<void>? _changes;
+
   @override
   void onInit() {
     super.onInit();
     load();
+    // Checklist progress (or an edit elsewhere) changes what this page shows.
+    _changes = _repository.changes.listen((_) {
+      if (running.value == null) load();
+    });
   }
 
+  @override
+  void onClose() {
+    _changes?.cancel();
+    super.onClose();
+  }
+
+  int _generation = 0;
+
   Future<void> load() async {
+    final generation = ++_generation;
     if (event == null) state.value = const Loading();
     final result = await _repository.get(eventId);
-    if (isClosed) return;
+    // An older response arriving last must not replace a newer one.
+    if (isClosed || generation != _generation) return;
     state.value = switch (result) {
       Ok(:final value) => Content(value),
       Err(:final failure) =>

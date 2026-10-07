@@ -26,6 +26,10 @@ import {
   type EventStatus,
 } from './event.entity';
 import { isCalendarDate, isValidTimeZone } from './event-rules';
+import {
+  EMPTY_CHECKLIST_SUMMARY,
+  type ChecklistSummaryDto,
+} from '../checklist/checklist.dto';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -176,12 +180,17 @@ export interface EventDto {
   guestCountEstimate: number | null;
   totalBudget: MoneyJson | null;
   status: EventStatus;
+  /** Checklist progress (M9). */
+  checklist: ChecklistSummaryDto;
   version: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export function toEventDto(event: EventEntity): EventDto {
+export function toEventDto(
+  event: EventEntity,
+  checklist: ChecklistSummaryDto = EMPTY_CHECKLIST_SUMMARY,
+): EventDto {
   return {
     id: event.id,
     eventType: event.eventType,
@@ -198,6 +207,7 @@ export function toEventDto(event: EventEntity): EventDto {
         ? null
         : Money.fromDb(event.totalBudgetAmount, event.currency).toJSON(),
     status: event.status,
+    checklist,
     version: event.version,
     createdAt: event.createdAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),

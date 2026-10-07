@@ -10,6 +10,7 @@ import 'package:user_app/core/crash/crash_reporter.dart';
 import 'package:user_app/core/storage/secure_store.dart';
 import 'package:user_app/features/auth/data/auth_api.dart';
 import 'package:user_app/app/routes/app_routes.dart';
+import 'package:user_app/features/checklist/domain/repositories/checklist_repository.dart';
 import 'package:user_app/features/events/domain/repositories/events_repository.dart';
 import 'package:user_app/features/events/presentation/controllers/my_events_controller.dart';
 import 'package:user_app/features/home/data/empty_section_source.dart';
@@ -19,6 +20,7 @@ import 'package:user_app/features/shell/presentation/controllers/shell_controlle
 import 'package:user_app/features/shell/presentation/controllers/shell_tab.dart';
 import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 
+import '../../helpers/fake_checklist_repository.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/recording_reporter.dart';
 
@@ -295,7 +297,7 @@ void main() {
       initial: ShellTab.menu,
       state: const SignedInSession(_profile),
     );
-    await tester.tap(find.text('Checklist'));
+    await tester.tap(find.text('Schedule'));
     await tester.pumpAndSettle();
     expect(find.text('Coming soon'), findsOneWidget);
 
@@ -329,7 +331,10 @@ void main() {
     Get.put<AppConfig>(_config(Flavor.staging));
     Get.put<SessionService>(_session(const SignedInSession(_profile)));
     Get.put<CrashReporter>(RecordingReporter());
-    Get.put<EventsRepository>(FakeEventsRepository());
+    final events = Get.put<EventsRepository>(FakeEventsRepository());
+    Get.put<ChecklistRepository>(
+      FakeChecklistRepository(onChanged: events.notifyChanged),
+    );
     await tester.pumpWidget(
       GetMaterialApp(
         initialRoute: AppRoutes.home,

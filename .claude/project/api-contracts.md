@@ -84,6 +84,7 @@ Initial catalogue (extend per milestone; never reuse a code with a different mea
 | 409 | `INVALID_STATE_TRANSITION` | e.g. accepting an expired quotation |
 | 409 | `IDEMPOTENCY_KEY_REUSED` | Same key, different request body |
 | 409 | `DUPLICATE` | Unique constraint (e.g. already wishlisted) |
+| 409 | `LIMIT_REACHED` | A per-owner limit is reached (e.g. 200 checklist items per event, M9) |
 | 412 | `PRECONDITION_FAILED` | `If-Match` version mismatch (optimistic concurrency) |
 | 413 | `PAYLOAD_TOO_LARGE` | Body too large |
 | 422 | `VALIDATION_FAILED` | Field validation errors in `details` |
@@ -248,6 +249,33 @@ Shared rules for every `/events` route:
 
 ### DELETE /api/v1/events/{id}
 - Milestone: M8 · Response 204. Soft delete (`deleted_at`, R11): the row is kept and hidden from every route. Audit: `EVENT_DELETED`.
+
+### Checklist (M9)
+Shared rules for `/events/{eventId}/checklist…`:
+- Auth: Bearer (registered user). The parent event must be the caller's own and not deleted; otherwise (or a malformed id, or an item of another event) → `404 NOT_FOUND`.
+- Writes need the event to be PLANNING (M9 answer 2: completed/cancelled → read only) → otherwise `409 INVALID_STATE_TRANSITION`. Writes are rate limited (300/min per IP, bucket `checklist-write`) and audited (`CHECKLIST_ITEM_CREATED|UPDATED|COMPLETED|REOPENED|DELETED`, `CHECKLIST_REORDERED`; summaries hold ids/field names only, never titles or notes).
+- `ChecklistItemDto`: `{ id, title (1–120), notes (≤ 1000) | null, dueDate "YYYY-MM-DD" | null, status: PENDING | DONE, isOverdue, completedAt | null, sortOrder, version, createdAt, updatedAt }`. `isOverdue` = PENDING with a due date before today in the event's time zone (derived, §4.12). Past due dates are accepted.
+- `ChecklistDto`: `{ eventId, isEditable, summary: { total, done, overdue }, items: ChecklistItemDto[] }` (items in the user's order).
+- `EventDto` (all event routes) gains `checklist: { total, done, overdue }` (one aggregate query per list page).
+- Notifications: none for owner changes; due/overdue notifications (N16) are built with Reminders in M17 (push M18).
+
+### GET /api/v1/events/{eventId}/checklist
+- Milestone: M9 · Response 200: `{ data: ChecklistDto }`. Readable for any non-deleted own event (also completed/cancelled).
+
+### POST /api/v1/events/{eventId}/checklist
+- Milestone: M9 · Idempotent: **required** (as `POST /events`). Request `{ title, notes?, dueDate? }`. Response 201 `{ data: ChecklistItemDto }` (appended at the end). At most 200 non-deleted items per event → `409 LIMIT_REACHED`.
+
+### PATCH /api/v1/events/{eventId}/checklist/{itemId}
+- Milestone: M9 · Request: any of `title`, `notes`, `dueDate` (`null` clears notes/due date; title cannot be null) plus required `version` → `412 PRECONDITION_FAILED` when stale. Response 200 `{ data: ChecklistItemDto }`.
+
+### POST …/checklist/{itemId}/complete · …/{itemId}/reopen
+- Milestone: M9 · PENDING → DONE sets `completedAt`; DONE → PENDING clears it. Same state again → `409 INVALID_STATE_TRANSITION`. Response 200 `{ data: ChecklistItemDto }`.
+
+### PUT /api/v1/events/{eventId}/checklist/order
+- Milestone: M9 · Request `{ itemIds: uuid[] }` = every non-deleted item exactly once, in the new order (else `422 ITEMS_MISMATCH`). Response 200 `{ data: ChecklistDto }`. Order is presentation only: item `version`s do not change.
+
+### DELETE /api/v1/events/{eventId}/checklist/{itemId}
+- Milestone: M9 · Response 204. Soft delete (R11).
 
 ### Background: event auto-complete (no endpoint)
 - Hourly in-process job (disabled with `BACKGROUND_JOBS_ENABLED=false`): PLANNING events whose date is before today in their zone become COMPLETED. Audit: `EVENT_AUTO_COMPLETED` (actor `SYSTEM`). No notification.

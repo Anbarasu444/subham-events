@@ -135,6 +135,13 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 - Create requests carry one `Idempotency-Key` per form (reused on retries). Edits send only changed fields plus `version`; a 412/409 shows "changed on another device". The form mirrors the server's validation, maps server field errors to fields, scrolls to errors and asks before discarding changes.
 - Dates are calendar dates (`core/utils/date_format.dart`, no `intl` dependency); money input uses `Money.tryParseInput` (exact paise, no doubles).
 
+## 6c. Checklist feature (M9)
+
+- `features/checklist`: `ChecklistRepository` (network-only) calls `EventsRepository.notifyChanged()` after every write, so event progress on cards, the event page (`EventDetailController` listens), My Events and the Home sections reload.
+- `ChecklistController` applies tick/reorder/delete optimistically, keeps a per-item `busy` set, and rolls back on failure (reloading on 409/404). Ticking shows an Undo snackbar. Reorder uses `SliverReorderableList` with an accessible "Move up / Move down" menu.
+- Add/edit is a bottom sheet (`ChecklistItemFormController`, one idempotency key per add intent). Completed/cancelled events show a read-only banner and disabled checkboxes.
+- Entry points: event page checklist card, Home "Checklist progress" (`ChecklistProgressSource`: next event's progress + up to three urgent tasks), Menu → Checklist (`ChecklistPickerView`: picks a PLANNING event, opens the only one directly).
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

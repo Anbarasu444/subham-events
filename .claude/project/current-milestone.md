@@ -4,62 +4,94 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M8** |
-| Milestone name | Event Management |
+| Milestone ID | **M9** |
+| Milestone name | Checklist |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M8-event-management.md` (status: CONFIRMED 2026-10-07) |
+| Spec | `.claude/project/milestones/M9-checklist.md` (status: CONFIRMED 2026-10-07) |
 | Started date | 2026-10-07 |
 | Completed date | — |
-| Approval status | **Awaiting `APPROVE MILESTONE M8`** |
+| Approval status | **Awaiting `APPROVE MILESTONE M9`** |
 
 ## Objective
-Signed-in users create, edit, cancel, reopen, complete and soft-delete events; My Events lists them; Home shows the next event. Backend `events` module + `event_types`/`events` migrations (Rule 7).
+Per-event checklist the user writes themselves (R8): add, edit, tick, reorder, delete, due dates and overdue highlighting; progress on the event, cards and Home. Backend `checklist` module + `checklist_items` migration (Rule 7).
 
 ## Completed work
-- Database: migration `1791400000000-Events` (`events`, `idempotency_keys`), applied by the user to the dev database 2026-10-07.
-- Backend: `events` module (create with required idempotency key, cursor-paginated upcoming/past/all lists, get, PATCH with version check, cancel/reopen/complete, soft delete), ownership → 404, validation (free-text type, Region/City time zones known to PostgreSQL, exact money), write rate limits, audit for every change, hourly auto-complete job, idempotency service with replay/reuse/stuck-key handling, cursor helper.
-- User App: events feature (repository with change stream, My Events Upcoming/Past with pagination and stale-on-failed-refresh, create/edit form with quick-fill types, pickers, rupee input, server field errors, scroll-to-error, discard guard, event page with complete/cancel/reopen/delete and confirmations); Home "Upcoming event" section shows the next event; button reads "Create your first event" or "Create event".
+- Database: migration `1791500000000-ChecklistItems` (applied by the user to the dev database 2026-10-07).
+- Backend: `checklist` module:
+  - list with summary
+  - idempotent add (max 200 tasks)
+  - edit with version check
+  - complete/reopen
+  - reorder (full set, versions untouched)
+  - soft delete
+  - access always through the user's own, non-deleted event
+  - read only unless the event is PLANNING
+  - overdue computed in the event's time zone
+  - audit for every change
+  - write rate limit
+
+  `EventDto` gains a `checklist` summary `{ total, done, overdue }`: one aggregate query per list page, read inside write transactions. New error code `LIMIT_REACHED`.
+- User App: checklist screen:
+  - progress header and read-only banner
+  - To do / Done sections
+  - tick with Undo
+  - drag to reorder, with Move up/down menu and screen-reader actions
+  - add/edit bottom sheet
+  - delete with confirmation
+  - overdue styling
+  - instant updates with per-task rollback
+
+  It is reached from the event page's checklist card, from task counts on event cards, from Home "Checklist progress" (next event's progress plus up to three urgent tasks) and from Menu → Checklist (picker; opens directly when there is only one event). Checklist changes refresh event screens once per burst.
 
 ## In-progress work
 - None.
 
 ## Not verified
-- Signed-in event flows on the iOS simulator against the real backend were **not** run: signing in needs the user (Firebase), and the user asked to continue. Covered instead by 10 backend e2e tests on PostgreSQL and 30+ Flutter controller/widget tests. Simulator (guest): My Events sign-in prompt, Home guest state; live API returns 401 `AUTH_REQUIRED` without a token.
-
-## Blocked work
-- None.
+- Signed-in checklist flows on the iOS simulator against the real backend were **not** run: the simulator is signed out and signing in is the user's step (Firebase). Covered by 20 backend e2e checklist/event tests on PostgreSQL and the Flutter controller/widget tests. Live backend: migration applied, checklist route returns 401 without a token.
 
 ## Tests completed
-- Backend: lint, typecheck, build, Prettier clean; 55 unit tests; 29 e2e tests on PostgreSQL (10 events tests: create/money/audit, auth + idempotency key required, replay + key reuse, validation incl. time zones, ownership 404s, upcoming/past pagination + forged/foreign cursors, optimistic concurrency + changed-field audit, state machine, soft delete, auto-complete job).
-- Live backend on the dev database (migration applied by the user): health ready, event routes mapped, unauthenticated request → 401.
-- Flutter: analyze clean, format clean, 145 tests (events model/repository/controllers/screens, date and money input helpers, Home upcoming section, 200 % text).
+- Backend: lint, typecheck, build, Prettier clean; 57 unit tests; 43 e2e tests on PostgreSQL. The 14 checklist tests cover:
+  - order, overdue and summary on events
+  - complete/reopen
+  - edit with version check
+  - validation
+  - reorder
+  - soft delete
+  - read-only events
+  - another user / wrong event → 404
+  - 200 limit
+  - audit
+  - idempotent replay and reused key
+  - overdue by event time zone (Pago Pago vs Kiritimati)
+  - blank notes
+- Flutter: analyze and format clean, 167 tests. These cover the checklist model, the controller (optimistic tick, per-task rollback with overlapping ticks, reorder guard, delete rollback, errors), the form controller, the Home source, and the screens (add + tick + undo, overdue + move + delete, read only, Menu picker with 1 or several events and with none, Home card, 200 % text).
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Code review | PASS WITH FINDINGS — fixed: tampered cursor 500 → 422, cursor bound to scope, stuck idempotency keys reclaimed, new key when form input changes, 412 documented, unit tests for cursor/stableStringify, time zones; accepted/documented: device-clock "today" (GI-28), `all` sort order |
-| Security review | PASS WITH FINDINGS — fixed: time-zone validation (offset/POSIX/`Etc` rejected, PostgreSQL check), cursor validation, stuck keys; open: per-user write limit (GI-27), trust proxy (GI-10) |
-| UI/UX + performance review | PASS WITH FINDINGS — fixed: failed refresh keeps list, no load-more retry loop, scroll to first error, card/picker semantics, per-action dialog labels, keyboard Done saves, no back during save, FAB hidden on empty list |
-| Notification review | Done — no notification for M8 changes (notification-matrix "Evaluated with no notification") |
-| Documentation | Done — api-contracts Part B (events), database-schema Part B, flutter.md §6b, domain-model §4.6, notification-matrix, known-issues GI-27/GI-28, spec change log |
+| Code review | PASS WITH FINDINGS — fixed: summary read inside the write transaction; per-task rollback; refresh bursts coalesced and stale event-page loads ignored; picker opens once; reorder 422 reloads; added e2e (replay, ownership on every write, wrong event, time-zone overdue); blank notes → null |
+| Security review | PASS WITH FINDINGS — fixed: summary in transaction; logged: per-user limits and soft-delete growth (GI-27), idempotency response bodies keep text 24 h (GI-29) |
+| UI/UX + performance review | PASS WITH FINDINGS — fixed: 200 % app bar, 48 dp drag handle + screen-reader move actions, dragged-row surface, keyboard Done saves, "task" wording, Undo failure feedback, no overlapping reorder, picker semantics; accepted: rebuild scope at ≤ 200 tasks |
+| Notification review | Done — no notification for owner changes; N16 deferred to M17/M18 (user decision) |
+| Documentation | Done — api-contracts Part B (checklist), database-schema Part B, flutter.md §6c, notification-matrix, known-issues GI-27/GI-29, spec change log |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-28.
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-29.
 - Business rules on hold: R3 (before M15), R6 (before M28/M29), R10 (before M26). R11 final policy by M21.
 
 ## Files changed
-- Database: `database/migrations/1791400000000-Events.ts`
-- Backend: `src/common/pagination/cursor.ts` (+ spec), `src/modules/idempotency/*` (+ spec), `src/modules/events/*` (entity, rules + spec, dto, service, controller, auto-complete job, module), `src/app.module.ts`, `src/config/env.validation.ts`, `src/config/app-config.service.ts`, `.env.example`, `test/events.e2e-spec.ts`, `test/auth.e2e-spec.ts`, `test/jest-e2e.json`, `test/setup-env.ts`
-- User App: `lib/core/network/api_client.dart`, `lib/core/money/money.dart`, `lib/core/utils/date_format.dart`, `lib/features/events/**`, `lib/features/home/{data,domain,presentation}/**`, `lib/features/shell/presentation/{bindings/shell_binding.dart,controllers/shell_controller.dart}`, tests under `test/features/events`, `test/core`, `test/helpers`, `test/features/home`, `test/features/shell`
-- Docs: `.claude/project/{current-milestone,progress,milestones,api-contracts,database-schema,domain-model,notification-matrix,known-issues}.md`, `architecture/flutter.md`, `milestones/M8-event-management.md`
+- Database: `database/migrations/1791500000000-ChecklistItems.ts`
+- Backend: `src/modules/checklist/*` (entity, dto + spec, summary service, service, controller, module), `src/modules/events/{events.dto.ts,events.service.ts,events.module.ts}`, `src/common/errors/error-codes.ts`, `test/db-harness.ts`, `test/checklist.e2e-spec.ts`, `test/auth.e2e-spec.ts`, `test/events.e2e-spec.ts`
+- User App: `lib/features/checklist/**`, `lib/features/events/{domain,data,presentation}/**` (summary, `notifyChanged` with debounce, status filter, checklist card, card counts, detail reload), `lib/features/home/{data/checklist_progress_source.dart,data/empty_section_source.dart,presentation/views/home_tab_view.dart}`, `lib/features/menu/presentation/views/menu_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`, `lib/core/network/api_client.dart` (PUT); tests under `test/features/checklist`, `test/features/events`, `test/features/shell`, `test/helpers`
+- Docs: `.claude/project/{current-milestone,progress,milestones,api-contracts,database-schema,notification-matrix,known-issues}.md`, `architecture/flutter.md`, `milestones/M9-checklist.md`
 - No vendor_app or admin_cms changes.
 
 ## Files pending approval
-- All M8 files are uncommitted; the user commits personally.
+- M8 and M9 files are uncommitted; the user commits personally.
 
 ## Next milestone
-- M9 — Checklist (spec drafted at the M8 gate).
+- M10 — Event Details (spec drafted at the M9 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
@@ -67,7 +99,18 @@ Signed-in users create, edit, cancel, reopen, complete and soft-delete events; M
 
 ---
 
-## Previous milestone — M7 Home Dashboard: COMPLETED
+## Previous milestone — M8 Event Management: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-07 |
+| Completed / approved | 2026-10-07 — `APPROVE MILESTONE M8` issued by the user |
+| Spec | `milestones/M8-event-management.md` (CONFIRMED) |
+
+Evidence at approval: `events` + `idempotency_keys` migration (applied by the user); backend events module (create with idempotency, cursor lists, edit with version check, cancel/reopen/complete, soft delete, audit, hourly auto-complete); User App My Events, event form and event page, Home upcoming event; backend 55 unit + 29 e2e, Flutter 145 tests; code, security and UI reviews PASS WITH FINDINGS (fixed; GI-27, GI-28 logged). Not verified: signed-in flows on the simulator (user sign-in needed).
+
+## Earlier milestone — M7 Home Dashboard: COMPLETED
 
 | Field | Value |
 |---|---|

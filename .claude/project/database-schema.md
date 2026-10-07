@@ -104,6 +104,7 @@
 | `1791300000000-AuthFoundation` | M5 | `users`, `user_roles`, `audit_logs` (UPDATE/DELETE revoked from `app_rw`), `notifications`, `rate_limit_counters` per Part C |
 | `1791300000001-AuditLogsImmutable` | M5 | Triggers make `audit_logs` append-only for every role (UPDATE/DELETE/TRUNCATE raise) |
 | `1791400000000-Events` | M8 | `events` (free-text `event_type` per O1, no `cover_media_id` yet; length/range/status checks; `total_budget_amount numeric(12,2) ≥ 0`; soft delete) with indexes `ix_events_owner_user_id_event_date_id` (partial, not deleted) and `ix_events_planning_event_date` (auto-complete job); `idempotency_keys` (PK principal + key, 24 h `expires_at`, purged hourly) |
+| `1791500000000-ChecklistItems` | M9 | `checklist_items` (`event_id → events` RESTRICT, title 1–120, notes ≤ 1000, `due_date`, status PENDING/DONE with `completed_at` consistency check, `sort_order ≥ 0`, soft delete, `version`) with `ix_checklist_items_event_id_status_due_date` (partial, not deleted). Overdue is derived, not stored; the 200-items limit is enforced by the API under an event row lock |
 
 Local databases `event_planner_dev` / `event_planner_test` and roles `migrator` / `app_rw` are created by `database/scripts/setup-local.sql` (run by the user). First domain tables (`users`, `user_roles`, `audit_logs`, `jobs`, `notifications`) expected in M5.
 

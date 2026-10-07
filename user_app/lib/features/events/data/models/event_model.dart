@@ -23,6 +23,17 @@ abstract final class EventModel {
           : Money.fromJson(budget as Map<String, dynamic>),
       status: EventStatus.fromApi(map['status'] as String),
       version: map['version'] as int,
+      checklist: checklistSummaryFromJson(map['checklist']),
+    );
+  }
+
+  /// `{ total, done, overdue }`; absent → empty (older responses).
+  static ChecklistSummary checklistSummaryFromJson(Object? json) {
+    if (json is! Map<String, dynamic>) return ChecklistSummary.empty;
+    return ChecklistSummary(
+      total: json['total'] as int,
+      done: json['done'] as int,
+      overdue: json['overdue'] as int,
     );
   }
 

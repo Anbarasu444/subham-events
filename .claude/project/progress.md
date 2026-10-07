@@ -41,8 +41,12 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-07 | M8 Event Management (NOT_STARTED) | Spec questions answered | Event type is free text (O1 answered; no `event_types` table), no cover image/media in M8 (user supplies temporary image URLs when needed), required fields and past-date rule confirmed; spec, domain-model, database-schema updated | — | — | User answers |
 | 2026-10-07 | M8 Event Management | START MILESTONE M8 | Validation passed (M7 COMPLETED and approved; spec exists, questions answered). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M8` issued by user |
 | 2026-10-07 | M8 Event Management | Set IN_REVIEW | `events` + `idempotency_keys` migration (applied by user), backend events module (CRUD, state actions, soft delete, cursor lists, idempotent create, audit, auto-complete job), User App My Events / event form / event page, Home upcoming event | Backend 55 unit + 29 e2e; Flutter 145; code, security, UI reviews PASS WITH FINDINGS (fixed or logged GI-27/GI-28) | Signed-in simulator check not run (needs user sign-in) | Awaiting `APPROVE MILESTONE M8` |
+| 2026-10-07 | M8 Event Management | APPROVE MILESTONE M8 | Status → **COMPLETED**. M9 Checklist set to NOT_STARTED; spec DRAFT created (open questions: due-date notifications, edits on non-planning events, limits, Menu entry) | See M8 IN_REVIEW entry | — | `APPROVE MILESTONE M8` issued by user |
+| 2026-10-07 | M9 Checklist (NOT_STARTED) | Spec questions answered | Due/overdue in-app only (N16 notifications → M17/M18); checklist read-only for completed/cancelled events; limits 200 items / 120 / 1000 chars; Menu → Checklist picks an event | — | — | User answers |
+| 2026-10-07 | M9 Checklist | START MILESTONE M9 | Validation passed (M8 COMPLETED and approved; spec exists, questions answered). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M9` issued by user |
+| 2026-10-07 | M9 Checklist | Set IN_REVIEW | `checklist_items` migration (applied by user), backend checklist module + checklist summary on events, User App checklist screen, event page/card progress, Home Checklist progress, Menu → Checklist picker | Backend 57 unit + 43 e2e; Flutter 167; code, security, UI reviews PASS WITH FINDINGS (fixed; GI-27/GI-29 logged) | Signed-in simulator check not run (simulator signed out) | Awaiting `APPROVE MILESTONE M9` |
 
 ## Status summary
 - Governance initialization: **complete**.
-- M1–M7: **COMPLETED** (M6 committed `f567e61`; M7 uncommitted — user commits personally).
-- Active milestone: **M8 — Event Management** (IN_REVIEW; awaiting `APPROVE MILESTONE M8`; uncommitted).
+- M1–M8: **COMPLETED** (M8 uncommitted — user commits personally).
+- Active milestone: **M9 — Checklist** (IN_REVIEW; awaiting `APPROVE MILESTONE M9`; uncommitted).
