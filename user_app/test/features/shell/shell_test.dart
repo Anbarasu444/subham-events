@@ -6,9 +6,12 @@ import 'package:user_app/app/config/app_config.dart';
 import 'package:user_app/core/auth/auth_service.dart';
 import 'package:user_app/core/auth/session.dart';
 import 'package:user_app/core/auth/session_service.dart';
+import 'package:user_app/core/crash/crash_reporter.dart';
 import 'package:user_app/core/storage/secure_store.dart';
 import 'package:user_app/features/auth/data/auth_api.dart';
 import 'package:user_app/app/routes/app_routes.dart';
+import 'package:user_app/features/home/data/empty_section_source.dart';
+import 'package:user_app/features/home/presentation/controllers/home_controller.dart';
 import 'package:user_app/features/shell/presentation/bindings/shell_binding.dart';
 import 'package:user_app/features/shell/presentation/controllers/shell_controller.dart';
 import 'package:user_app/features/shell/presentation/controllers/shell_tab.dart';
@@ -54,6 +57,7 @@ Future<ShellController> _pumpShell(
   Get.testMode = true;
   Get.put<AppConfig>(_config(flavor));
   Get.put<SessionService>(_session(state));
+  Get.put(HomeController(Get.find<SessionService>(), defaultDashboardSources));
   final controller = Get.put(ShellController(initialTab: initial));
   await tester.pumpWidget(const GetMaterialApp(home: ShellView()));
   await tester.pumpAndSettle();
@@ -70,7 +74,7 @@ void main() {
         .map((d) => d.label)
         .toList();
     expect(labels, ['Home', 'Explore', 'My Events', 'Menu']);
-    expect(find.text('Welcome'), findsOneWidget);
+    expect(find.text('Create your first event'), findsOneWidget);
   });
 
   testWidgets('tabs are built lazily and keep their state', (tester) async {
@@ -314,6 +318,7 @@ void main() {
     Get.testMode = true;
     Get.put<AppConfig>(_config(Flavor.staging));
     Get.put<SessionService>(_session(const SignedInSession(_profile)));
+    Get.put<CrashReporter>(RecordingReporter());
     await tester.pumpWidget(
       GetMaterialApp(
         initialRoute: AppRoutes.home,

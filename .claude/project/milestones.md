@@ -11,8 +11,8 @@ Each milestone has (or must have, before START) a spec in `milestones/` with sco
 | M3 | User App Foundation | User App | [M3](milestones/M3-user-app-foundation.md) (COMPLETED 2026-10-06) |
 | M4 | Splash & App Bootstrap | User App | [M4](milestones/M4-splash-app-bootstrap.md) (COMPLETED 2026-10-06) |
 | M5 | Authentication | User App | [M5](milestones/M5-authentication.md) (COMPLETED 2026-10-07) |
-| M6 | Main Navigation | User App | [M6](milestones/M6-main-navigation.md) (CONFIRMED) |
-| M7 | Home Dashboard | User App | — |
+| M6 | Main Navigation | User App | [M6](milestones/M6-main-navigation.md) (COMPLETED 2026-10-07) |
+| M7 | Home Dashboard | User App | [M7](milestones/M7-home-dashboard.md) (CONFIRMED — IN_REVIEW) |
 | M8 | Event Management | User App | — |
 | M9 | Checklist | User App | — |
 | M10 | Event Details | User App | — |

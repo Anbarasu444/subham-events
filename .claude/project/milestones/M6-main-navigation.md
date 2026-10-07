@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **CONFIRMED** — ratified by `START MILESTONE M6` on 2026-10-07 |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M6` on 2026-10-07; milestone COMPLETED 2026-10-07 |
 | Phase | User App |
 | Depends on | M5 COMPLETED and approved (`APPROVE MILESTONE M5`) |
 | Primary owner agent | user-app-manager (ui-manager, performance-manager, code-reviewer reviewers) |
@@ -75,3 +75,4 @@ Navigation shell with four tabs, nested per-tab navigation, guest gating, moved 
 | 2026-10-07 | CONFIRMED by `START MILESTONE M6` (open questions 3–4 still open; proceeding with: Messages = "Coming soon" entry, no separate Home menu entry) | User |
 | 2026-10-07 | Open question 3 answered: users and vendors may talk outside the app **or** inside an in-app Messages feature (user↔vendor messaging). M6 keeps the Messages menu entry as "Coming soon"; where the messaging feature is built is a roadmap decision (see known issue GI-26) | User |
 | 2026-10-07 | User: keep Messages as "Coming soon" for now; messaging decided later (GI-26) | User |
+| 2026-10-07 | `APPROVE MILESTONE M6` → COMPLETED. Android back-button device check left optional | User |

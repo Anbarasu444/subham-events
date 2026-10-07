@@ -120,6 +120,14 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 - Guests: Home, Explore, Menu (Settings, Help) are open; My Events shows a sign-in prompt. Sign-in returns to the originating tab via `returnTo` (allow-list `AppRoutes.returnRoutes`). On sign-out every tab returns to its first page.
 - `AuthGuardMiddleware` remains for future full-screen protected routes. Deep links and notification taps (M18) will resolve to `/?tab=…` plus a page inside the tab.
 
+## 6a. Home dashboard sections (M7)
+
+- `features/home`: `HomeController` loads a list of `DashboardSectionSource`s (`domain/dashboard_section.dart`), one `Rx<ViewState<SectionData>>` per `DashboardSectionId`; `DashboardSectionCard` renders title (heading), skeleton / empty (+ optional action) / error with "Try again" / content.
+- Sections load **independently** (`Future.wait` of per-section loads; a throwing source is reported to `CrashReporter` and shown as `Failed`). A per-section generation counter drops results of older loads; nothing is written after the controller is closed.
+- `requiresSignIn` sources are not called for guests (empty state, no protected API call). Sections reload only when the signed-in/guest status changes, on pull-to-refresh and on retry. A refresh keeps the shown state (`Content` becomes `isStale`, `Empty` stays) instead of flashing skeletons.
+- Greeting uses the time of day, refreshed on reload and app resume; first name when signed in.
+- M7 registers `EmptySectionSource` placeholders (`defaultDashboardSources` in `ShellBinding`). Owners: Upcoming event → M8, Checklist → M9, Budget → M11, Explore vendors → M12. A milestone filling a section supplies a real source (repository-backed) **and** a `contentBuilder` for its card (a `Content` state without a builder asserts in debug). Each card rebuilds in its own `Obx`.
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

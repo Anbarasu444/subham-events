@@ -34,8 +34,11 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-07 | M5 Authentication | APPROVE MILESTONE M5 | Status → **COMPLETED**. M6 Main Navigation set to NOT_STARTED; spec DRAFT created | See M5 entries | — | `APPROVE MILESTONE M5` issued by user |
 | 2026-10-07 | M6 Main Navigation | START MILESTONE M6 | Validation passed (M5 COMPLETED and approved; spec exists). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M6` issued by user |
 | 2026-10-07 | M6 Main Navigation | Set IN_REVIEW | Bottom-navigation shell (Home, Explore, My Events, Menu), nested per-tab navigation, guest gating, Menu with Planning/Account sections and Coming-soon pages, sign-out resets tabs | Flutter analyze clean, 96 tests; iOS simulator checks; UI + code reviews PASS WITH FINDINGS, fixed | Optional Android back check | Awaiting `APPROVE MILESTONE M6` |
+| 2026-10-07 | M6 Main Navigation | APPROVE MILESTONE M6 | Status → **COMPLETED**. M7 Home Dashboard set to NOT_STARTED; spec DRAFT created (Option A/B decision needed) | See M6 IN_REVIEW entry | — | `APPROVE MILESTONE M6` issued by user |
+| 2026-10-07 | M7 Home Dashboard | START MILESTONE M7 | Validation passed (M6 COMPLETED and approved; spec exists, Option A chosen). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M7` issued by user |
+| 2026-10-07 | M7 Home Dashboard | Set IN_REVIEW | Home dashboard framework: greeting, "Create your first event" call to action, four independent sections (Upcoming event, Checklist progress, Budget overview, Explore vendors) with empty / loading / error-retry states, pull-to-refresh, guest vs signed-in behaviour | Flutter analyze clean, 112 tests; iOS simulator light/dark checks; code + UI reviews PASS WITH FINDINGS, fixed | — | Awaiting `APPROVE MILESTONE M7` |
 
 ## Status summary
 - Governance initialization: **complete**.
-- M1–M5: **COMPLETED** (M5 approved 2026-10-07; user commits the M5 files personally).
-- Active milestone: **M6 — Main Navigation** — IN_REVIEW (awaiting `APPROVE MILESTONE M6`).
+- M1–M6: **COMPLETED** (M6 committed `f567e61`).
+- Active milestone: **M7 — Home Dashboard** (IN_REVIEW since 2026-10-07; awaiting `APPROVE MILESTONE M7`; uncommitted).
