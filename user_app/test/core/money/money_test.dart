@@ -38,4 +38,17 @@ void main() {
   test('value equality', () {
     expect(Money.parse('10.10', 'INR'), Money.parse('10.10', 'INR'));
   });
+
+  test('parses rupee input without rounding', () {
+    expect(Money.tryParseInput('40000')?.amount, '40000.00');
+    expect(Money.tryParseInput(' 1,25,000.5 ')?.amount, '125000.50');
+    expect(Money.tryParseInput('99.90')?.amount, '99.90');
+    expect(Money.tryParseInput('007')?.amount, '7.00');
+    expect(Money.tryParseInput('10.123'), isNull);
+    expect(Money.tryParseInput('-5'), isNull);
+    expect(Money.tryParseInput('1e5'), isNull);
+    expect(Money.tryParseInput(''), isNull);
+    expect(Money.parse('40000.00', 'INR').toInputText(), '40000');
+    expect(Money.parse('40000.50', 'INR').toInputText(), '40000.50');
+  });
 }

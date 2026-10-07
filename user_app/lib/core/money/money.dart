@@ -24,6 +24,29 @@ class Money {
     return Money._(BigInt.parse(amount.replaceFirst('.', '')), currency);
   }
 
+  /// Parses what a user typed in a rupee field: `40000`, `40,000`,
+  /// `1,25,000.5` or `99.90`. Returns null for anything else (no rounding).
+  static Money? tryParseInput(String input, {String currency = 'INR'}) {
+    final cleaned = input.trim().replaceAll(',', '');
+    final match = _inputPattern.firstMatch(cleaned);
+    if (match == null) return null;
+    final rupees = match.group(1)!.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+    final paise = (match.group(2) ?? '').padRight(2, '0');
+    try {
+      return Money.parse('$rupees.$paise', currency);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  static final RegExp _inputPattern = RegExp(r'^(\d{1,10})(?:\.(\d{1,2}))?$');
+
+  /// Plain editable text without symbol or grouping: `40000` or `40000.50`.
+  String toInputText() {
+    final text = amount;
+    return text.endsWith('.00') ? text.substring(0, text.length - 3) : text;
+  }
+
   static const supportedCurrencies = {'INR'};
   static final RegExp _pattern = RegExp(r'^(0|[1-9]\d{0,9})\.\d{2}$');
 

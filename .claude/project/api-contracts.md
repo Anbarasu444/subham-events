@@ -216,3 +216,39 @@ All responses carry `X-Request-Id` (incoming value echoed if it matches `[A-Za-z
 - Errors: 401 `AUTH_REQUIRED` (no token, or the identity has no platform user yet — the app then calls `/auth/session`), other auth errors as above.
 
 All non-public routes are protected by default (global guard); only `/health/*` is public.
+
+### Events (M8)
+Shared rules for every `/events` route:
+- Auth: Bearer (registered user). Only the caller's own, non-deleted events are visible. Another user's event, a deleted event or a malformed id → `404 NOT_FOUND` (never 403).
+- `EventDto`: `{ id, eventType, title, eventDate: "YYYY-MM-DD", startTime: "HH:mm" | null, timeZone (IANA), city, venueName | null, venueAddress | null, guestCountEstimate | null, totalBudget: { amount: "400000.50", currency: "INR" } | null, status: PLANNING | COMPLETED | CANCELLED, version, createdAt, updatedAt }`.
+- Field rules: `eventType` free text 1–60 (O1), `title` 1–100, `city` 1–80, `venueName` 1–120, `venueAddress` 1–300 (strings trimmed), `guestCountEstimate` 0–100000, `startTime` 24-hour `HH:mm`, `timeZone` IANA Region/City name or `UTC` that PostgreSQL also knows (default `Asia/Kolkata`; offsets such as `+05:30`, POSIX rules and `Etc/*` → 422 `UNKNOWN_TIME_ZONE`/validation error), `eventDate` real date 2000–2100. Unknown properties → 422.
+- Writes are rate limited (120/min per IP, bucket `events-write`) and audited. Notifications: none (the owner's own action; evaluated in M8).
+
+### POST /api/v1/events
+- Milestone: M8 · Idempotent: **required** (`Idempotency-Key`, 8–128 letters/digits/dashes; replay returns the original `201` with `Idempotent-Replayed: true`; same key + different body → `409 IDEMPOTENCY_KEY_REUSED`; same key still running → `409 CONFLICT` (a key stuck in progress for over 60 s, e.g. after a crash, is reclaimed); missing → `428 IDEMPOTENCY_KEY_REQUIRED`).
+- Request: `{ eventType, title, eventDate, city, startTime?, timeZone?, venueName?, venueAddress?, guestCountEstimate?, totalBudget? }`.
+- Response 201: `{ data: EventDto }`. Errors: 422 `VALIDATION_FAILED` (field `eventDate` code `MUST_NOT_BE_PAST` when before today in the event's zone).
+- Audit: `EVENT_CREATED`.
+
+### GET /api/v1/events
+- Milestone: M8 · Query: `scope` = `all` (default) | `upcoming` (PLANNING and dated today or later in the event's zone) | `past` (everything else); `status`; `limit` 1–100 (default 20); `cursor`.
+- Sort: `upcoming` and `all` by `eventDate` ascending (so `all` lists the oldest first — it is not "upcoming first"), `past` descending; `id` tiebreaker. Cursor pagination (`meta.page`, ADR-0013). A cursor only continues the scope it came from; an invalid or foreign cursor → 422 `INVALID_CURSOR`.
+
+### GET /api/v1/events/{id}
+- Milestone: M8 · Response 200: `{ data: EventDto }` · Errors: 404.
+
+### PATCH /api/v1/events/{id}
+- Milestone: M8 · Optimistic concurrency via body `version` (the version last read) — chosen over `If-Match` to keep the mobile client simple; mismatch → `412 PRECONDITION_FAILED`.
+- Request: any subset of the create fields plus required `version`; `null` clears an optional field; required fields cannot be null. Moving an existing event to a past date is allowed (M8 answer 4).
+- Response 200: `{ data: EventDto }` (version + 1 when something changed). Audit: `EVENT_UPDATED` with the changed field names.
+
+### POST /api/v1/events/{id}/cancel · /reopen · /complete
+- Milestone: M8 · Response 200: `{ data: EventDto }`. State machine (domain-model.md §4.6): cancel and complete only from PLANNING; reopen from COMPLETED/CANCELLED only while `eventDate` is today or later in the event's zone. Otherwise `409 INVALID_STATE_TRANSITION`.
+- Audit: `EVENT_CANCELLED`, `EVENT_REOPENED`, `EVENT_COMPLETED`.
+
+### DELETE /api/v1/events/{id}
+- Milestone: M8 · Response 204. Soft delete (`deleted_at`, R11): the row is kept and hidden from every route. Audit: `EVENT_DELETED`.
+
+### Background: event auto-complete (no endpoint)
+- Hourly in-process job (disabled with `BACKGROUND_JOBS_ENABLED=false`): PLANNING events whose date is before today in their zone become COMPLETED. Audit: `EVENT_AUTO_COMPLETED` (actor `SYSTEM`). No notification.
+

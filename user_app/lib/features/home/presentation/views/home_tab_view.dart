@@ -7,6 +7,10 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
 import '../../../shell/presentation/controllers/shell_tab.dart';
 import '../../domain/dashboard_section.dart';
+import '../../../events/presentation/events_navigation.dart';
+import '../../../events/presentation/widgets/event_card.dart';
+import '../../../../core/utils/date_format.dart';
+import '../../data/upcoming_event_source.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/dashboard_section_card.dart';
 
@@ -22,9 +26,10 @@ class HomeTabView extends GetView<HomeController> {
     parameters: {'returnTo': AppRoutes.tab(returnTab)},
   );
 
-  /// Guests are asked to sign in first; signed-in users go to My Events.
+  /// Guests are asked to sign in first; signed-in users get the new-event
+  /// form in the My Events tab.
   void _startPlanning() => controller.signedIn
-      ? _openTab(ShellTab.events)
+      ? EventsNavigation.startCreate()
       : _signIn(ShellTab.events);
 
   @override
@@ -56,10 +61,14 @@ class HomeTabView extends GetView<HomeController> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            AppButton(
-              label: 'Create your first event',
-              icon: Icons.add,
-              onPressed: _startPlanning,
+            Obx(
+              () => AppButton(
+                label: controller.signedIn && controller.hasEvents
+                    ? 'Create event'
+                    : 'Create your first event',
+                icon: Icons.add,
+                onPressed: _startPlanning,
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
             for (final source in controller.sources) ...[
@@ -84,6 +93,8 @@ class HomeTabView extends GetView<HomeController> {
         emptyMessage: signedIn
             ? 'You have no events yet.'
             : 'Sign in to see your upcoming events.',
+        contentBuilder: (context, data) =>
+            _UpcomingEvent(summary: data as UpcomingEventSummary),
       ),
       DashboardSectionId.checklist => DashboardSectionCard(
         title: 'Checklist progress',
@@ -114,5 +125,30 @@ class HomeTabView extends GetView<HomeController> {
         ),
       ),
     };
+  }
+}
+
+class _UpcomingEvent extends StatelessWidget {
+  const _UpcomingEvent({required this.summary});
+
+  final UpcomingEventSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final next = summary.next;
+    if (next == null) {
+      final theme = Theme.of(context);
+      return Text(
+        'No upcoming events. Your past events are in My Events.',
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+    return EventCard(
+      event: next,
+      today: dateOnly(DateTime.now()),
+      onTap: () => EventsNavigation.openEvent(next),
+    );
   }
 }

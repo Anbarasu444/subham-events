@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **CONFIRMED** — ratified by `START MILESTONE M7` on 2026-10-07 (Option A) |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M7` on 2026-10-07 (Option A); milestone COMPLETED 2026-10-07 |
 | Phase | User App |
 | Depends on | M6 COMPLETED and approved (`APPROVE MILESTONE M6`) |
 | Primary owner agent | user-app-manager (ui-manager, performance-manager, code-reviewer reviewers) |
@@ -69,3 +69,4 @@ UI/UX (layout, copy, empty states), performance (lazy sections, rebuild scope), 
 | 2026-10-07 | CONFIRMED by `START MILESTONE M7` | User |
 | 2026-10-07 | Implementation decision (low risk, recorded): sign-in-only sections are not loaded for guests; dashboard keeps the "Create your first event" label requested by the user (M8 should switch it to "Create event" once events exist) | Claude (CLAUDE.md §31) |
 | 2026-10-07 | Set IN_REVIEW | Claude |
+| 2026-10-07 | `APPROVE MILESTONE M7` → COMPLETED | User |

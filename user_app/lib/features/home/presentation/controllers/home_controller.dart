@@ -44,8 +44,14 @@ class HomeController extends GetxController {
 
   Worker? _sessionWorker;
   AppLifecycleListener? _lifecycle;
+  final List<StreamSubscription<void>> _sourceChanges = [];
 
   bool get signedIn => _session.state.value is SignedInSession;
+
+  /// Whether the signed-in user has any event (drives the call-to-action
+  /// label "Create your first event" vs "Create event").
+  bool get hasEvents =>
+      sections[DashboardSectionId.upcomingEvent]?.value is Content<SectionData>;
 
   /// First name when known, otherwise null (generic welcome).
   String? get firstName {
@@ -79,12 +85,23 @@ class HomeController extends GetxController {
       unawaited(refreshAll());
     });
     _lifecycle = AppLifecycleListener(onResume: () => _now.value = _clock());
+    for (final source in sources) {
+      final changes = source.changes;
+      if (changes != null) {
+        _sourceChanges.add(
+          changes.listen((_) => unawaited(loadSection(source.id))),
+        );
+      }
+    }
   }
 
   @override
   void onClose() {
     _sessionWorker?.dispose();
     _lifecycle?.dispose();
+    for (final subscription in _sourceChanges) {
+      unawaited(subscription.cancel());
+    }
     super.onClose();
   }
 

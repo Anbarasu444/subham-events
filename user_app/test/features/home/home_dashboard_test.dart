@@ -14,6 +14,8 @@ import 'package:user_app/core/error/result.dart';
 import 'package:user_app/core/state/view_state.dart';
 import 'package:user_app/core/storage/secure_store.dart';
 import 'package:user_app/features/auth/data/auth_api.dart';
+import 'package:user_app/features/events/domain/repositories/events_repository.dart';
+import 'package:user_app/features/events/presentation/controllers/my_events_controller.dart';
 import 'package:user_app/features/home/data/empty_section_source.dart';
 import 'package:user_app/features/home/domain/dashboard_section.dart';
 import 'package:user_app/features/home/presentation/controllers/home_controller.dart';
@@ -21,6 +23,7 @@ import 'package:user_app/features/shell/presentation/controllers/shell_controlle
 import 'package:user_app/features/shell/presentation/controllers/shell_tab.dart';
 import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 
+import '../../helpers/fake_events_repository.dart';
 import '../../helpers/recording_reporter.dart';
 
 class _Auth extends Mock implements AuthService {}
@@ -36,6 +39,8 @@ class _FlakySource implements DashboardSectionSource {
   final DashboardSectionId id;
   @override
   bool get requiresSignIn => false;
+  @override
+  Stream<void>? get changes => null;
   bool fail = true;
   int loads = 0;
   @override
@@ -52,6 +57,8 @@ class _ManualSource implements DashboardSectionSource {
   final DashboardSectionId id;
   @override
   final bool requiresSignIn;
+  @override
+  Stream<void>? get changes => null;
   final pending = <Completer<Result<SectionData>>>[];
   @override
   Future<Result<SectionData>> load({required bool signedIn}) {
@@ -66,6 +73,8 @@ class _ThrowingSource implements DashboardSectionSource {
   DashboardSectionId get id => DashboardSectionId.budget;
   @override
   bool get requiresSignIn => false;
+  @override
+  Stream<void>? get changes => null;
   @override
   Future<Result<SectionData>> load({required bool signedIn}) =>
       Future.error(StateError('boom'));
@@ -254,6 +263,8 @@ void main() {
       );
       final session = Get.put<SessionService>(_session(state));
       Get.put(HomeController(session, sources ?? defaultDashboardSources));
+      final events = Get.put<EventsRepository>(FakeEventsRepository());
+      Get.put(MyEventsController(events, session));
       Get.put(ShellController());
       await tester.pumpWidget(
         GetMaterialApp(home: const ShellView(), getPages: pages),
@@ -298,12 +309,15 @@ void main() {
       semantics.dispose();
     });
 
-    testWidgets('signed-in call to action opens My Events', (tester) async {
+    testWidgets('signed-in call to action opens the new-event form', (
+      tester,
+    ) async {
       await pump(tester, const SignedInSession(_profile));
       await tester.tap(find.text('Create your first event'));
       await tester.pumpAndSettle();
       expect(Get.find<ShellController>().current.value, ShellTab.events);
-      expect(find.text('No events yet'), findsOneWidget);
+      expect(find.text('New event'), findsWidgets);
+      expect(find.text('Event type'), findsOneWidget);
     });
 
     testWidgets('guest call to action opens sign-in returning to My Events', (

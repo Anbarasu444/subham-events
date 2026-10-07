@@ -10,6 +10,8 @@ import 'package:user_app/core/crash/crash_reporter.dart';
 import 'package:user_app/core/storage/secure_store.dart';
 import 'package:user_app/features/auth/data/auth_api.dart';
 import 'package:user_app/app/routes/app_routes.dart';
+import 'package:user_app/features/events/domain/repositories/events_repository.dart';
+import 'package:user_app/features/events/presentation/controllers/my_events_controller.dart';
 import 'package:user_app/features/home/data/empty_section_source.dart';
 import 'package:user_app/features/home/presentation/controllers/home_controller.dart';
 import 'package:user_app/features/shell/presentation/bindings/shell_binding.dart';
@@ -17,6 +19,7 @@ import 'package:user_app/features/shell/presentation/controllers/shell_controlle
 import 'package:user_app/features/shell/presentation/controllers/shell_tab.dart';
 import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 
+import '../../helpers/fake_events_repository.dart';
 import '../../helpers/recording_reporter.dart';
 
 class _Auth extends Mock implements AuthService {}
@@ -58,6 +61,8 @@ Future<ShellController> _pumpShell(
   Get.put<AppConfig>(_config(flavor));
   Get.put<SessionService>(_session(state));
   Get.put(HomeController(Get.find<SessionService>(), defaultDashboardSources));
+  final events = Get.put<EventsRepository>(FakeEventsRepository());
+  Get.put(MyEventsController(events, Get.find<SessionService>()));
   final controller = Get.put(ShellController(initialTab: initial));
   await tester.pumpWidget(const GetMaterialApp(home: ShellView()));
   await tester.pumpAndSettle();
@@ -140,13 +145,18 @@ void main() {
     expect(find.text('Sign in'), findsOneWidget);
   });
 
-  testWidgets('signed-in users see My Events placeholder', (tester) async {
+  testWidgets('signed-in users without events see the empty My Events', (
+    tester,
+  ) async {
     await _pumpShell(
       tester,
       initial: ShellTab.events,
       state: const SignedInSession(_profile),
     );
-    expect(find.text('No events yet'), findsOneWidget);
+    expect(find.text('No upcoming events'), findsOneWidget);
+    // The empty state has its own button, so the floating one is hidden.
+    expect(find.text('Create event'), findsOneWidget);
+    expect(find.text('New event'), findsNothing);
   });
 
   testWidgets('guest Menu shows only Settings and Help with a Sign in header', (
@@ -319,6 +329,7 @@ void main() {
     Get.put<AppConfig>(_config(Flavor.staging));
     Get.put<SessionService>(_session(const SignedInSession(_profile)));
     Get.put<CrashReporter>(RecordingReporter());
+    Get.put<EventsRepository>(FakeEventsRepository());
     await tester.pumpWidget(
       GetMaterialApp(
         initialRoute: AppRoutes.home,
@@ -338,6 +349,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(Get.find<ShellController>().current.value, ShellTab.events);
-    expect(find.text('No events yet'), findsOneWidget);
+    expect(find.text('No upcoming events'), findsOneWidget);
   });
 }

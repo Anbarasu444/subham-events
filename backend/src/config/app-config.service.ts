@@ -29,6 +29,13 @@ export class AppConfigService {
     return this.config.get('FIREBASE_PROJECT_ID', { infer: true }) || undefined;
   }
 
+  /** Defaults to on; tests and one-off scripts set `false`. */
+  get backgroundJobsEnabled(): boolean {
+    return (
+      this.config.get('BACKGROUND_JOBS_ENABLED', { infer: true }) !== 'false'
+    );
+  }
+
   get databaseUrl(): string {
     return this.config.get('DATABASE_URL', { infer: true });
   }

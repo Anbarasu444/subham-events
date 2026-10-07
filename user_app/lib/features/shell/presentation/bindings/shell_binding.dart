@@ -2,6 +2,11 @@ import 'package:get/get.dart';
 
 import '../../../../core/auth/session_service.dart';
 import '../../../../core/crash/crash_reporter.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../events/data/datasources/events_remote_data_source.dart';
+import '../../../events/data/repositories/events_repository_impl.dart';
+import '../../../events/domain/repositories/events_repository.dart';
+import '../../../events/presentation/controllers/my_events_controller.dart';
 import '../../../home/data/empty_section_source.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
 
@@ -11,11 +16,22 @@ import '../controllers/shell_tab.dart';
 class ShellBinding extends Bindings {
   @override
   void dependencies() {
-    // Home tab dashboard (M7). Sections are filled by later milestones.
+    // Events (M8): shared by My Events and the Home dashboard.
+    Get.lazyPut<EventsRepository>(
+      () => EventsRepositoryImpl(EventsRemoteDataSource(Get.find<ApiClient>())),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => MyEventsController(
+        Get.find<EventsRepository>(),
+        Get.find<SessionService>(),
+      ),
+    );
+    // Home tab dashboard (M7); sections are filled by later milestones.
     Get.lazyPut(
       () => HomeController(
         Get.find<SessionService>(),
-        defaultDashboardSources,
+        buildDashboardSources(Get.find<EventsRepository>()),
         reporter: Get.find<CrashReporter>(),
       ),
     );

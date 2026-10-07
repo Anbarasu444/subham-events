@@ -61,6 +61,18 @@ class ShellController extends GetxController {
     current.value = tab;
   }
 
+  /// Switches to [tab] and pushes [route] on its navigator once the tab is
+  /// built (tabs are built lazily on first visit).
+  void pushInTab<T>(ShellTab tab, Route<T> route) {
+    select(tab);
+    void push() => navigatorKeys[tab]?.currentState?.push(route);
+    if (navigatorKeys[tab]?.currentState != null) {
+      push();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => push());
+    }
+  }
+
   /// System back: pop inside the tab, then go to Home, then let the app close.
   /// Returns true when the back press was handled.
   Future<bool> handleBack() async {

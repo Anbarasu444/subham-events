@@ -47,6 +47,11 @@ export class EnvironmentVariables {
   @IsString()
   DATABASE_MIGRATION_URL?: string;
 
+  /** In-process scheduled jobs (event auto-complete, clean-ups). Off in tests. */
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  BACKGROUND_JOBS_ENABLED?: 'true' | 'false';
+
   /** Firebase project used to verify ID tokens (ADR-0012). */
   @IsOptional()
   @IsString()

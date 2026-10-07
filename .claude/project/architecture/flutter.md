@@ -128,6 +128,13 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 - Greeting uses the time of day, refreshed on reload and app resume; first name when signed in.
 - M7 registers `EmptySectionSource` placeholders (`defaultDashboardSources` in `ShellBinding`). Owners: Upcoming event → M8, Checklist → M9, Budget → M11, Explore vendors → M12. A milestone filling a section supplies a real source (repository-backed) **and** a `contentBuilder` for its card (a `Content` state without a builder asserts in debug). Each card rebuilds in its own `Obx`.
 
+## 6b. Events feature (M8)
+
+- `features/events`: `EventsRepository` (network-only; events are server-owned, no offline cache yet) exposes a broadcast `changes` stream after every successful write. `MyEventsController` (Upcoming/Past lists, cursor pagination, inline load-more retry) and the Home `UpcomingEventSource` listen to it and reload.
+- Event pages (form, detail) live in the My Events tab navigator (`EventsNavigation`, `ShellController.pushInTab`), so the bottom bar stays. Page controllers use `GetBuilder(init:…, global: false)` and are disposed with the page.
+- Create requests carry one `Idempotency-Key` per form (reused on retries). Edits send only changed fields plus `version`; a 412/409 shows "changed on another device". The form mirrors the server's validation, maps server field errors to fields, scrolls to errors and asks before discarding changes.
+- Dates are calendar dates (`core/utils/date_format.dart`, no `intl` dependency); money input uses `Money.tryParseInput` (exact paise, no doubles).
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

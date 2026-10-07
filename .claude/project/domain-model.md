@@ -20,7 +20,7 @@
 | R10 | Vendor accounts | ⏸ **HOLD** — categories per vendor, team members pending client confirmation | User (hold) |
 | R11 | Account deletion | **Interim (development) rule:** keep everything in the database and media storage; only mark the account as deleted. **Final deletion policy to be discussed later** (user, 2026-10-06) — must be decided before the account-deletion feature is built (M21) and at the latest before release (M72) | User |
 | R12 | Money | Exact decimal rupees, `numeric(12,2)`, API `"10.10"` (ADR-0014) | User |
-| O1 | Event types | ❓ Proposed default: Wedding, Engagement, Birthday, Anniversary, Baby Shower, Housewarming, Corporate, Other; admin-editable | Not yet answered |
+| O1 | Event types | **Free text** — the user can enter any event type (no fixed/admin list) | User (2026-10-07, M8 spec) |
 | O2 | Vendor location | ❓ Proposed default: city + list of service areas | Not yet answered |
 
 ### Working assumptions needing confirmation (❓)
@@ -50,7 +50,6 @@ Owner module = backend module from `architecture/backend.md` §3. Vis. = who may
 | UserRole (`user_roles`) | `USER` / `VENDOR` roles | `rbac` | Self; admins | M5 |
 | AdminUser (`admin_users`) | Admin account, username + password, sub-role | `admin-auth` | Admins (SUPER_ADMIN manages) | M40 |
 | AdminSession (`admin_sessions`) | Server-side admin sessions | `admin-auth` | Internal | M40 |
-| EventType (`event_types`) | Reference list of event types (O1) | `events` | Public | M8 |
 | VendorCategory (`vendor_categories`) | Admin-defined marketplace categories | `categories` | Public when PUBLISHED | M12 (seed/read), M42 (admin CRUD) |
 | PlatformFeeSchedule (`platform_fee_schedules`) | Fee amount per category, versioned ⏸ R6 | `platform-fees` | Vendors (current fee), admins | M29/M43 |
 | Vendor (`vendors`) | Vendor business profile (one per vendor user ⏸ R10) | `vendors` | Public (ACTIVE only), owner, admins | M12 (read), M26 |
@@ -95,7 +94,6 @@ erDiagram
   users ||--o{ reminders : sets
   users ||--o{ notifications : receives
   users ||--o{ notification_devices : registers
-  event_types ||--o{ events : classifies
   vendor_categories ||--o{ vendor_listings : groups
   vendor_categories ||--o{ platform_fee_schedules : prices
   vendor_categories ||--o{ budget_allocations : "plans by"
@@ -174,7 +172,7 @@ As `payment-architecture.md` §1.3: `CREATED → PENDING → SUCCESS | EXPIRED`;
 ### 4.6 Event (`events.status`)
 - `PLANNING → COMPLETED` (owner, or automatically the day after `event_date`).
 - `PLANNING → CANCELLED` (owner) ⇒ open enquiries closed; confirmed bookings are **not** auto-cancelled (the user cancels them individually, which notifies vendors).
-- `COMPLETED | CANCELLED → PLANNING` (owner, e.g. date moved) — allowed while `event_date` is in the future.
+- `COMPLETED | CANCELLED → PLANNING` (owner, e.g. date moved) — allowed while `event_date` is **today or later** in the event's time zone (M8: same-day reopening allowed).
 - Soft delete (`deleted_at`) by owner: hides the event; same rules as CANCELLED for related records (R11 — nothing removed).
 
 ### 4.7 Event vendor (`event_vendors.status`)
@@ -232,7 +230,7 @@ Upsert per `(invitation_id, responder_token_hash)`; response `ATTENDING | NOT_AT
 
 Full column lists with constraints: `database-schema.md` Part C. Highlights:
 
-- **events:** `owner_user_id`, `event_type_code`, `title`, `event_date` (date), `start_time` (time, nullable), `time_zone` (IANA, default `Asia/Kolkata`), `city`, `venue_name`, `venue_address`, `guest_count_estimate`, `total_budget_amount` (nullable, numeric(12,2)), `cover_media_id`, `status`, `deleted_at`.
+- **events:** `owner_user_id`, `event_type` (free text, O1), `title`, `event_date` (date), `start_time` (time, nullable), `time_zone` (IANA, default `Asia/Kolkata`), `city`, `venue_name`, `venue_address`, `guest_count_estimate`, `total_budget_amount` (nullable, numeric(12,2)), `cover_media_id`, `status`, `deleted_at`.
 - **vendor_listings:** `vendor_id`, `category_id`, `title`, `description`, **`starting_price_amount`** (marketplace information only), `city`, `service_areas` (text[] — O2), `status`, `rejection_reason`, `approved_at`, `approved_by_admin_id`, `version`.
 - **event_vendors:** `event_id`, `listing_id`, `vendor_id` (denormalised for vendor queries), `category_id` (denormalised for budget grouping), `status`, `notes` (private to the user). No amount column.
 - **bookings:** `event_vendor_id`, `quotation_id` (unique), `event_id`, `user_id`, `vendor_id`, **`agreed_amount`** (copy of accepted quotation, immutable), `service_date`, `status`, `cancelled_by_type`, `cancel_reason`, `completed_at`.
@@ -300,4 +298,5 @@ Listing starting prices appear only in marketplace screens, never in budget figu
 | R10 Vendor accounts | ⏸ HOLD — client confirmation | M26 (before vendor onboarding) |
 | R11 final deletion policy | Interim rule in force for development; final policy to be discussed | M21 (before account deletion is built); M72 at the latest |
 | A1–A12 | ❓ **Not confirmed at M2 approval** — working assumptions; each must be confirmed (or changed) by the user before its owner milestone starts: A1, A11 → M11; A2, A3 → M16; A4, A5, A12 → M20; A6 → M19; A7 → M15; A8 → M21; A9 → M14 (and M32); A10 → M13 | As listed |
-| O1, O2 | ❓ proposed defaults, not confirmed | M8 (O1), M12 (O2) |
+| O1 | ✅ answered: free-text event type | M8 |
+| O2 | ❓ proposed default, not confirmed | M12 |

@@ -103,6 +103,7 @@
 | `1791279600000-Baseline` | M3 | No schema change; proves the TypeORM migration pipeline and creates the `typeorm_migrations` bookkeeping table |
 | `1791300000000-AuthFoundation` | M5 | `users`, `user_roles`, `audit_logs` (UPDATE/DELETE revoked from `app_rw`), `notifications`, `rate_limit_counters` per Part C |
 | `1791300000001-AuditLogsImmutable` | M5 | Triggers make `audit_logs` append-only for every role (UPDATE/DELETE/TRUNCATE raise) |
+| `1791400000000-Events` | M8 | `events` (free-text `event_type` per O1, no `cover_media_id` yet; length/range/status checks; `total_budget_amount numeric(12,2) ≥ 0`; soft delete) with indexes `ix_events_owner_user_id_event_date_id` (partial, not deleted) and `ix_events_planning_event_date` (auto-complete job); `idempotency_keys` (PK principal + key, 24 h `expires_at`, purged hourly) |
 
 Local databases `event_planner_dev` / `event_planner_test` and roles `migrator` / `app_rw` are created by `database/scripts/setup-local.sql` (run by the user). First domain tables (`users`, `user_roles`, `audit_logs`, `jobs`, `notifications`) expected in M5.
 
@@ -123,7 +124,6 @@ Local databases `event_planner_dev` / `event_planner_test` and roles `migrator` 
 
 | Table | Key columns and constraints | Indexes | Milestone |
 |---|---|---|---|
-| `event_types` | PK `code text`, `name`, `is_active`, `sort_order` (❓ O1 seed list) | PK | M8 (seeded reference data) |
 | `vendor_categories` | `name`, `slug uq`, `description`, `icon_media_id → media`, `status ck (DRAFT,PUBLISHED,ARCHIVED)`, `sort_order`, `created_by_admin_id` | `uq_vendor_categories_slug`; `ix_vendor_categories_status_sort_order` | M12 (read + seed), M42 (admin) |
 | `platform_fee_schedules` ⏸R6 | `category_id → vendor_categories`, `amount ck >= 1.00` (Razorpay minimum), `currency`, `effective_from`, `effective_to` null, `created_by_admin_id`; exclusion: one open schedule per category | `ix_platform_fee_schedules_category_id_effective_from` | M29/M43 |
 | `vendors` ⏸R10 | `user_id → users uq` (⏸ one vendor per user), `business_name`, `description`, `phone`, `email`, `city`, `service_areas text[]` (❓O2), `logo_media_id`, `status ck (ACTIVE,SUSPENDED,DELETED)`, `deleted_at` | `uq_vendors_user_id`; `ix_vendors_city` | M12 (read), M26 |
@@ -138,7 +138,7 @@ Local databases `event_planner_dev` / `event_planner_test` and roles `migrator` 
 
 | Table | Key columns and constraints | Indexes | Milestone |
 |---|---|---|---|
-| `events` | `owner_user_id → users`, `event_type_code → event_types`, `title`, `event_date date`, `start_time time`, `time_zone text default 'Asia/Kolkata'`, `city`, `venue_name`, `venue_address`, `guest_count_estimate int ≥0`, `total_budget_amount ck ≥0 null`, `currency`, `cover_media_id`, `status ck (PLANNING,COMPLETED,CANCELLED)`, `deleted_at`, `version` | `ix_events_owner_user_id_event_date_id` (partial `where deleted_at is null`) | M8 |
+| `events` | `owner_user_id → users`, `event_type text` (free text 1–60, O1), `title`, `event_date date`, `start_time time`, `time_zone text default 'Asia/Kolkata'`, `city`, `venue_name`, `venue_address`, `guest_count_estimate int ≥0`, `total_budget_amount ck ≥0 null`, `currency`, `cover_media_id`, `status ck (PLANNING,COMPLETED,CANCELLED)`, `deleted_at`, `version` | `ix_events_owner_user_id_event_date_id` (partial `where deleted_at is null`) | M8 |
 | `checklist_items` | `event_id → events`, `title`, `notes`, `due_date date null`, `status ck (PENDING,DONE)`, `completed_at`, `sort_order`, `deleted_at` | `ix_checklist_items_event_id_status_due_date` | M9 |
 | `budget_allocations` | `event_id`, `category_id`, `planned_amount ck ≥0`, `currency`; `uq(event_id, category_id)` | uq | M11 |
 | `event_vendors` | `event_id`, `listing_id`, `vendor_id`, `category_id`, `status ck (ADDED,ENQUIRED,QUOTED,BOOKED,COMPLETED,CANCELLED,REMOVED)`, `notes` (user-private); `uq(event_id, listing_id)`; `uq(id, event_id, vendor_id)` (target of composite FKs) | `ix_event_vendors_event_id`; `ix_event_vendors_vendor_id_status` | M11/M14 |

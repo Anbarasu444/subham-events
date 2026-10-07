@@ -79,7 +79,7 @@ describeDb('Auth with PostgreSQL (e2e)', () => {
     // only around the test clean-up.
     await migrator.query(`ALTER TABLE audit_logs DISABLE TRIGGER USER`);
     await migrator.query(
-      'TRUNCATE notifications, audit_logs, user_roles, users, rate_limit_counters',
+      'TRUNCATE idempotency_keys, events, notifications, audit_logs, user_roles, users, rate_limit_counters',
     );
     await migrator.query(`ALTER TABLE audit_logs ENABLE TRIGGER USER`);
   });

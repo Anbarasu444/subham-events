@@ -113,3 +113,8 @@ In-app = row created in `notifications`. Push = FCM to recipient devices (subjec
 | N22 | App update required / maintenance | SYSTEM | All users of an app | Yes | Yes | M50 |
 
 Rows are confirmed (and amended through the spec change log) by the milestone that implements them; each milestone's notification review checks every row it touches.
+
+### Evaluated with no notification
+| Milestone | State change | Decision |
+|---|---|---|
+| M8 | Event created / edited / cancelled / reopened / completed / deleted by its owner; event auto-completed the day after its date | No notification: the owner made the change (or a date-driven housekeeping change with no action needed), and no other party is attached to an event before vendors exist (M14+). Vendor-facing event changes are evaluated again in M14/M15. |

@@ -37,8 +37,12 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-07 | M6 Main Navigation | APPROVE MILESTONE M6 | Status → **COMPLETED**. M7 Home Dashboard set to NOT_STARTED; spec DRAFT created (Option A/B decision needed) | See M6 IN_REVIEW entry | — | `APPROVE MILESTONE M6` issued by user |
 | 2026-10-07 | M7 Home Dashboard | START MILESTONE M7 | Validation passed (M6 COMPLETED and approved; spec exists, Option A chosen). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M7` issued by user |
 | 2026-10-07 | M7 Home Dashboard | Set IN_REVIEW | Home dashboard framework: greeting, "Create your first event" call to action, four independent sections (Upcoming event, Checklist progress, Budget overview, Explore vendors) with empty / loading / error-retry states, pull-to-refresh, guest vs signed-in behaviour | Flutter analyze clean, 112 tests; iOS simulator light/dark checks; code + UI reviews PASS WITH FINDINGS, fixed | — | Awaiting `APPROVE MILESTONE M7` |
+| 2026-10-07 | M7 Home Dashboard | APPROVE MILESTONE M7 | Status → **COMPLETED**. M8 Event Management set to NOT_STARTED; spec DRAFT created (open questions: event types, cover image, required fields, past dates) | See M7 IN_REVIEW entry | — | `APPROVE MILESTONE M7` issued by user |
+| 2026-10-07 | M8 Event Management (NOT_STARTED) | Spec questions answered | Event type is free text (O1 answered; no `event_types` table), no cover image/media in M8 (user supplies temporary image URLs when needed), required fields and past-date rule confirmed; spec, domain-model, database-schema updated | — | — | User answers |
+| 2026-10-07 | M8 Event Management | START MILESTONE M8 | Validation passed (M7 COMPLETED and approved; spec exists, questions answered). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M8` issued by user |
+| 2026-10-07 | M8 Event Management | Set IN_REVIEW | `events` + `idempotency_keys` migration (applied by user), backend events module (CRUD, state actions, soft delete, cursor lists, idempotent create, audit, auto-complete job), User App My Events / event form / event page, Home upcoming event | Backend 55 unit + 29 e2e; Flutter 145; code, security, UI reviews PASS WITH FINDINGS (fixed or logged GI-27/GI-28) | Signed-in simulator check not run (needs user sign-in) | Awaiting `APPROVE MILESTONE M8` |
 
 ## Status summary
 - Governance initialization: **complete**.
-- M1–M6: **COMPLETED** (M6 committed `f567e61`).
-- Active milestone: **M7 — Home Dashboard** (IN_REVIEW since 2026-10-07; awaiting `APPROVE MILESTONE M7`; uncommitted).
+- M1–M7: **COMPLETED** (M6 committed `f567e61`; M7 uncommitted — user commits personally).
+- Active milestone: **M8 — Event Management** (IN_REVIEW; awaiting `APPROVE MILESTONE M8`; uncommitted).

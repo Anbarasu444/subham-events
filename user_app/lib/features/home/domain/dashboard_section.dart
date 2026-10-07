@@ -16,5 +16,9 @@ abstract class DashboardSectionSource {
   /// state without [load] being called, so no protected API is requested.
   bool get requiresSignIn;
 
+  /// Emits when the section's data changed elsewhere (e.g. an event was
+  /// edited), so the dashboard reloads just this section. Null if static.
+  Stream<void>? get changes;
+
   Future<Result<SectionData>> load({required bool signedIn});
 }
