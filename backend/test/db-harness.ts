@@ -13,11 +13,12 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { TokenVerifier } from '../src/modules/auth/token-verifier';
+import { FcmSender } from '../src/modules/notifications/fcm-sender';
 import {
   InMemoryRateLimitStore,
   RateLimitStore,
 } from '../src/modules/rate-limit/rate-limit.store';
-import { FakeTokenVerifier } from './fakes';
+import { FakeFcmSender, FakeTokenVerifier } from './fakes';
 
 export function testUrls(): { app: string; migrator: string } | null {
   const envFile = join(__dirname, '..', '.env');
@@ -38,6 +39,8 @@ export interface DbTestApp {
   app: INestApplication<App>;
   migrator: DataSource;
   verifier: FakeTokenVerifier;
+  /** Records pushes instead of calling Firebase (M18). */
+  fcm: FakeFcmSender;
   /** Empties every table and the rate-limit store. */
   reset(): Promise<void>;
   close(): Promise<void>;
@@ -63,10 +66,13 @@ export async function startDbTestApp(
   const { AppModule } = await import('../src/app.module');
   const { configureApp } = await import('../src/app.setup');
   const verifier = new FakeTokenVerifier();
+  const fcm = new FakeFcmSender();
   const rateLimits = new InMemoryRateLimitStore();
   let builder = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(TokenVerifier)
     .useValue(verifier)
+    .overrideProvider(FcmSender)
+    .useValue(fcm)
     .overrideProvider(RateLimitStore)
     .useValue(rateLimits);
   for (const override of overrides) {
@@ -88,6 +94,7 @@ export async function startDbTestApp(
     app,
     migrator,
     verifier,
+    fcm,
     http: () => request(app.getHttpServer()),
     async reset() {
       rateLimits.clear();
@@ -95,7 +102,7 @@ export async function startDbTestApp(
       // only around the test clean-up.
       await migrator.query(`ALTER TABLE audit_logs DISABLE TRIGGER USER`);
       await migrator.query(
-        'TRUNCATE checklist_alerts, reminders, event_payment_notes, bookings, quotations, enquiries, event_vendors, wishlist_items, vendor_listings, vendors, event_expenses, budget_allocations, checklist_items, idempotency_keys, events, media, notifications, audit_logs, user_roles, users, rate_limit_counters',
+        'TRUNCATE notification_devices, notification_preferences, checklist_alerts, reminders, event_payment_notes, bookings, quotations, enquiries, event_vendors, wishlist_items, vendor_listings, vendors, event_expenses, budget_allocations, checklist_items, idempotency_keys, events, media, notifications, audit_logs, user_roles, users, rate_limit_counters',
       );
       await migrator.query(`ALTER TABLE audit_logs ENABLE TRIGGER USER`);
     },

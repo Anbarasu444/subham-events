@@ -25,7 +25,13 @@ import '../../../event_vendors/domain/payment.dart';
 import '../../../explore/data/discovery_repository_impl.dart';
 import '../../../explore/domain/listing.dart';
 import '../../../explore/presentation/controllers/explore_controller.dart';
+import '../../../../app/config/app_config.dart';
+import '../../../../core/storage/secure_store.dart';
 import '../../../home/data/empty_section_source.dart';
+import '../../../notifications/data/notifications_repository_impl.dart';
+import '../../../notifications/data/push_messaging.dart';
+import '../../../notifications/domain/app_notification.dart';
+import '../../../notifications/presentation/controllers/push_service.dart';
 import '../../../reminders/data/reminders_repository_impl.dart';
 import '../../../reminders/domain/reminder.dart';
 import '../../../wishlist/data/wishlist_repository_impl.dart';
@@ -112,6 +118,22 @@ class ShellBinding extends Bindings {
       () => PaymentsRepositoryImpl(
         Get.find<ApiClient>(),
         Get.find<EventsRepository>().notifyChanged,
+      ),
+      fenix: true,
+    );
+    // Notification Center and phone pushes (M18).
+    Get.lazyPut<NotificationsRepository>(
+      () => NotificationsRepositoryImpl(Get.find<ApiClient>()),
+      fenix: true,
+    );
+    Get.lazyPut<PushMessaging>(FirebasePushMessaging.new, fenix: true);
+    Get.lazyPut(
+      () => PushService(
+        Get.find<NotificationsRepository>(),
+        Get.find<PushMessaging>(),
+        Get.find<SessionService>(),
+        Get.find<SecureStore>(),
+        appVersion: Get.find<AppConfig>().appVersion,
       ),
       fenix: true,
     );

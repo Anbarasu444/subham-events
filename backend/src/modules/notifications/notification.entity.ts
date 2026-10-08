@@ -67,6 +67,19 @@ export class NotificationEntity {
   @Column({ name: 'read_at', type: 'timestamptz', nullable: true })
   readAt: Date | null;
 
+  /** Push outbox (M18): attempts so far, next attempt (lease), last error. */
+  @Column({ name: 'push_attempts', type: 'integer', default: 0 })
+  pushAttempts: number;
+
+  @Column({ name: 'push_next_at', type: 'timestamptz', nullable: true })
+  pushNextAt: Date | null;
+
+  @Column({ name: 'push_error', type: 'text', nullable: true })
+  pushError: string | null;
+
+  @Column({ name: 'pushed_at', type: 'timestamptz', nullable: true })
+  pushedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

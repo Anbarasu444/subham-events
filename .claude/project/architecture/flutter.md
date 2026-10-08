@@ -179,6 +179,10 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 
 - `features/reminders`: `RemindersRepository` (own `changes` stream), `EventRemindersController` + `RemindersSection` in the event Overview (add, edit, cancel with confirmation, read only when not planning), `ReminderFormController` + `showReminderSheet` (title, date and time pickers, optional task; future time only; same-input retries reuse the Idempotency-Key; times sent as UTC), `defaultReminderTime` (6 PM the day before the due date), checklist "Remind me" action, Menu → `ScheduleView` (all upcoming), Home `DueRemindersBanner` (due unseen reminders with Dismiss, plus the next one). No local device notifications (answer 1, Option A); pushes come with M18.
 
+## 6k. Notification Center and pushes (M18)
+
+- `features/notifications`: `NotificationsRepository` (list/unread/read/read-all, devices, preferences), `PushMessaging` (abstract; `FirebasePushMessaging` wraps `firebase_messaging`, resolved lazily), `PushService` (session-wide: unread badge, token registration only after permission is granted, token refresh, `SessionService.addBeforeSignOut` hook to unregister, foreground banner with de-duplication, tap → mark read and `EventsNavigation.openEventById`), `askInContext` (explains, asks the system once per install: first reminder or enquiry, and Settings), `NotificationCenterController`/`NotificationCenterView` (paged, optimistic read, mark all read), `NotificationBell` (Home app bar, signed in), `NotificationSettingsView` (Menu → Settings → Notifications: three groups, allow button). Android: `POST_NOTIFICATIONS` permission and channels `bookings`/`reminders`/`general` created in `MainActivity`. iOS capabilities follow the user's APNs step (GI-35).
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

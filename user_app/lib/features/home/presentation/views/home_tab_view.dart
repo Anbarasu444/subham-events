@@ -16,6 +16,7 @@ import '../../../budget/presentation/views/budget_view.dart';
 import '../../../explore/presentation/controllers/explore_controller.dart';
 import '../../../explore/presentation/widgets/category_icon.dart';
 import '../../../explore/presentation/widgets/listing_card_tile.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 import '../../../reminders/domain/reminder.dart';
 import '../../../reminders/presentation/widgets/due_reminders_banner.dart';
 import '../../data/explore_section_source.dart';
@@ -47,7 +48,16 @@ class HomeTabView extends GetView<HomeController> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Event Planner')),
+      appBar: AppBar(
+        title: const Text('Event Planner'),
+        actions: [
+          Obx(
+            () => controller.signedIn
+                ? const NotificationBell()
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: controller.refreshAll,
         // Small fixed list; each part rebuilds only for its own state.

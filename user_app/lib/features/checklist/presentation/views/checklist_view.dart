@@ -1,5 +1,6 @@
 import '../../../reminders/presentation/controllers/reminder_controllers.dart';
 import '../../../reminders/presentation/widgets/reminder_sheet.dart';
+import '../../../reminders/presentation/widgets/reminders_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:get/get.dart';
@@ -491,6 +492,7 @@ class _ItemTile extends StatelessWidget {
         ),
       ),
     );
+    await askForPushes(context, reminder: true);
   }
 
   Future<void> _onAction(BuildContext context, _ItemAction action) async {

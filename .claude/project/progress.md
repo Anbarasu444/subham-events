@@ -72,10 +72,14 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-08 | M16 Event Payments | APPROVE MILESTONE M16 | Status → **COMPLETED**. M17 Reminders set to NOT_STARTED; spec DRAFT created (open questions: approach A/B, N16 timing, placement, Menu → Schedule, quiet hours, default reminder time) | See M16 IN_REVIEW entry | Dev DB migration to be run by the user | `APPROVE MILESTONE M16` issued by user |
 | 2026-10-08 | M17 Reminders | START MILESTONE M17 | Validation passed (M16 COMPLETED and approved; spec exists; open questions answered: Option A, N16 at 09:00, Overview section, Menu → Schedule, no extra quiet hours, 6 PM default). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M17` issued by user |
 | 2026-10-08 | M17 Reminders | Set IN_REVIEW | Reminders (create/reschedule/cancel, task link, auto-cancel), due job (N17), checklist due/overdue alerts at 09:00 (N16), Overview card, "Remind me" on tasks, Menu → Schedule, Home due banner | Backend 74 unit + 120 e2e; Flutter 268; analyze/lint/typecheck/build clean; reviews done | Dev DB migration to be run by the user; phone alerts with M18 | Awaiting `APPROVE MILESTONE M17` |
+| 2026-10-08 | M17 Reminders | APPROVE MILESTONE M17 | Status → **COMPLETED**. M18 Notification Center + FCM set to NOT_STARTED; spec DRAFT created (open questions: `firebase_messaging` approval, platforms/APNs, push types, permission timing, settings groups) | See M17 IN_REVIEW entry | Dev DB migration to be run by the user | `APPROVE MILESTONE M17` issued by user |
+| 2026-10-08 | M18 Notification Center + FCM | START MILESTONE M18 | Validation passed (M17 COMPLETED and approved; spec exists; open questions answered: `firebase_messaging` approved, Android now / iOS after APNs key + bundle id, push types, in-context permission, three switches). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M18` issued by user |
+| 2026-10-08 | M18 Notification Center + FCM | Set IN_REVIEW | Notification Center (bell, list, read/read-all, routing), FCM pushes (notifications-as-outbox worker, devices, preferences, retries, invalid-token clean-up), in-context permission, Settings → Notifications, Android channels | Backend 74 unit + 129 e2e; Flutter 279; Android debug build OK; reviews done | Real device push not verified; iOS needs the user's APNs key + bundle id (GI-35); dev DB migration to be run | Awaiting `APPROVE MILESTONE M18` |
 
 ## Status summary
 - Governance initialization: **complete**.
 - M1–M10: **COMPLETED** (committed and pushed to GitHub).
 - M11, M12, M13: **COMPLETED** 2026-10-08 (committed by the user and pushed to `origin/stg`: 49b685d, 221cfba, 241e1ef).
 - M14, M15, M16: **COMPLETED** 2026-10-08 (committed by the user and pushed to `origin/stg`: 93f280f, a40c045, 3d37531).
-- Active milestone: **M17 — Reminders** (IN_REVIEW since 2026-10-08; awaiting `APPROVE MILESTONE M17`).
+- M17: **COMPLETED** 2026-10-08 (the user commits).
+- Active milestone: **M18 — Notification Center + FCM** (IN_REVIEW since 2026-10-08; awaiting `APPROVE MILESTONE M18`).

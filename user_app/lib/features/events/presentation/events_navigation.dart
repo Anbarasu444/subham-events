@@ -32,4 +32,14 @@ abstract final class EventsNavigation {
 
   static void openEvent(PlannerEvent event) => Get.find<ShellController>()
       .pushInTab(ShellTab.events, detailRoute(event));
+
+  /// From a notification (M18): only the id is known.
+  static void openEventById(String eventId) =>
+      Get.find<ShellController>().pushInTab(
+        ShellTab.events,
+        MaterialPageRoute<void>(
+          settings: RouteSettings(name: 'event-$eventId'),
+          builder: (_) => EventDetailView(eventId: eventId),
+        ),
+      );
 }

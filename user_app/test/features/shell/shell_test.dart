@@ -25,9 +25,12 @@ import '../../helpers/fake_budget_repository.dart';
 import '../../helpers/fake_checklist_repository.dart';
 import 'package:user_app/features/explore/domain/listing.dart';
 
+import 'package:user_app/features/notifications/data/push_messaging.dart';
+import 'package:user_app/features/notifications/domain/app_notification.dart';
 import 'package:user_app/features/reminders/domain/reminder.dart';
 
 import '../../helpers/fake_discovery_repository.dart';
+import '../../helpers/fake_notifications.dart';
 import '../../helpers/fake_reminders.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/recording_reporter.dart';
@@ -100,7 +103,7 @@ void main() {
     await tester.tap(find.text('Menu'));
     await tester.pumpAndSettle();
     // Open a page inside the Menu tab, switch away and back.
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.text('Help'));
     await tester.pumpAndSettle();
     expect(find.text('Coming soon'), findsOneWidget);
     expect(
@@ -347,6 +350,9 @@ void main() {
     Get.put<BudgetRepository>(FakeBudgetRepository());
     Get.put<DiscoveryRepository>(FakeDiscoveryRepository());
     Get.put<RemindersRepository>(FakeRemindersRepository());
+    Get.put<NotificationsRepository>(FakeNotificationsRepository());
+    Get.put<PushMessaging>(FakePushMessaging());
+    Get.put<SecureStore>(_Store());
     await tester.pumpWidget(
       GetMaterialApp(
         initialRoute: AppRoutes.home,

@@ -22,8 +22,8 @@ Each milestone has (or must have, before START) a spec in `milestones/` with sco
 | M14 | Wishlist / Contact / Enquiry | User App | [M14](milestones/M14-wishlist-contact-enquiry.md) (COMPLETED 2026-10-08) |
 | M15 | Quotations & Booking | User App | [M15](milestones/M15-quotations-booking.md) (COMPLETED 2026-10-08) |
 | M16 | Event Payments | User App | [M16](milestones/M16-event-payments.md) (COMPLETED 2026-10-08) |
-| M17 | Reminders | User App | [M17](milestones/M17-reminders.md) (IN_REVIEW) |
-| M18 | Notification Center + FCM | User App | — |
+| M17 | Reminders | User App | [M17](milestones/M17-reminders.md) (COMPLETED 2026-10-08) |
+| M18 | Notification Center + FCM | User App | [M18](milestones/M18-notification-center-fcm.md) (IN_REVIEW) |
 | M19 | Digital Invitations | User App | — |
 | M20 | Reviews | User App | — |
 | M21 | User Profile / Menu | User App | — |

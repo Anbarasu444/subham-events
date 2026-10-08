@@ -341,6 +341,15 @@ Owner-only through the event (another user's/deleted event → 404); writes need
 - `POST …/enquiries/{enquiryId}/close` → 200 `{ data: EventVendorDto }`: CLOSED (USER); the event vendor returns to ADDED so a new enquiry can be sent. Already closed → 409.
 - Cancelling or deleting an event closes its live enquiries (SYSTEM).
 
+### Notification Center, devices and preferences (M18)
+Signed-in only; rate limited (`notifications-write` 120/min) on writes. Only the caller's USER-audience notifications are visible.
+- `NotificationDto`: `{ id, category, type, title, body, entityType, entityId, deepLink, data, readAt, createdAt }` (`data.eventId` routes the app to the event).
+- `GET /api/v1/me/notifications?limit&cursor` (≤ 50, newest first, cursor bound to created time + id) → `{ data: NotificationDto[], meta.page }`.
+- `GET /api/v1/me/notifications/unread-count` → `{ data: { count } }`. `POST /api/v1/me/notifications/{id}/read` → 204 (404 for others' ids). `POST /api/v1/me/notifications/read-all` → `{ data: { updated } }`.
+- `PUT /api/v1/me/devices` `{ token (20–4096), platform: ANDROID|IOS, appVersion? }` → 204: registers this phone; a token already registered to someone else moves to the caller (shared phone). `DELETE /api/v1/me/devices/{token}` → 204 (sign-out; no-op if not the caller's).
+- `GET /api/v1/me/notification-preferences` → `{ data: [{ group: BOOKINGS|REMINDERS|OTHER, pushEnabled }] }` (all on by default); `PUT` `{ preferences: [{ group, pushEnabled }] }` → the full list. Turning a group off stops pushes only; in-app records are always created.
+- Push delivery: user records of types QUOTATION_RECEIVED, BOOKING_CONFIRMED/CANCELLED/COMPLETED, REMINDER_DUE, CHECKLIST_DUE_TODAY/OVERDUE are queued (`delivery_status PENDING`) in the same transaction and sent by the push worker every 10 s; payload `data` carries only `notificationId`, `type`, `entityType`, `entityId`, `deepLink`, `eventId` (no personal data). Invalid tokens are deactivated; transient failures retry after 2/4/8/16 minutes, FAILED after 5 attempts. Vendor-audience records stay in-app until M36.
+
 ### Reminders (M17, §4.13)
 Owner-only through the event (404 otherwise); writes need a PLANNING event (409), rate limited (`reminders-write` 120/min), audited (`REMINDER_CREATED/UPDATED/CANCELLED`, ids and field names only — no titles).
 - `ReminderDto`: `{ id, eventId, eventTitle, title, remindAt (ISO instant, UTC), status: SCHEDULED|SENT|CANCELLED, checklistItemId, checklistItemTitle, sentAt, seenAt, cancelReason: USER|TASK_DONE|TASK_DELETED|EVENT_CANCELLED|EVENT_DELETED|null, version }`.

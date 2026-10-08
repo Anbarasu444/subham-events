@@ -4,60 +4,71 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M17** |
-| Milestone name | Reminders |
+| Milestone ID | **M18** |
+| Milestone name | Notification Center + FCM |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M17-reminders.md` (status: CONFIRMED 2026-10-08) |
+| Spec | `.claude/project/milestones/M18-notification-center-fcm.md` (status: CONFIRMED 2026-10-08) |
 | Started date | 2026-10-08 |
 | Completed date | — |
-| Approval status | Awaiting `APPROVE MILESTONE M17` (set IN_REVIEW 2026-10-08) |
+| Approval status | Awaiting `APPROVE MILESTONE M18` (set IN_REVIEW 2026-10-08) |
 
 ## Objective
-Per-event reminders (create, reschedule, cancel, optional checklist link), a due job creating N17, checklist due/overdue alerts (N16), auto-cancel rules; shown on Home, the event screen and Menu → Schedule. Phone pushes from M18 (Option A).
+In-app Notification Center (list, unread badge, read/read-all, routing) and FCM phone pushes (outbox worker, device registry, preferences, retries, token clean-up) for user-facing types.
 
 ## Completed work / In-progress work / Blocked work
-- **Database:** migration `1792300000000-Reminders` — **the user runs `npm run migration:run`**.
-- **Backend:** `reminders` module (event list, my upcoming/due, create with Idempotency-Key, reschedule with version, cancel, mark seen; owner-only; PLANNING-only writes; audit without titles), `ReminderJobs` (due reminders every minute → SENT + N17; N16 every 15 minutes from 09:00 event-local, once per task per state), auto-cancel hooks in checklist (done/deleted) and events (cancelled/deleted).
-- **User App:** Reminders card in the event Overview (add/edit/cancel), reminder sheet (title, date/time, task), "Remind me" on checklist tasks (6 PM the day before), Menu → Schedule, Home banner for due reminders (Dismiss) and the next one.
-- Nothing blocked.
+- **Database:** migration `1792400000000-NotificationDelivery` — **the user runs `npm run migration:run`**.
+- **Backend:** user push types queued in the creating transaction (notifications rows as the outbox); `PushWorker` (lease + SKIP LOCKED, preferences, devices, FCM send via Firebase Admin, invalid-token deactivation, backoff, FAILED after 5); endpoints for the center, devices and preferences; `FcmSender` abstraction (fake in tests).
+- **User App:** `firebase_messaging` added (approved); bell with unread badge on Home; Notification Center (paged, read, mark all read, tap opens the event); push registration after permission, token refresh, unregister before sign-out; in-context permission prompt (first reminder / enquiry) and Settings → Notifications (three groups, allow button); foreground banner with de-duplication; Android channels + POST_NOTIFICATIONS. Android debug build verified.
+- **Blocked on the user (iOS only):** APNs key + real bundle id (GI-35).
 
 ## Tests completed
-- Backend: unit 74/74, e2e 120/120 (incl. 7 M17 tests: create/list/reschedule/cancel with audit free of titles, validation incl. past/no-offset/unknown task/428, owner-only and read-only with event-cancel auto-cancel, due job fires exactly once with N17 and the due list/seen flow, my upcoming across events, task done/deleted auto-cancel, N16 at 09:00 once per state and the next day's overdue); lint, typecheck and build clean.
-- User App: `flutter analyze` clean; `flutter test` 268/268 (default time rules, UTC round-trip, form past-time and key reuse; screens: add/cancel in Overview, "Remind me" prefill, read-only, Schedule order, Home due banner dismiss, 200 % text).
-- Not verified: signed-in device run; real-time firing on a running server (jobs tested directly).
+- Backend: unit 74/74, e2e 129/129 (incl. 9 M18 tests: list/count/read/read-all and ownership, paging, push with ids-only payload, skip on no device / group off with the in-app record kept, invalid token deactivation and retry with backoff then success, give up after 5, token moved to the new user and removed on sign-out, input validation and auth, vendor records never queued); lint, typecheck and build clean.
+- User App: `flutter analyze` clean; `flutter test` 279/279 (JSON; PushService: register only when granted, token refresh, unregister, guests, open marks read; in-context prompt once; center: badge, open marks read, mark all, empty/error, 200 % text; settings toggles and allow); `flutter build apk --debug --flavor staging` succeeded.
+- Not verified: a real push on a device (needs the user's phone with the backend running and Firebase credentials); iOS pushes (GI-35).
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security / privacy review | Done — owner-only, composite FK to tasks, titles not audited, Idempotency-Key on create |
-| Performance review | Done — partial index for the due job, batched SKIP LOCKED updates; N16 set-based insert with conflict skip |
-| UI review | Done — honest "phone alerts arrive with a later update" copy, confirmation on cancel, 200 % text |
+| Security / privacy review | Done — payload carries ids only, tokens owned per user and moved on re-registration, removed before sign-out, invalid tokens deactivated, preferences per user, no secrets in the app |
+| Performance review | Done — partial index for pending pushes, batched leases with SKIP LOCKED, one device + preference lookup per notification, unread count via index |
+| UI review | Done — badge, unread dot, mark all read as an icon (200 % text), honest permission explanations |
 | Code review | Done (self-review) |
-| Notification review | Done — N16/N17 in-app; pushes at M18; no quiet hours beyond 09:00 for N16 (answer 5) |
-| Documentation | Done (api-contracts, database-schema, notification-matrix, flutter.md §6j, spec, progress) |
+| Notification review | Done — push types/groups/channels per answers; at-least-once with client de-duplication |
+| Documentation | Done (api-contracts, database-schema, notification-matrix, flutter.md §6k, known-issues GI-35, spec, progress) |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-34.
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-35.
 - Business rules on hold: R6 (before M28/M29), R10 (before M26). R11 final policy by M21.
 
 ## Files changed
-- database: `database/migrations/1792300000000-Reminders.ts`
-- backend: `src/modules/reminders/*`, `src/modules/checklist/checklist.service.ts` (auto-cancel), `src/modules/events/events.service.ts` (auto-cancel), `src/app.module.ts`, `test/reminders.e2e-spec.ts`, TRUNCATE lists in `test/{db-harness,auth.e2e-spec,events.e2e-spec}.ts`
-- user_app: `lib/features/reminders/**`, `lib/features/events/presentation/views/event_detail_view.dart`, `lib/features/checklist/presentation/views/checklist_view.dart`, `lib/features/menu/presentation/views/menu_tab_view.dart`, `lib/features/home/presentation/views/home_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/reminders/reminders_test.dart`, `test/helpers/{fake_reminders.dart,fake_event_vendors.dart}`, `test/features/shell/shell_test.dart`
-- docs: api-contracts, database-schema, notification-matrix, architecture/flutter.md, M17 spec, milestones.md, current-milestone, progress
+- database: `database/migrations/1792400000000-NotificationDelivery.ts`
+- backend: `src/modules/notifications/{notification.entity.ts,notifications.service.ts,notifications.module.ts,push-policy.ts,fcm-sender.ts,push.worker.ts,me-notifications.ts}`, `test/{notifications.e2e-spec.ts,fakes.ts,db-harness.ts,auth.e2e-spec.ts,events.e2e-spec.ts}`
+- user_app: `pubspec.yaml`/`pubspec.lock` (`firebase_messaging`), `lib/features/notifications/**`, `lib/core/auth/session_service.dart` (before-sign-out hooks), `lib/features/events/presentation/events_navigation.dart` (`openEventById`), `lib/features/home/presentation/views/home_tab_view.dart` (bell), `lib/features/menu/presentation/views/{menu_tab_view.dart,settings_view.dart}`, `lib/features/reminders/presentation/widgets/reminders_section.dart`, `lib/features/checklist/presentation/views/checklist_view.dart`, `lib/features/event_vendors/presentation/widgets/event_vendor_slivers.dart` (permission prompts), `lib/features/shell/presentation/bindings/shell_binding.dart`, `android/app/src/main/{AndroidManifest.xml,kotlin/com/example/user_app/MainActivity.kt}`; tests `test/features/notifications/notifications_test.dart`, `test/helpers/fake_notifications.dart`, `test/features/shell/shell_test.dart`
+- docs: api-contracts, database-schema, notification-matrix, known-issues, architecture/flutter.md, M18 spec, milestones.md, current-milestone, progress
 
 ## Files pending approval
-- M14–M16 are committed and pushed by the user (`stg`). M17 files are uncommitted.
+- M17 and M18 files are uncommitted unless the user has committed them.
 
 ## Next milestone
-- M18 — Notification Center + FCM (spec drafted at the M17 gate).
+- M19 — Digital Invitations (spec drafted at the M18 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M17 Reminders: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-08 |
+| Completed / approved | 2026-10-08 — `APPROVE MILESTONE M17` issued by the user |
+| Spec | `milestones/M17-reminders.md` (CONFIRMED) |
+
+Evidence at approval: reminders (create/reschedule/cancel, task link, auto-cancel), due job (N17), checklist due/overdue at 09:00 (N16), Overview card, "Remind me" on tasks, Menu → Schedule, Home due banner; backend 74 unit + 120 e2e, Flutter 268 tests; reviews done. Not verified: signed-in device run; live firing on a running server. Dev DB migration `1792300000000-Reminders` to be run by the user.
 
 ## Previous milestone — M16 Event Payments: COMPLETED
 

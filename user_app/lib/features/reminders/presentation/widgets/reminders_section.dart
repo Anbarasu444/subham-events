@@ -6,6 +6,7 @@ import '../../../../core/theme/tokens.dart';
 import '../../../../core/widgets/async_state_view.dart';
 import '../../domain/reminder.dart';
 import '../controllers/reminder_controllers.dart';
+import '../../../notifications/presentation/controllers/push_service.dart';
 import 'reminder_sheet.dart';
 
 /// The event Overview's Reminders card (M17 answer 3).
@@ -36,6 +37,7 @@ class RemindersSection extends StatelessWidget {
       ),
     );
     await c.load();
+    if (context.mounted) await askForPushes(context, reminder: true);
   }
 
   Future<void> _cancel(
@@ -232,4 +234,20 @@ class _ReminderTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// M18 answer 4: ask for notification permission when it first matters.
+Future<void> askForPushes(
+  BuildContext context, {
+  required bool reminder,
+}) async {
+  if (!Get.isRegistered<PushService>()) return;
+  await Get.find<PushService>().askInContext(
+    context,
+    why: reminder
+        ? 'Allow notifications so this reminder pops up on your phone at the '
+              'time you chose.'
+        : 'Allow notifications so you hear about the vendor’s quote as soon '
+              'as it arrives.',
+  );
 }

@@ -14,6 +14,7 @@ import '../../../shell/presentation/controllers/shell_controller.dart';
 import '../../../shell/presentation/controllers/shell_tab.dart';
 import '../../domain/event_vendor.dart';
 import '../controllers/event_vendors_controller.dart';
+import '../../../reminders/presentation/widgets/reminders_section.dart';
 import '../views/payments_view.dart';
 import 'enquiry_sheet.dart';
 
@@ -206,6 +207,7 @@ class _VendorCard extends StatelessWidget {
       ),
     );
     await controller.load();
+    if (context.mounted) await askForPushes(context, reminder: false);
   }
 
   Future<void> _closeEnquiry(BuildContext context, Enquiry enquiry) async {

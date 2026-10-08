@@ -1,4 +1,9 @@
 import {
+  FcmSender,
+  type PushMessage,
+  type PushResult,
+} from '../src/modules/notifications/fcm-sender';
+import {
   ImageKitClient,
   type ImageKitFile,
   type UploadParams,
@@ -110,5 +115,17 @@ export class FakeImageKitClient extends ImageKitClient {
 
   signedUrl(filePath: string, transformation: string, expiresAt: Date): string {
     return `https://ik.test${filePath}?tr=${transformation}&ik-t=${Math.floor(expiresAt.getTime() / 1000)}&ik-s=signed`;
+  }
+}
+
+/** Pushes for tests: records messages; results per token are scripted. */
+export class FakeFcmSender extends FcmSender {
+  readonly sent: { tokens: string[]; message: PushMessage }[] = [];
+  /** Token → result; unknown tokens succeed. */
+  results = new Map<string, PushResult>();
+
+  send(tokens: string[], message: PushMessage): Promise<PushResult[]> {
+    this.sent.push({ tokens, message });
+    return Promise.resolve(tokens.map((t) => this.results.get(t) ?? 'SENT'));
   }
 }

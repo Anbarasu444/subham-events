@@ -30,6 +30,13 @@ class SessionService extends GetxService {
   final CrashReporter reporter;
   final Future<void> Function() _clearPrivateMedia;
 
+  /// Work that needs the still-valid session before a user-initiated
+  /// sign-out (e.g. unregistering this phone's push token, M18).
+  final List<Future<void> Function()> _beforeSignOut = [];
+
+  void addBeforeSignOut(Future<void> Function() hook) =>
+      _beforeSignOut.add(hook);
+
   final state = Rx<SessionState>(const RestoringSession());
 
   /// Keys written by earlier builds; removed on sign-out. No profile data is
@@ -77,6 +84,13 @@ class SessionService extends GetxService {
 
   /// User-initiated sign-out: revoke on the server (best effort), then local.
   Future<void> signOut() async {
+    for (final hook in _beforeSignOut) {
+      try {
+        await hook().timeout(const Duration(seconds: 5));
+      } on Object catch (error) {
+        reporter.log('Before sign-out step failed: $error'); // best effort
+      }
+    }
     if (auth.currentUser != null) await api.signOut();
     await _signOutLocally();
   }
