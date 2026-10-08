@@ -305,6 +305,17 @@ Owner-only through the event (another user's/deleted event, malformed or unpubli
 ### PUT /api/v1/events/{eventId}/budget/allocations/{categoryId} · DELETE …
 - Milestone: M11 · PUT `{ planned: { amount: "40000.00", currency: "INR" } }` (≥ 0, exact two decimals, currency must be the event's currency else `422 VALIDATION_FAILED`) → 200 `{ data: BudgetDto }`; repeating the same amount changes nothing (naturally idempotent). DELETE clears the plan (soft delete) → 200 `{ data: BudgetDto }`; clearing a category with no plan (including an archived one) is a no-op that still returns the budget. The total budget stays on the event (`PATCH /events/{id}` `totalBudget`).
 
+### Vendor discovery (M12)
+Public (guests allowed), read only, rate limited 120/min per IP (`listings-read`). A listing is visible only when it is `APPROVED`, its vendor is `ACTIVE` and its category is `PUBLISHED`. No private vendor fields (owner user id, phone, email, unapproved changes) are returned; contact details come with the details page (M13). No notifications.
+- `ListingCardDto`: `{ id, title, category: { id, name, slug }, vendor: { id, businessName }, city, serviceAreas: string[], startingPrice: Money, rating: { average: "4.5" | null, count }, coverImageUrl: null (until M28), publishedAt }`. `startingPrice` is marketplace information only — never a budget or agreed amount.
+
+### GET /api/v1/listings
+- Query (all optional; unknown parameters → 422): `categoryId` (uuid), `city` (1–80, trimmed; case-insensitive match on the listing city **or** any service area — O2), `q` (1–100, trimmed; listing title, vendor name or category name; `%`/`_` are plain text), `minStartingPrice` / `maxStartingPrice` (exact `"25000.00"` strings; max < min → 422 `RANGE_INVERTED`), `sort` (`-publishedAt` newest, `startingPrice`, `-startingPrice`; omitted = relevance: title starts with `q`, then title contains, vendor name, category name; then newest), `limit` (1–50, default 20), `cursor`.
+- Response 200 `{ data: ListingCardDto[], meta: { page: { type: "cursor", limit, nextCursor, hasMore } } }`. Every sort ends with `id`; a cursor only continues the exact search (filters + sort) it came from (else 422 `INVALID_CURSOR`).
+
+### GET /api/v1/listings/cities
+- Response 200 `{ data: string[] }`: the cities and service areas of visible listings, case-insensitively unique, alphabetical, at most 500. `Cache-Control: public, max-age=300`.
+
 ### Own expenses (M11, user answer 5)
 Same access rules as the budget: owner-only through the event (another user's/deleted event, unknown expense → 404), writes only while the event is PLANNING (`409 INVALID_STATE_TRANSITION`), rate limited with the budget (`budget-write`, 120/min per IP), audited (`EXPENSE_CREATED`, `EXPENSE_UPDATED` with changed field names, `EXPENSE_DELETED`; ids only — no amounts or text). No notifications. Records only: no money moves (payment-architecture §2.1).
 - `ExpenseDto`: `{ id, title, amount: Money, spentOn: "YYYY-MM-DD", categoryId: uuid | null, categoryName: string | null, note: string | null, version, createdAt, updatedAt }`.

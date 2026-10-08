@@ -7,6 +7,7 @@ PostgreSQL schema for the Event Planning Platform.
 | `migrations/` | TypeORM migration classes (ADR-0006). The only way the schema changes. |
 | `scripts/setup-local.sql` | One-time local setup: roles `migrator` / `app_rw`, databases `event_planner_dev` / `event_planner_test` |
 | `scripts/grants.sql` | Per-database grants (included by the setup script) |
+| `seeds/dev-sample-vendors.sql` | **Dev/test only** fake vendors for trying discovery (M12): `cd backend && npm run seed:dev-samples`. Refuses databases not named `*_dev` / `*_test`. |
 
 Conventions: `.claude/project/database-schema.md`. Planned tables: Part C of the same file.
 

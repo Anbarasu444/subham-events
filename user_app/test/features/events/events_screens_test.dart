@@ -21,6 +21,7 @@ import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 
 import '../../helpers/fake_budget_repository.dart';
 import '../../helpers/fake_checklist_repository.dart';
+import '../../helpers/fake_discovery_repository.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/fake_media.dart';
 import '../../helpers/test_session.dart';
@@ -60,8 +61,12 @@ void main() {
     Get.put<ChecklistRepository>(checklists);
     final budgets = FakeBudgetRepository(onChanged: repo.notifyChanged);
     Get.put<BudgetRepository>(budgets);
+    final discovery = registerExplore();
     Get.put(
-      HomeController(session, buildDashboardSources(repo, checklists, budgets)),
+      HomeController(
+        session,
+        buildDashboardSources(repo, checklists, budgets, discovery),
+      ),
     );
     Get.put(ShellController(initialTab: tab));
     await tester.pumpWidget(const GetMaterialApp(home: ShellView()));

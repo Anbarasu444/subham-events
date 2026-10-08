@@ -4,67 +4,72 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M11** |
-| Milestone name | Budget Management |
+| Milestone ID | **M12** |
+| Milestone name | Vendor Discovery |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M11-budget-management.md` (status: CONFIRMED 2026-10-08) |
+| Spec | `.claude/project/milestones/M12-vendor-discovery.md` (status: CONFIRMED 2026-10-08) |
 | Started date | 2026-10-08 |
 | Completed date | — |
-| Approval status | Awaiting `APPROVE MILESTONE M11` (set IN_REVIEW 2026-10-08) |
+| Approval status | Awaiting `APPROVE MILESTONE M12` (set IN_REVIEW 2026-10-08) |
 
 ## Objective
-Per-event budget planning in exact rupees: total, planned amount per vendor category, unplanned remainder, over-plan warning; committed/paid columns ready for M15/M16 (Option A, confirmed by the user); plus the user's own expenses (answer 5, design A confirmed). Notes/diary deferred (B2).
+Users (including guests) browse approved vendor listings by category, city, price and search text; Explore tab and Home "Explore vendors" section (Option A, answered by the user).
 
 ## Completed work / In-progress work / Blocked work
-- **Done (Option A core):**
-  - Migration `1791700000000-VendorCategoriesAndBudget` (applied by the user): `vendor_categories` + 12-category idempotent seed; `budget_allocations` (numeric(12,2), partial unique index, soft delete).
-  - Backend: public `GET /vendor-categories` (rate limited, cached 5 min); `budget` module GET/PUT/DELETE, owner-only, PLANNING-only writes, currency check, audited without amounts, archived-category plan lines.
-  - User App: event Budget tab, standalone budget page, Menu → Budget picker, Home Budget overview; money sheet with exact rupee input; total editable from the budget screen.
-  - Review fixes: confirmation before clearing a plan or removing the total; archived lines (remove only); stale banner and retry gating on the Budget tab; newest-request-wins guard; reload after a conflict on the total; semantics labels; clearer copy.
-- **Own expenses (answer 5, design A confirmed "yes, B2 later"):**
-  - Migration `1791800000000-EventExpenses` — **not yet applied to the dev DB: the user runs `npm run migration:run`** (the test DB is migrated by the e2e harness).
-  - Backend: `GET/POST /events/{id}/expenses`, `PATCH/DELETE /events/{id}/expenses/{expenseId}` (owner-only, PLANNING-only writes, Idempotency-Key, version → 412, 500/event, audited without amounts/text); budget gains `expenses`, `spent`, per-category `expenses`; `remaining` = total − committed − expenses (negative when over).
-  - App: "My expenses" section (add/edit sheet with exact amount, date, optional category, note; delete with confirmation; own loading/empty/error/stale states), "My expenses" and "Left to spend" / over-total warning in the summary, per-category "My expenses", Home "Spent so far".
-- Notes/diary: deferred by the user (B2) — GI-31.
+- **Database:** migration `1791900000000-VendorsAndListings` (`vendors`, `vendor_listings` per Part C with O2 city + service areas, status checks, partial APPROVED indexes) — **the user runs `npm run migration:run` on the dev DB**; dev/test-only sample data `database/seeds/dev-sample-vendors.sql` (20 fake vendors, 18 visible) via `npm run seed:dev-samples`, guarded to `*_dev` / `*_test` databases.
+- **Backend:** public `GET /listings` (visibility: APPROVED + ACTIVE vendor + PUBLISHED category; filters category, city/service area, exact price range, text; sorts relevance/newest/price; cursor bound to the search; 120/min) and `GET /listings/cities` (cached 5 min).
+- **User App:** Explore tab (search with debounce, category chips, filter sheet with city/exact prices/sort, removable filter chips, infinite scroll, pull to refresh, skeleton/empty/error/stale states, guest browsing, "details coming soon" on tap), Home "Explore vendors" section (categories + listings near the next event's city, fallback to all; "See all vendors" opens Explore with the city).
+- Nothing blocked.
 
 ## Tests completed
-- Backend: unit 69/69, e2e 68/68 (budget/expenses 14 e2e: sums, archived, seed idempotency, money validation, ownership, read-only, expenses add/list/sum, edit/version/soft delete/audit without amounts, negative remaining, input validation incl. null PATCH fields, idempotent replay, owner-only/read-only); lint, typecheck and build clean.
-- User App: `flutter analyze` clean; `flutter test` 202/202 (budget/expense model incl. negative remaining, expense form idempotency-key reuse; screens: plan, over-plan, invalid input, clear confirmation, archived line, stale banner, add expense with validation and category, edit + delete with confirmation, over-total warning, expense load retry, read-only, Menu, Home incl. spent, 200 % text with a long expense).
-- Not verified: signed-in run on the simulator (Firebase sign-in is the user's step).
+- Backend: unit 71/71 (incl. listing card mapping), e2e 78/78 (incl. 10 discovery tests: visibility, archived category, category/city/service-area filters ignoring case, exact price range and validation, search ranking and wildcard escaping, sorts, paging without repeats for every sort, cursor binding and input validation, cities, seed idempotency and the dev/test guard); lint, typecheck and build clean.
+- User App: `flutter analyze` clean; `flutter test` 219/219 (explore model, controller: default city, guest, paging, debounce, stale refresh, load-more retry, Home preset; Home source fallback; screens: guest browse + coming-soon tap, category + search, filter sheet with price validation/city/sort and chip removal, empty → clear filters, error → retry, infinite scroll, Home → Explore with city, 200 % text on a small phone).
+- Not verified: the signed-in app on the simulator (Firebase sign-in is the user's step); query plans at real catalogue size (only sample data exists).
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security review | Done (ownership 404 incl. expenses, PLANNING-only writes, rate limits, Idempotency-Key, audit without amounts or user text) |
-| Payment/money review | Done (exact decimals both ends; budget ≠ payments) |
-| Performance review | Done (one budget query set per event; categories cached). Note for M42: add an index on `budget_allocations(category_id)` before admin archives categories at scale |
-| UI review | Done (fixes applied) |
-| Code review | Done (fixes applied). Deviation recorded: Home "Open budget" opens the standalone budget page rather than switching to the event's tab |
-| Notification review | Done — owner's own changes (plans, expenses), no notification |
-| Documentation | Done (spec change log, api-contracts, database-schema, domain-model A1 superseded, payment-architecture, notification-matrix, flutter.md, known-issues GI-31/GI-32) |
+| Security review | Done — public endpoints return no private vendor fields; inputs bounded (lengths, money pattern, limit ≤ 50, UUIDs), unknown params rejected, LIKE wildcards escaped, parameterised SQL, cursors validated and bound to the search, rate limited; sample data guarded to dev/test databases and unusable for sign-in |
+| Performance review | Done — partial indexes for category/city, newest and price; page size 20 (max 50); categories/cities cached in memory 5 min and `max-age=300`; static skeletons; lazy slivers. GI-33: `ILIKE` search and service-area matching not index-backed (M66) |
+| UI review | Done — loading/empty/error/stale/load-more states, removable filter chips, exact price input with validation, semantics merged per card, 200 % text checked |
+| Code review | Done (self-review; fixes applied during testing) |
+| Notification review | Done — read-only browsing, no notification |
+| Documentation | Done (api-contracts, database-schema incl. seed, database README, domain-model visibility rule, notification-matrix, flutter.md §6f, known-issues GI-33, spec, progress) |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-30.
-- Business rules on hold: R3 (before M15), R6 (before M28/M29), R10 (before M26). R11 final policy by M21. A1 superseded (own expenses). New: GI-31 (notes/diary deferred), GI-32 (avoid double-counting with M16 payment notes).
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-33.
+- Business rules on hold: R3 (before M15), R6 (before M28/M29), R10 (before M26). R11 final policy by M21. O2 answered (city + service areas).
+- Decision recorded: archiving a category hides its listings from discovery.
 
 ## Files changed
-- database: `database/migrations/1791700000000-VendorCategoriesAndBudget.ts`, `database/migrations/1791800000000-EventExpenses.ts`
-- backend: `src/modules/categories/*`, `src/modules/budget/*` (incl. `event-expense.entity.ts`, `expenses.{dto,service,controller}.ts`), `src/app.module.ts`, `test/budget.e2e-spec.ts`, `test/db-harness.ts`, `test/auth.e2e-spec.ts`, `test/events.e2e-spec.ts`
-- user_app: `lib/features/budget/**`, `lib/features/events/presentation/{controllers/planning_event_picker_controller.dart,views/planning_event_picker_view.dart,views/event_detail_view.dart}`, `lib/features/home/{data/budget_overview_source.dart,data/empty_section_source.dart,presentation/views/home_tab_view.dart}`, `lib/features/menu/presentation/views/menu_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`, `lib/features/checklist/presentation/views/checklist_view.dart` (picker moved out; copy), `lib/core/widgets/async_state_view.dart` (StaleBanner made public); removed `checklist_picker_{controller,view}.dart` (replaced by the generic picker); tests under `test/features/{budget,checklist,events,shell}` and `test/helpers/fake_budget_repository.dart`
-- docs: api-contracts, database-schema, domain-model, notification-matrix, payment-architecture, known-issues, architecture/flutter.md, milestones.md, M11 spec, current-milestone, progress
+- database: `database/migrations/1791900000000-VendorsAndListings.ts`, `database/seeds/dev-sample-vendors.sql`, `database/README.md`
+- backend: `src/modules/listings/*` (dto, repository, service + spec, controller, module), `src/database/seed-dev-samples.ts`, `package.json` (`seed:dev-samples` script), `src/app.module.ts`, `test/listings.e2e-spec.ts`, TRUNCATE lists in `test/db-harness.ts`, `test/auth.e2e-spec.ts`, `test/events.e2e-spec.ts`
+- user_app: `lib/features/explore/**` (domain, data, controller, widgets, view), `lib/features/home/data/{explore_section_source.dart,empty_section_source.dart}`, `lib/features/home/presentation/views/home_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/explore/explore_test.dart`, `test/helpers/fake_discovery_repository.dart`, wiring in budget/checklist/events/home/shell screen tests
+- docs: api-contracts, database-schema, domain-model, notification-matrix, known-issues, architecture/flutter.md, M12 spec, milestones.md, current-milestone, progress
 
 ## Files pending approval
-- M10 files are uncommitted; the user commits personally.
+- M11 and M12 files are uncommitted; the user commits personally.
 
 ## Next milestone
-- M12 — Vendor Discovery (spec drafted at the M11 gate).
+- M13 — Vendor Details (spec drafted at the M12 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M11 Budget Management: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-08 |
+| Completed / approved | 2026-10-08 — `APPROVE MILESTONE M11` issued by the user |
+| Spec | `milestones/M11-budget-management.md` (CONFIRMED; scope extended with own expenses) |
+
+Evidence at approval: vendor categories (12 seeded, public list); per-event budget (plan per category, total editable on the budget screen, unplanned and over-plan warning, committed/paid ready for M15/M16, archived-category lines); own expenses (add/edit/delete, counted as spent; remaining = total − committed − expenses); event Budget tab, standalone page, Menu → Budget, Home overview; backend 69 unit + 68 e2e, Flutter 202 tests; reviews done with fixes. Not verified: signed-in simulator run. Dev DB migration `1791800000000-EventExpenses` to be run by the user (confirm). Notes/diary deferred (GI-31); GI-32 for M16.
 
 ## Previous milestone — M10 Event Details: COMPLETED
 

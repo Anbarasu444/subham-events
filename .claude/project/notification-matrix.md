@@ -121,4 +121,5 @@ Rows are confirmed (and amended through the spec change log) by the milestone th
 | M9 | Checklist item added / edited / ticked / unticked / reordered / deleted by the event owner | No notification: the owner made the change. Due today / overdue reminders (N16) are deferred to M17 (scheduled) and M18 (push) — user decision 2026-10-07; M9 only highlights overdue tasks in the app. |
 | M10 | Event cover photo added / changed / removed; event screen | No notification: the owner's own change; no other party involved. |
 | M11 | Budget plan set/changed/cleared by the event owner | No notification: the owner's own planning change; no other party involved. |
+| M12 | Browsing / searching vendor listings | No notification: read-only, no state change. |
 | M11 | Own expense added/edited/deleted by the event owner | No notification: the owner's own note; no other party involved. Over-budget is shown in the budget screen, not pushed. |

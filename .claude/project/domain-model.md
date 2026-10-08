@@ -21,7 +21,7 @@
 | R11 | Account deletion | **Interim (development) rule:** keep everything in the database and media storage; only mark the account as deleted. **Final deletion policy to be discussed later** (user, 2026-10-06) — must be decided before the account-deletion feature is built (M21) and at the latest before release (M72) | User |
 | R12 | Money | Exact decimal rupees, `numeric(12,2)`, API `"10.10"` (ADR-0014) | User |
 | O1 | Event types | **Free text** — the user can enter any event type (no fixed/admin list) | User (2026-10-07, M8 spec) |
-| O2 | Vendor location | ❓ Proposed default: city + list of service areas | Not yet answered |
+| O2 | Vendor location | ✅ City + list of service areas; the city filter matches either | Answered by the user 2026-10-08 (M12 spec) |
 
 ### Working assumptions needing confirmation (❓)
 
@@ -53,7 +53,7 @@ Owner module = backend module from `architecture/backend.md` §3. Vis. = who may
 | VendorCategory (`vendor_categories`) | Admin-defined marketplace categories | `categories` | Public when PUBLISHED | M12 (seed/read), M42 (admin CRUD) |
 | PlatformFeeSchedule (`platform_fee_schedules`) | Fee amount per category, versioned ⏸ R6 | `platform-fees` | Vendors (current fee), admins | M29/M43 |
 | Vendor (`vendors`) | Vendor business profile (one per vendor user ⏸ R10) | `vendors` | Public (ACTIVE only), owner, admins | M12 (read), M26 |
-| VendorListing (`vendor_listings`) | A vendor's offer in one category, with **starting price** | `listings` | Public when APPROVED and vendor ACTIVE; owner; admins | M12 (read), M28 |
+| VendorListing (`vendor_listings`) | A vendor's offer in one category, with **starting price** | `listings` | Public when APPROVED, vendor ACTIVE and category PUBLISHED (archiving a category hides its listings — M12); owner; admins | M12 (read), M28 |
 | ListingMedia (`listing_media`) | Ordered photos/videos of a listing | `listings` | As listing | M28 |
 | ListingSubmission (`listing_submissions`) | One review cycle of a listing (fee → review → decision) ⏸ R6 | `listings` | Owner, admins | M30 |
 | PlatformFeeTransaction (`platform_fee_transactions`) | Razorpay order-level fee payment ⏸ R6 | `platform-fees` | Owner vendor, FINANCE/SUPER admins | M29 |
@@ -306,4 +306,4 @@ Listing starting prices appear only in marketplace screens, never in budget figu
 | R11 final deletion policy | Interim rule in force for development; final policy to be discussed | M21 (before account deletion is built); M72 at the latest |
 | A1–A12 | ❓ **Not confirmed at M2 approval** — working assumptions; each must be confirmed (or changed) by the user before its owner milestone starts: A1, A11 → M11; A2, A3 → M16; A4, A5, A12 → M20; A6 → M19; A7 → M15; A8 → M21; A9 → M14 (and M32); A10 → M13 | As listed |
 | O1 | ✅ answered: free-text event type | M8 |
-| O2 | ❓ proposed default, not confirmed | M12 |
+| O2 | ✅ answered: city + service areas | M12 |

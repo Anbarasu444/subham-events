@@ -156,6 +156,11 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 - Own expenses (user answer 5): `BudgetRepository.loadExpenses/addExpense/updateExpense/deleteExpense`; `BudgetController.expenses` has its own `ViewState` (loading/empty/error/stale) next to the budget's; `ExpenseFormController` + `showExpenseSheet` (title, exact amount > 0, date, optional offered category, note; same-input retries reuse the `Idempotency-Key`). A negative `remaining` is read as `Budget.overspentBy`.
 - Home "Budget overview" (`BudgetOverviewSource`) shows the next event's planned/total and spent so far; Menu → Budget and Menu → Checklist share `PlanningEventPickerView` (one planning event → opens directly).
 
+## 6f. Vendor discovery (M12)
+
+- `features/explore`: `DiscoveryRepository` (public reads; categories and cities kept in memory for 5 minutes), `ExploreController` (registered for the session with `fenix`, so Home can call `openWith(categoryId, city)`; default city = next planning event's city when signed in; 400 ms search debounce; newest-request-wins generation guard; cursor paging with its own load-more error/retry; stale results kept on a failed refresh), `ExploreTabView` (search, category chips, removable filter chips, filter sheet with exact `Money` price bounds and sort, skeleton/empty/error states, infinite scroll), `ListingCardTile` (category icon until listing photos in M28; tap → "Vendor details are coming soon" until M13).
+- Home "Explore vendors" (`ExploreSectionSource`, guests too): categories plus three listings in the next event's city, falling back to all cities when none match.
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

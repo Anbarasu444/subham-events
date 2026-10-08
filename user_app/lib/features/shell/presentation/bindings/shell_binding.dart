@@ -18,6 +18,9 @@ import '../../../events/data/datasources/events_remote_data_source.dart';
 import '../../../events/data/repositories/events_repository_impl.dart';
 import '../../../events/domain/repositories/events_repository.dart';
 import '../../../events/presentation/controllers/my_events_controller.dart';
+import '../../../explore/data/discovery_repository_impl.dart';
+import '../../../explore/domain/listing.dart';
+import '../../../explore/presentation/controllers/explore_controller.dart';
 import '../../../home/data/empty_section_source.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
 
@@ -62,6 +65,20 @@ class ShellBinding extends Bindings {
       ),
       fenix: true,
     );
+    // Vendor discovery (M12): public reads; Explore keeps its filters for
+    // the session so Home can open it with a preset.
+    Get.lazyPut<DiscoveryRepository>(
+      () => DiscoveryRepositoryImpl(Get.find<ApiClient>()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => ExploreController(
+        Get.find<DiscoveryRepository>(),
+        Get.find<EventsRepository>(),
+        Get.find<SessionService>(),
+      ),
+      fenix: true,
+    );
     Get.lazyPut(
       () => MyEventsController(
         Get.find<EventsRepository>(),
@@ -76,6 +93,7 @@ class ShellBinding extends Bindings {
           Get.find<EventsRepository>(),
           Get.find<ChecklistRepository>(),
           Get.find<BudgetRepository>(),
+          Get.find<DiscoveryRepository>(),
         ),
         reporter: Get.find<CrashReporter>(),
       ),

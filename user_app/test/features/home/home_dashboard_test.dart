@@ -23,6 +23,7 @@ import 'package:user_app/features/shell/presentation/controllers/shell_controlle
 import 'package:user_app/features/shell/presentation/controllers/shell_tab.dart';
 import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 
+import '../../helpers/fake_discovery_repository.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/recording_reporter.dart';
 
@@ -265,6 +266,7 @@ void main() {
       Get.put(HomeController(session, sources ?? defaultDashboardSources));
       final events = Get.put<EventsRepository>(FakeEventsRepository());
       Get.put(MyEventsController(events, session));
+      registerExplore();
       Get.put(ShellController());
       await tester.pumpWidget(
         GetMaterialApp(home: const ShellView(), getPages: pages),

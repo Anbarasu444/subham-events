@@ -23,6 +23,9 @@ import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 
 import '../../helpers/fake_budget_repository.dart';
 import '../../helpers/fake_checklist_repository.dart';
+import 'package:user_app/features/explore/domain/listing.dart';
+
+import '../../helpers/fake_discovery_repository.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/recording_reporter.dart';
 
@@ -67,6 +70,7 @@ Future<ShellController> _pumpShell(
   Get.put(HomeController(Get.find<SessionService>(), defaultDashboardSources));
   final events = Get.put<EventsRepository>(FakeEventsRepository());
   Get.put(MyEventsController(events, Get.find<SessionService>()));
+  registerExplore();
   final controller = Get.put(ShellController(initialTab: initial));
   await tester.pumpWidget(const GetMaterialApp(home: ShellView()));
   await tester.pumpAndSettle();
@@ -338,6 +342,7 @@ void main() {
       FakeChecklistRepository(onChanged: events.notifyChanged),
     );
     Get.put<BudgetRepository>(FakeBudgetRepository());
+    Get.put<DiscoveryRepository>(FakeDiscoveryRepository());
     await tester.pumpWidget(
       GetMaterialApp(
         initialRoute: AppRoutes.home,

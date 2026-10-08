@@ -13,6 +13,10 @@ import '../../../../core/utils/date_format.dart';
 import '../../../checklist/presentation/checklist_navigation.dart';
 import '../../../checklist/presentation/widgets/checklist_progress.dart';
 import '../../../budget/presentation/views/budget_view.dart';
+import '../../../explore/presentation/controllers/explore_controller.dart';
+import '../../../explore/presentation/widgets/category_icon.dart';
+import '../../../explore/presentation/widgets/listing_card_tile.dart';
+import '../../data/explore_section_source.dart';
 import '../../data/budget_overview_source.dart';
 import '../../data/checklist_progress_source.dart';
 import '../../data/upcoming_event_source.dart';
@@ -135,6 +139,8 @@ class HomeTabView extends GetView<HomeController> {
           variant: AppButtonVariant.secondary,
           onPressed: () => _openTab(ShellTab.explore),
         ),
+        contentBuilder: (context, data) =>
+            _ExploreCard(data: data as ExploreSectionData),
       ),
     };
   }
@@ -319,6 +325,69 @@ class _BudgetOverviewCard extends StatelessWidget {
               ? 'Plan budget'
               : 'Open budget',
           icon: Icons.account_balance_wallet_outlined,
+          variant: AppButtonVariant.secondary,
+          onPressed: _open,
+        ),
+      ],
+    );
+  }
+}
+
+class _ExploreCard extends StatelessWidget {
+  const _ExploreCard({required this.data});
+
+  final ExploreSectionData data;
+
+  void _open({String? categoryId}) {
+    Get.find<ExploreController>().openWith(
+      categoryId: categoryId,
+      city: data.city,
+    );
+    Get.find<ShellController>().select(ShellTab.explore);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (data.categories.isNotEmpty)
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: [
+              for (final category in data.categories.take(6))
+                ActionChip(
+                  avatar: Icon(categoryIcon(category.slug), size: 18),
+                  label: Text(category.name),
+                  onPressed: () => _open(categoryId: category.id),
+                ),
+            ],
+          ),
+        if (data.listings.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            data.city == null ? 'New on the app' : 'In ${data.city}',
+            style: theme.textTheme.titleSmall,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          for (final listing in data.listings) ...[
+            ListingCardTile(listing: listing),
+            const SizedBox(height: AppSpacing.xs),
+          ],
+        ] else
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: Text(
+              'Vendors will appear here once they join.',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+        const SizedBox(height: AppSpacing.xs),
+        AppButton(
+          label: 'See all vendors',
+          icon: Icons.explore_outlined,
           variant: AppButtonVariant.secondary,
           onPressed: _open,
         ),
