@@ -25,6 +25,7 @@ import { IdempotencyService } from '../idempotency/idempotency.service';
 import { RateLimit } from '../rate-limit/rate-limit.guard';
 import {
   AddEventVendorDto,
+  CancelBookingDto,
   CreateEnquiryDto,
   UpdateEventVendorDto,
   type EventVendorDto,
@@ -180,6 +181,106 @@ export class EventVendorsController {
         eventId,
         eventVendorId,
         enquiryId,
+        contextOf(req),
+      ),
+    );
+  }
+
+  /** Idempotency-Key required: a double tap never books twice. */
+  @Post(':eventVendorId/quotations/:quotationId/accept')
+  @RateLimit(WRITE_LIMIT)
+  async accept(
+    @CurrentUser() user: RequestUser,
+    @Param('eventId', Id()) eventId: string,
+    @Param('eventVendorId', Id()) eventVendorId: string,
+    @Param('quotationId', Id()) quotationId: string,
+    @Headers('idempotency-key') key: string | undefined,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<EventVendorDto> {
+    const result = await this.idempotency.run(
+      {
+        principalType: 'USER',
+        principalId: user.userId,
+        key,
+        route: `POST /events/${eventId}/vendors/${eventVendorId}/quotations/${quotationId}/accept`,
+        body: {},
+      },
+      HttpStatus.OK,
+      (manager) =>
+        this.vendors.acceptQuotation(
+          manager,
+          user.userId,
+          eventId,
+          eventVendorId,
+          quotationId,
+          contextOf(req),
+        ),
+    );
+    res.status(result.status);
+    if (result.replayed) res.setHeader('Idempotent-Replayed', 'true');
+    return result.body;
+  }
+
+  @Post(':eventVendorId/quotations/:quotationId/reject')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit(WRITE_LIMIT)
+  reject(
+    @CurrentUser() user: RequestUser,
+    @Param('eventId', Id()) eventId: string,
+    @Param('eventVendorId', Id()) eventVendorId: string,
+    @Param('quotationId', Id()) quotationId: string,
+    @Req() req: Request,
+  ): Promise<EventVendorDto> {
+    return this.dataSource.transaction((manager) =>
+      this.vendors.rejectQuotation(
+        manager,
+        user.userId,
+        eventId,
+        eventVendorId,
+        quotationId,
+        contextOf(req),
+      ),
+    );
+  }
+
+  @Post(':eventVendorId/booking/cancel')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit(WRITE_LIMIT)
+  cancelBooking(
+    @CurrentUser() user: RequestUser,
+    @Param('eventId', Id()) eventId: string,
+    @Param('eventVendorId', Id()) eventVendorId: string,
+    @Body() dto: CancelBookingDto,
+    @Req() req: Request,
+  ): Promise<EventVendorDto> {
+    return this.dataSource.transaction((manager) =>
+      this.vendors.cancelBooking(
+        manager,
+        user.userId,
+        eventId,
+        eventVendorId,
+        dto.reason,
+        contextOf(req),
+      ),
+    );
+  }
+
+  @Post(':eventVendorId/booking/complete')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit(WRITE_LIMIT)
+  completeBooking(
+    @CurrentUser() user: RequestUser,
+    @Param('eventId', Id()) eventId: string,
+    @Param('eventVendorId', Id()) eventVendorId: string,
+    @Req() req: Request,
+  ): Promise<EventVendorDto> {
+    return this.dataSource.transaction((manager) =>
+      this.vendors.completeBooking(
+        manager,
+        user.userId,
+        eventId,
+        eventVendorId,
         contextOf(req),
       ),
     );

@@ -21,10 +21,13 @@ function serviceWith(
   event: Partial<EventEntity>,
   allocations: { categoryId: string; plannedAmount: string }[],
   expenses: { categoryId: string | null; amount: string }[] = [],
+  bookings: { category_id: string; agreed_amount: string }[] = [],
 ): BudgetService {
   const rows = allocations.map((a) => ({ ...a, currency: 'INR' }));
   const expenseRows = expenses.map((e) => ({ ...e, currency: 'INR' }));
   const manager = {
+    query: () =>
+      Promise.resolve(bookings.map((b) => ({ ...b, currency: 'INR' }))),
     getRepository: (entity: unknown) =>
       entity === VendorCategoryEntity
         ? {
@@ -52,6 +55,23 @@ function serviceWith(
 }
 
 describe('BudgetService figures', () => {
+  it('commits confirmed bookings and leaves the rest as remaining', async () => {
+    const budget = await serviceWith(
+      { totalBudgetAmount: '100000.00' },
+      [],
+      [{ categoryId: null, amount: '0.10' }],
+      [
+        { category_id: 'c1', agreed_amount: '40000.00' },
+        { category_id: 'c1', agreed_amount: '9999.95' },
+      ],
+    ).get('u1', 'e1');
+    expect(budget.committed).toEqual({ amount: '49999.95', currency: 'INR' });
+    expect(budget.remaining).toEqual({ amount: '49999.95', currency: 'INR' });
+    expect(
+      budget.categories.find((c) => c.categoryId === 'c1')!.committed.amount,
+    ).toBe('49999.95');
+  });
+
   it('counts own expenses as spent, overall and per category', async () => {
     const budget = await serviceWith(
       { totalBudgetAmount: '1000.00' },

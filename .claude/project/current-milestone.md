@@ -4,60 +4,72 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M14** |
-| Milestone name | Wishlist / Contact / Enquiry |
+| Milestone ID | **M15** |
+| Milestone name | Quotations & Booking |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M14-wishlist-contact-enquiry.md` (status: CONFIRMED 2026-10-08) |
+| Spec | `.claude/project/milestones/M15-quotations-booking.md` (status: CONFIRMED 2026-10-08) |
 | Started date | 2026-10-08 |
 | Completed date | — |
-| Approval status | Awaiting `APPROVE MILESTONE M14` (set IN_REVIEW 2026-10-08) |
+| Approval status | Awaiting `APPROVE MILESTONE M15` (set IN_REVIEW 2026-10-08) |
 
 ## Objective
-Save listings (wishlist), add vendors to an event (event vendors), send and close enquiries (vendor replies come with the Vendor App); N9 in-app record for vendors (A9 fields only).
+Users view, accept and reject vendor quotations; accepting creates a confirmed booking whose agreed amount comes from the quote; bookings can be cancelled or completed; the budget's Committed figure counts them.
 
 ## Completed work / In-progress work / Blocked work
-- **Database:** migration `1792000000000-WishlistEventVendorsEnquiries` (`wishlist_items`, `event_vendors`, `enquiries` with composite FK and partial unique indexes) — **the user runs `npm run migration:run` on the dev DB**.
-- **Backend:** `wishlist` module (list/ids/save/remove, 500 max) and `listings?saved=true`; `event-vendors` module (list/add/notes/remove; enquiries send with Idempotency-Key, close); A12 own-listing block; N9 in-app notification with A9 fields only (`NotificationsService` gained optional `data`); event cancel/delete closes live enquiries; audit without private text.
-- **User App:** heart on every vendor card and the details page (guests asked to sign in), Menu → Saved vendors, Explore "Saved" filter chip, "Add to event" on the details page (single event direct, chooser, Undo), event Vendors tab (status, private note, remove, send/close enquiry with honest copy), enquiry sheet (editable starter text, preferred date).
+- **Database:** migration `1792100000000-QuotationsAndBookings` — **the user runs `npm run migration:run`**; dev/test-only `database/seeds/dev-sample-quotes.sql` (`npm run seed:dev-quotes`) plays the vendor until M33.
+- **Backend:** accept (Idempotency-Key, row locks, one transaction: quote ACCEPTED → booking CONFIRMED with the server-copied amount → event vendor BOOKED → enquiry CLOSED), reject (enquiry reopens), cancel with reason (planning or cancelled events), complete (from the service date), hourly `BookingAutoCompleteJob` (day after the service date), derived EXPIRED, R3 supersede rule (one SENT per enquiry, enforced by index), N10–N14 in-app records, audit without reasons; budget Committed/Remaining from bookings.
+- **User App:** quote panel (Accept & book with exact-amount confirmation, Decline, expired state, revisions), booking panel (agreed amount, service date, Mark completed, Cancel booking with reason), budget Committed shows real amounts.
 - Nothing blocked.
 
 ## Tests completed
-- Backend: unit 72/72, e2e 95/95 (incl. 13 M14 tests: wishlist idempotency/order/ownership/paging/hidden/guest, saved filter; event vendors add-once/notes/412/remove/re-add, owner-only/visibility/read-only, A12, audit without notes; enquiries one-live/N9 content with A9 fields only/idempotent replay/428/validation/close and re-enquire/closing on remove and cancel/hidden listing); lint, typecheck and build clean.
-- User App: `flutter analyze` clean; `flutter test` 242/242 (wishlist controller guest/optimistic/rollback, enquiry form starter text/validation/key reuse, vendor JSON; screens: heart save, guest prompts (heart, Saved chip, Add to event), Saved filter, Add to event, Vendors tab send/close/note/remove, read-only event, Menu → Saved vendors, 200 % text).
-- Not verified: signed-in run on a simulator/device; vendor-side receipt (no Vendor App until M24+).
+- Backend: unit 73/73 (incl. Committed/Remaining), e2e 106/106 (incl. 11 M15 tests: sample quote + N10, revision supersedes and stale accept refused, accept once with replay/new-key refusal/428 and N11/N12 without user contact or budget, budget committed, reject reopens and new quote, expired and withdrawn refused, cancel with reason (validation, N13, audit without reason, re-enquire), completion before/after date and job idempotency with N14, user completes on the date, owner-only and planning-only accept, script guard); lint, typecheck and build clean.
+- User App: `flutter analyze` clean; `flutter test` 250/250 (quote/booking JSON, accept key reuse on retry; screens: accept → booked with exact amount, decline, expired, cancel needs a reason, mark completed, 200 % text).
+- Not verified: signed-in device run; real vendor quotes (M33).
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security / privacy review | Done — owner-only via the event, composite FKs for denormalised ids, A12 block, A9-only notification data (tested), private notes never audited or sent, enquiry spam limit 20/min + one live per vendor, Idempotency-Key on enquiries, saved filter requires sign-in |
-| Performance review | Done — indexed lists (wishlist by user, event vendors by event, enquiries by event vendor); cards fetched in one query per page; heart state from one ids call per session |
-| UI review | Done — optimistic hearts with rollback, confirmations for remove/close, honest reply copy (GI-34), privacy note in the enquiry sheet, all states, 200 % text |
-| Code review | Done (self-review; a disposed-controller bug in the note dialog and an ids-load race were found by tests and fixed) |
-| Notification review | Done — N9 in-app (push at M36); other actions none |
-| Documentation | Done (api-contracts, database-schema, domain-model notes, notification-matrix, flutter.md §6g, known-issues GI-34, spec, progress) |
+| Security / privacy review | Done — owner-only, row locks against double accept, Idempotency-Key, server-copied amount, A9-only vendor notification data (tested), reasons not audited |
+| Payment / money review | Done — exact decimals, agreed amount immutable (ORM `update: false` + no update path), Committed separate from payments (payment-architecture §2.2) |
+| Performance review | Done — quotes/bookings fetched per event-vendor list in two indexed queries; job batched with SKIP LOCKED |
+| UI review | Done — confirmation with the exact amount, honest expiry, reason dialog, states, 200 % text |
+| Code review | Done (self-review) |
+| Notification review | Done — N10–N14 in-app; pushes at M18/M36 |
+| Documentation | Done (api-contracts, database-schema incl. sample quotes, domain-model R3/A7, notification-matrix, payment-architecture §2.2, flutter.md §6h, spec, progress) |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-34.
-- Business rules on hold: R3 (**must be resolved before M15**), R6 (before M28/M29), R10 (before M26). R11 final policy by M21. A9 confirmed.
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-34 (GI-34: vendors cannot send real quotes until M33).
+- Business rules on hold: R6 (before M28/M29), R10 (before M26). R11 final policy by M21. R3 resolved, A7 confirmed.
 
 ## Files changed
-- database: `database/migrations/1792000000000-WishlistEventVendorsEnquiries.ts`
-- backend: `src/modules/wishlist/*`, `src/modules/event-vendors/*`, `src/modules/listings/{listings.dto.ts,listings.repository.ts,listings.service.ts,listings.controller.ts,listings.module.ts}`, `src/modules/notifications/notifications.service.ts`, `src/modules/events/events.service.ts` (close enquiries on cancel/delete), `src/app.module.ts`, `test/event-vendors.e2e-spec.ts`, TRUNCATE lists in `test/{db-harness,auth.e2e-spec,events.e2e-spec}.ts`
-- user_app: `lib/features/wishlist/**`, `lib/features/event_vendors/**`, `lib/features/explore/{domain/listing.dart,data/discovery_repository_impl.dart,presentation/controllers/explore_controller.dart,presentation/views/explore_tab_view.dart,presentation/views/listing_detail_view.dart,presentation/widgets/listing_card_tile.dart}`, `lib/features/events/presentation/views/event_detail_view.dart`, `lib/features/menu/presentation/views/menu_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/engagement/engagement_test.dart`, `test/helpers/fake_event_vendors.dart`, wiring in budget/checklist/events screen tests
-- docs: api-contracts, database-schema, domain-model, notification-matrix, known-issues, architecture/flutter.md, M14 spec, milestones.md, current-milestone, progress
+- database: `database/migrations/1792100000000-QuotationsAndBookings.ts`, `database/seeds/dev-sample-quotes.sql`
+- backend: `src/modules/event-vendors/{quotation.entity.ts,booking.entity.ts,booking-auto-complete.job.ts,event-vendors.service.ts,event-vendors.controller.ts,event-vendors.dto.ts,event-vendors.module.ts}`, `src/modules/budget/{budget.service.ts,budget.service.spec.ts}`, `src/database/seed-dev-samples.ts`, `package.json` (`seed:dev-quotes`), `test/quotations-bookings.e2e-spec.ts`, TRUNCATE lists in `test/{db-harness,auth.e2e-spec,events.e2e-spec}.ts`
+- user_app: `lib/features/event_vendors/{domain/event_vendor.dart,data/event_vendors_repository_impl.dart,presentation/controllers/event_vendors_controller.dart,presentation/widgets/event_vendor_slivers.dart}`; tests `test/features/engagement/engagement_test.dart`, `test/helpers/fake_event_vendors.dart`
+- docs: api-contracts, database-schema, domain-model, notification-matrix, payment-architecture, architecture/flutter.md, M15 spec, milestones.md, current-milestone, progress
 
 ## Files pending approval
-- M14 files (and the M13-approval doc updates / M14 spec) are uncommitted; the user commits personally.
+- M14 and M15 files are uncommitted unless the user has committed them.
 
 ## Next milestone
-- M15 — Quotations & Booking (spec drafted at the M14 gate; R3 must be resolved first).
+- M16 — Event Payments (spec drafted at the M15 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M14 Wishlist / Contact / Enquiry: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-08 |
+| Completed / approved | 2026-10-08 — `APPROVE MILESTONE M14` issued by the user |
+| Spec | `milestones/M14-wishlist-contact-enquiry.md` (CONFIRMED) |
+
+Evidence at approval: wishlist (hearts, Saved vendors, Explore Saved filter), event vendors (add to event, Vendors tab, notes, remove), enquiries (idempotent send, close, closed on event cancel/delete), N9 in-app with A9 fields only; backend 72 unit + 95 e2e, Flutter 242 tests; reviews done. Not verified: signed-in device run; vendor replies (GI-34). Dev DB migration `1792000000000-WishlistEventVendorsEnquiries` to be run by the user.
 
 ## Previous milestone — M13 Vendor Details: COMPLETED
 

@@ -341,6 +341,16 @@ Owner-only through the event (another user's/deleted event → 404); writes need
 - `POST …/enquiries/{enquiryId}/close` → 200 `{ data: EventVendorDto }`: CLOSED (USER); the event vendor returns to ADDED so a new enquiry can be sent. Already closed → 409.
 - Cancelling or deleting an event closes its live enquiries (SYSTEM).
 
+### Quotations and bookings (M15, R3 + A7)
+Event vendors (`EventVendorDto`) also carry `quotations: QuotationDto[]` (newest first, all revisions) and `booking: BookingDto | null` (the active booking, else the latest cancelled one).
+- `QuotationDto`: `{ id, enquiryId, status: SENT|EXPIRED|ACCEPTED|REJECTED|SUPERSEDED|WITHDRAWN, amount: Money, description, validUntil (the event date when the vendor set none), revisionNo, createdAt, respondedAt }`. EXPIRED is derived: a SENT quote whose `validUntil` is before today in the event's time zone.
+- `BookingDto`: `{ id, status: CONFIRMED|CANCELLED|COMPLETED, agreedAmount: Money, serviceDate, cancelledBy, cancelReason, completedAt, createdAt, canCancel, canComplete }`.
+- `POST /api/v1/events/{id}/vendors/{eventVendorId}/quotations/{quotationId}/accept` — **Idempotency-Key required** (428) → 200 `{ data: EventVendorDto }`. PLANNING event, quote SENT and not expired, listing still visible. One transaction: quote ACCEPTED, booking CONFIRMED with `agreedAmount` **copied server-side from the quote** (never sent by the client), `serviceDate` = the enquiry's preferred date else the event date, event vendor BOOKED, enquiry CLOSED (SYSTEM). N11 to the vendor, N12 to both. Errors: 409 `INVALID_STATE_TRANSITION` (superseded / withdrawn / already answered / expired), 404.
+- `POST …/quotations/{quotationId}/reject` → 200: REJECTED; the enquiry reopens (OPEN) and the event vendor returns to ENQUIRED for a new quote. N11.
+- `POST /api/v1/events/{id}/vendors/{eventVendorId}/booking/cancel` `{ reason (3–500) }` → 200: CONFIRMED → CANCELLED (USER); allowed while the event is PLANNING or CANCELLED (not COMPLETED); event vendor CANCELLED, a new enquiry is allowed. N13 to the vendor (with the reason); the audit log keeps ids only.
+- `POST …/booking/complete` → 200: CONFIRMED → COMPLETED on or after the service date (409 before). An hourly job completes CONFIRMED bookings the day after their service date and creates N14 for the user.
+- Budget: `committed` (and per-category `committed`) = Σ `agreedAmount` of CONFIRMED + COMPLETED bookings; `remaining` = total − committed − own expenses.
+
 ### GET /api/v1/listings/cities
 - Response 200 `{ data: string[] }`: the cities and service areas of visible listings, case-insensitively unique, alphabetical, at most 500. `Cache-Control: public, max-age=300`.
 

@@ -11,13 +11,18 @@ import type { RequestContext } from '../events/events.service';
 import { ListingsRepository } from '../listings/listings.repository';
 import { toListingCardDto } from '../listings/listings.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { Money } from '../../common/money/money';
+import { BookingEntity } from './booking.entity';
 import { EnquiryEntity } from './enquiry.entity';
+import { QuotationEntity } from './quotation.entity';
 import { EventVendorEntity } from './event-vendor.entity';
 import {
   MAX_EVENT_VENDORS,
   toEnquiryDto,
+  type BookingDto,
   type CreateEnquiryDto,
   type EnquiryDto,
+  type QuotationDto,
   type EventVendorDto,
   type EventVendorListDto,
   type UpdateEventVendorDto,
@@ -334,6 +339,365 @@ export class EventVendorsService {
     return this.dtoOf(manager, event, ev);
   }
 
+  /**
+   * Accepts a quote (R3/§4.9–4.10): in one transaction the quote becomes
+   * ACCEPTED, a CONFIRMED booking copies its amount (never a client value),
+   * the event vendor becomes BOOKED and the enquiry CLOSED. N11 to the
+   * vendor, N12 to both. Idempotent through the Idempotency-Key.
+   */
+  async acceptQuotation(
+    manager: EntityManager,
+    userId: string,
+    eventId: string,
+    eventVendorId: string,
+    quotationId: string,
+    context: RequestContext,
+    now = new Date(),
+  ): Promise<EventVendorDto> {
+    const event = await this.lockEditable(manager, userId, eventId);
+    const ev = await this.findLive(manager, eventId, eventVendorId);
+    const quote = await this.lockQuotation(manager, ev.id, quotationId);
+    const today = localDate(event.timeZone, now);
+    this.assertAnswerable(quote, event, today);
+    const listing = await this.visibleListing(manager, ev.listingId);
+    const enquiry = await manager
+      .getRepository(EnquiryEntity)
+      .findOneByOrFail({ id: quote.enquiryId });
+
+    quote.status = 'ACCEPTED';
+    quote.respondedAt = now;
+    await manager.getRepository(QuotationEntity).save(quote);
+    const bookings = manager.getRepository(BookingEntity);
+    const booking = await bookings.save(
+      bookings.create({
+        id: uuidv7(),
+        eventVendorId: ev.id,
+        eventId,
+        vendorId: ev.vendorId,
+        quotationId: quote.id,
+        userId,
+        agreedAmount: quote.amount,
+        currency: quote.currency,
+        serviceDate: enquiry.preferredDate ?? event.eventDate,
+        status: 'CONFIRMED',
+        cancelledByType: null,
+        cancelReason: null,
+        cancelledAt: null,
+        completedAt: null,
+        statusChangedAt: now,
+      }),
+    );
+    if (enquiry.status === 'OPEN' || enquiry.status === 'QUOTED') {
+      enquiry.status = 'CLOSED';
+      enquiry.closedByType = 'SYSTEM';
+      enquiry.closedAt = now;
+      await manager.getRepository(EnquiryEntity).save(enquiry);
+    }
+    ev.status = 'BOOKED';
+    ev.statusChangedAt = now;
+    await manager.getRepository(EventVendorEntity).save(ev);
+
+    const amount = Money.fromDb(booking.agreedAmount, booking.currency);
+    const facts = await this.vendorFacts(manager, userId, event);
+    await this.notifications.createInApp(manager, {
+      recipientUserId: listing.owner_user_id,
+      audience: 'VENDOR',
+      category: 'BOOKING',
+      type: 'QUOTATION_ACCEPTED',
+      title: 'Quote accepted',
+      body: `${facts.customerName} accepted your quote for “${listing.title}”.`,
+      entityType: 'QUOTATION',
+      entityId: quote.id,
+      data: { ...facts, amount: amount.toJSON() },
+    });
+    for (const [recipient, audience, body] of [
+      [
+        userId,
+        'USER',
+        `${listing.title} is booked for ${booking.serviceDate} at ₹${amount.toString()}.`,
+      ],
+      [
+        listing.owner_user_id,
+        'VENDOR',
+        `${facts.customerName}'s ${event.eventType} on ${booking.serviceDate} is confirmed.`,
+      ],
+    ] as const) {
+      await this.notifications.createInApp(manager, {
+        recipientUserId: recipient,
+        audience,
+        category: 'BOOKING',
+        type: 'BOOKING_CONFIRMED',
+        title: 'Booking confirmed',
+        body,
+        entityType: 'BOOKING',
+        entityId: booking.id,
+        data:
+          audience === 'VENDOR'
+            ? { ...facts, amount: amount.toJSON() }
+            : { eventId, eventVendorId: ev.id, amount: amount.toJSON() },
+      });
+    }
+    await this.record(
+      manager,
+      userId,
+      'QUOTATION_ACCEPTED',
+      quote.id,
+      context,
+      {
+        eventId,
+        eventVendorId: ev.id,
+        bookingId: booking.id,
+      },
+      'QUOTATION',
+    );
+    return this.dtoOf(manager, event, ev);
+  }
+
+  /** Rejects a quote; the enquiry reopens for a new quote (R3). N11. */
+  async rejectQuotation(
+    manager: EntityManager,
+    userId: string,
+    eventId: string,
+    eventVendorId: string,
+    quotationId: string,
+    context: RequestContext,
+    now = new Date(),
+  ): Promise<EventVendorDto> {
+    const event = await this.lockEditable(manager, userId, eventId);
+    const ev = await this.findLive(manager, eventId, eventVendorId);
+    const quote = await this.lockQuotation(manager, ev.id, quotationId);
+    if (quote.status !== 'SENT') throw notAnswerable(quote.status);
+    quote.status = 'REJECTED';
+    quote.respondedAt = now;
+    await manager.getRepository(QuotationEntity).save(quote);
+    await manager
+      .getRepository(EnquiryEntity)
+      .update({ id: quote.enquiryId, status: 'QUOTED' }, { status: 'OPEN' });
+    if (ev.status === 'QUOTED') {
+      ev.status = 'ENQUIRED';
+      ev.statusChangedAt = now;
+      await manager.getRepository(EventVendorEntity).save(ev);
+    }
+    const [owner] = await manager.query<{ user_id: string; title: string }[]>(
+      `SELECT v.user_id, l.title FROM vendor_listings l
+         JOIN vendors v ON v.id = l.vendor_id WHERE l.id = $1`,
+      [ev.listingId],
+    );
+    const facts = await this.vendorFacts(manager, userId, event);
+    await this.notifications.createInApp(manager, {
+      recipientUserId: owner.user_id,
+      audience: 'VENDOR',
+      category: 'BOOKING',
+      type: 'QUOTATION_REJECTED',
+      title: 'Quote declined',
+      body: `${facts.customerName} declined your quote for “${owner.title}”. You can send a new one.`,
+      entityType: 'QUOTATION',
+      entityId: quote.id,
+      data: facts,
+    });
+    await this.record(
+      manager,
+      userId,
+      'QUOTATION_REJECTED',
+      quote.id,
+      context,
+      {
+        eventId,
+        eventVendorId: ev.id,
+      },
+      'QUOTATION',
+    );
+    return this.dtoOf(manager, event, ev);
+  }
+
+  /**
+   * The user cancels a confirmed booking with a reason (A7). Allowed while
+   * the event is being planned or after it was cancelled (§4.6: bookings are
+   * cancelled individually). N13 to the vendor.
+   */
+  async cancelBooking(
+    manager: EntityManager,
+    userId: string,
+    eventId: string,
+    eventVendorId: string,
+    reason: string,
+    context: RequestContext,
+    now = new Date(),
+  ): Promise<EventVendorDto> {
+    const event = await this.lockOwned(manager, userId, eventId);
+    if (event.status === 'COMPLETED') {
+      throw new AppException(
+        ErrorCode.INVALID_STATE_TRANSITION,
+        HttpStatus.CONFLICT,
+        'This event is completed, so its bookings can no longer be cancelled.',
+      );
+    }
+    const ev = await this.findLive(manager, eventId, eventVendorId);
+    const booking = await this.lockActiveBooking(manager, ev.id);
+    if (booking.status !== 'CONFIRMED') {
+      throw new AppException(
+        ErrorCode.INVALID_STATE_TRANSITION,
+        HttpStatus.CONFLICT,
+        'Only a confirmed booking can be cancelled.',
+      );
+    }
+    booking.status = 'CANCELLED';
+    booking.cancelledByType = 'USER';
+    booking.cancelReason = reason;
+    booking.cancelledAt = now;
+    booking.statusChangedAt = now;
+    await manager.getRepository(BookingEntity).save(booking);
+    ev.status = 'CANCELLED';
+    ev.statusChangedAt = now;
+    await manager.getRepository(EventVendorEntity).save(ev);
+    const [owner] = await manager.query<{ user_id: string; title: string }[]>(
+      `SELECT v.user_id, l.title FROM vendor_listings l
+         JOIN vendors v ON v.id = l.vendor_id WHERE l.id = $1`,
+      [ev.listingId],
+    );
+    const facts = await this.vendorFacts(manager, userId, event);
+    await this.notifications.createInApp(manager, {
+      recipientUserId: owner.user_id,
+      audience: 'VENDOR',
+      category: 'BOOKING',
+      type: 'BOOKING_CANCELLED',
+      title: 'Booking cancelled',
+      body: `${facts.customerName} cancelled the booking for “${owner.title}” on ${booking.serviceDate}.`,
+      entityType: 'BOOKING',
+      entityId: booking.id,
+      data: { ...facts, reason },
+    });
+    // The reason goes to the vendor, not into the audit log.
+    await this.record(
+      manager,
+      userId,
+      'BOOKING_CANCELLED',
+      booking.id,
+      context,
+      {
+        eventId,
+        eventVendorId: ev.id,
+        by: 'USER',
+      },
+      'BOOKING',
+    );
+    return this.dtoOf(manager, event, ev);
+  }
+
+  /** The user marks a booking completed on or after its service date (A7). */
+  async completeBooking(
+    manager: EntityManager,
+    userId: string,
+    eventId: string,
+    eventVendorId: string,
+    context: RequestContext,
+    now = new Date(),
+  ): Promise<EventVendorDto> {
+    const event = await this.lockOwned(manager, userId, eventId);
+    const ev = await this.findLive(manager, eventId, eventVendorId);
+    const booking = await this.lockActiveBooking(manager, ev.id);
+    if (booking.status !== 'CONFIRMED') {
+      throw new AppException(
+        ErrorCode.INVALID_STATE_TRANSITION,
+        HttpStatus.CONFLICT,
+        'Only a confirmed booking can be marked completed.',
+      );
+    }
+    if (booking.serviceDate > localDate(event.timeZone, now)) {
+      throw new AppException(
+        ErrorCode.INVALID_STATE_TRANSITION,
+        HttpStatus.CONFLICT,
+        'A booking can be marked completed from its service date.',
+      );
+    }
+    booking.status = 'COMPLETED';
+    booking.completedAt = now;
+    booking.statusChangedAt = now;
+    await manager.getRepository(BookingEntity).save(booking);
+    ev.status = 'COMPLETED';
+    ev.statusChangedAt = now;
+    await manager.getRepository(EventVendorEntity).save(ev);
+    await this.record(
+      manager,
+      userId,
+      'BOOKING_COMPLETED',
+      booking.id,
+      context,
+      {
+        eventId,
+        eventVendorId: ev.id,
+        by: 'USER',
+      },
+      'BOOKING',
+    );
+    return this.dtoOf(manager, event, ev);
+  }
+
+  /** What a vendor may see about the user before/at booking (A9). */
+  private async vendorFacts(
+    manager: EntityManager,
+    userId: string,
+    event: EventEntity,
+  ) {
+    const [customer] = await manager.query<{ display_name: string | null }[]>(
+      `SELECT display_name FROM users WHERE id = $1`,
+      [userId],
+    );
+    return {
+      customerName: customer?.display_name?.trim() || 'A customer',
+      eventType: event.eventType,
+      eventDate: event.eventDate,
+      city: event.city,
+      guestCountEstimate: event.guestCountEstimate,
+    };
+  }
+
+  private assertAnswerable(
+    quote: QuotationEntity,
+    event: EventEntity,
+    today: string,
+  ): void {
+    if (quote.status !== 'SENT') throw notAnswerable(quote.status);
+    if ((quote.validUntil ?? event.eventDate) < today) {
+      throw new AppException(
+        ErrorCode.INVALID_STATE_TRANSITION,
+        HttpStatus.CONFLICT,
+        'This quote has expired. Ask the vendor for a new one.',
+      );
+    }
+  }
+
+  private async lockQuotation(
+    manager: EntityManager,
+    eventVendorId: string,
+    quotationId: string,
+  ): Promise<QuotationEntity> {
+    const quote = await manager
+      .getRepository(QuotationEntity)
+      .createQueryBuilder('q')
+      .setLock('pessimistic_write')
+      .where('q.id = :quotationId', { quotationId })
+      .andWhere('q.event_vendor_id = :eventVendorId', { eventVendorId })
+      .getOne();
+    if (!quote) throw notFound();
+    return quote;
+  }
+
+  private async lockActiveBooking(
+    manager: EntityManager,
+    eventVendorId: string,
+  ): Promise<BookingEntity> {
+    const booking = await manager
+      .getRepository(BookingEntity)
+      .createQueryBuilder('b')
+      .setLock('pessimistic_write')
+      .where('b.event_vendor_id = :eventVendorId', { eventVendorId })
+      .andWhere(`b.status IN ('CONFIRMED', 'COMPLETED')`)
+      .getOne();
+    if (!booking) throw notFound();
+    return booking;
+  }
+
   private async listFor(
     manager: EntityManager,
     event: EventEntity,
@@ -386,8 +750,22 @@ export class EventVendorsService {
       ]);
       if (LIVE.includes(e.status)) liveFor.add(e.eventVendorId);
     }
+    const ids = rows.map((r) => r.id);
+    const quotations = await manager.getRepository(QuotationEntity).find({
+      where: { eventVendorId: In(ids) },
+      order: { createdAt: 'DESC', id: 'DESC' },
+    });
+    const bookings = await manager.getRepository(BookingEntity).find({
+      where: { eventVendorId: In(ids) },
+      order: { createdAt: 'DESC', id: 'DESC' },
+    });
+    const today = localDate(event.timeZone, new Date());
     return rows.map((r) => {
       const card = cards.get(r.listingId)!;
+      const own = bookings.filter((b) => b.eventVendorId === r.id);
+      const booking =
+        own.find((b) => b.status !== 'CANCELLED') ?? own[0] ?? null;
+      const active = booking !== null && booking.status !== 'CANCELLED';
       return {
         id: r.id,
         status: r.status,
@@ -399,7 +777,12 @@ export class EventVendorsService {
           event.status === 'PLANNING' &&
           card.is_available &&
           ENQUIRABLE.includes(r.status) &&
-          !liveFor.has(r.id),
+          !liveFor.has(r.id) &&
+          !active,
+        quotations: quotations
+          .filter((q) => q.eventVendorId === r.id)
+          .map((q) => toQuotationDto(q, event, today)),
+        booking: booking ? toBookingDto(booking, event, today) : null,
         version: r.version,
         createdAt: r.createdAt.toISOString(),
       };
@@ -443,6 +826,24 @@ export class EventVendorsService {
       .findOneBy({ id: eventVendorId, eventId });
     if (!ev || ev.status === 'REMOVED') throw notFound();
     return ev;
+  }
+
+  /** The owner's event in any status (bookings outlive planning). */
+  private async lockOwned(
+    manager: EntityManager,
+    userId: string,
+    eventId: string,
+  ): Promise<EventEntity> {
+    const event = await manager
+      .getRepository(EventEntity)
+      .createQueryBuilder('e')
+      .setLock('pessimistic_write')
+      .where('e.id = :eventId', { eventId })
+      .andWhere('e.owner_user_id = :userId', { userId })
+      .andWhere('e.deleted_at IS NULL')
+      .getOne();
+    if (!event) throw notFound();
+    return event;
   }
 
   private async lockEditable(
@@ -529,4 +930,55 @@ function changedElsewhere(): AppException {
     HttpStatus.PRECONDITION_FAILED,
     'This vendor was changed elsewhere. Reload and try again.',
   );
+}
+
+function notAnswerable(status: string): AppException {
+  return new AppException(
+    ErrorCode.INVALID_STATE_TRANSITION,
+    HttpStatus.CONFLICT,
+    status === 'SUPERSEDED'
+      ? 'The vendor sent a newer quote. Please check the latest one.'
+      : status === 'WITHDRAWN'
+        ? 'The vendor withdrew this quote.'
+        : 'This quote was already answered.',
+  );
+}
+
+/** [today] is the event's local date: an old SENT quote shows EXPIRED. */
+export function toQuotationDto(
+  q: QuotationEntity,
+  event: EventEntity,
+  today: string,
+): QuotationDto {
+  const validUntil = q.validUntil ?? event.eventDate;
+  return {
+    id: q.id,
+    enquiryId: q.enquiryId,
+    status: q.status === 'SENT' && validUntil < today ? 'EXPIRED' : q.status,
+    amount: Money.fromDb(q.amount, q.currency).toJSON(),
+    description: q.description,
+    validUntil,
+    revisionNo: q.revisionNo,
+    createdAt: q.createdAt.toISOString(),
+    respondedAt: q.respondedAt ? q.respondedAt.toISOString() : null,
+  };
+}
+
+export function toBookingDto(
+  b: BookingEntity,
+  event: EventEntity,
+  today: string,
+): BookingDto {
+  return {
+    id: b.id,
+    status: b.status,
+    agreedAmount: Money.fromDb(b.agreedAmount, b.currency).toJSON(),
+    serviceDate: b.serviceDate,
+    cancelledBy: b.cancelledByType,
+    cancelReason: b.cancelReason,
+    completedAt: b.completedAt ? b.completedAt.toISOString() : null,
+    createdAt: b.createdAt.toISOString(),
+    canCancel: b.status === 'CONFIRMED' && event.status !== 'COMPLETED',
+    canComplete: b.status === 'CONFIRMED' && b.serviceDate <= today,
+  };
 }

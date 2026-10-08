@@ -18,6 +18,8 @@ import type {
   EnquiryStatus,
 } from './enquiry.entity';
 import type { EventVendorStatus } from './event-vendor.entity';
+import type { MoneyJson } from '../../common/money/money';
+import type { BookingCancelledBy, BookingStatus } from './booking.entity';
 
 /** Most vendors (not removed) per event. */
 export const MAX_EVENT_VENDORS = 100;
@@ -68,6 +70,45 @@ export class CreateEnquiryDto {
   preferredDate?: string | null;
 }
 
+export class CancelBookingDto {
+  /** Shown to the vendor (A7: reason required). */
+  @Transform(trim)
+  @IsString()
+  @Length(3, 500)
+  reason: string;
+}
+
+/** EXPIRED is derived (R3); the others are stored. */
+export type QuotationStatusDto =
+  'SENT' | 'EXPIRED' | 'ACCEPTED' | 'REJECTED' | 'SUPERSEDED' | 'WITHDRAWN';
+
+export interface QuotationDto {
+  id: string;
+  enquiryId: string;
+  status: QuotationStatusDto;
+  amount: MoneyJson;
+  description: string | null;
+  /** The last day it can be accepted (the event date when not set). */
+  validUntil: string;
+  revisionNo: number;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+export interface BookingDto {
+  id: string;
+  status: BookingStatus;
+  /** Copied from the accepted quote; never changes. */
+  agreedAmount: MoneyJson;
+  serviceDate: string;
+  cancelledBy: BookingCancelledBy | null;
+  cancelReason: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  canCancel: boolean;
+  canComplete: boolean;
+}
+
 export interface EnquiryDto {
   id: string;
   status: EnquiryStatus;
@@ -90,6 +131,10 @@ export interface EventVendorDto {
   enquiries: EnquiryDto[];
   /** Whether a new enquiry can be sent now. */
   canEnquire: boolean;
+  /** Newest first (all revisions). */
+  quotations: QuotationDto[];
+  /** The active booking, else the latest cancelled one, else null. */
+  booking: BookingDto | null;
   version: number;
   createdAt: string;
 }

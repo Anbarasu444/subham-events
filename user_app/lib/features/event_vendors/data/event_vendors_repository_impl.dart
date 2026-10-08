@@ -1,4 +1,5 @@
 import '../../../core/error/result.dart';
+import '../../../core/money/money.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/utils/date_format.dart';
@@ -94,6 +95,56 @@ class EventVendorsRepositoryImpl implements EventVendorsRepository {
     ),
   );
 
+  @override
+  Future<Result<EventVendor>> acceptQuotation(
+    String eventId,
+    String eventVendorId,
+    String quotationId, {
+    required String idempotencyKey,
+  }) async => _data(
+    await _api.post(
+      '${_path(eventId)}/$eventVendorId/quotations/$quotationId/accept',
+      idempotencyKey: idempotencyKey,
+      decode: vendorFromJson,
+    ),
+  );
+
+  @override
+  Future<Result<EventVendor>> rejectQuotation(
+    String eventId,
+    String eventVendorId,
+    String quotationId,
+  ) async => _data(
+    await _api.post(
+      '${_path(eventId)}/$eventVendorId/quotations/$quotationId/reject',
+      decode: vendorFromJson,
+    ),
+  );
+
+  @override
+  Future<Result<EventVendor>> cancelBooking(
+    String eventId,
+    String eventVendorId,
+    String reason,
+  ) async => _data(
+    await _api.post(
+      '${_path(eventId)}/$eventVendorId/booking/cancel',
+      body: {'reason': reason},
+      decode: vendorFromJson,
+    ),
+  );
+
+  @override
+  Future<Result<EventVendor>> completeBooking(
+    String eventId,
+    String eventVendorId,
+  ) async => _data(
+    await _api.post(
+      '${_path(eventId)}/$eventVendorId/booking/complete',
+      decode: vendorFromJson,
+    ),
+  );
+
   Result<T> _data<T>(Result<ApiResponse<T>> result, {bool notify = true}) {
     switch (result) {
       case Ok(:final value):
@@ -130,6 +181,34 @@ class EventVendorsRepositoryImpl implements EventVendorsRepository {
           .toList(growable: false),
       canEnquire: map['canEnquire'] as bool,
       version: map['version'] as int,
+      quotations: ((map['quotations'] as List<dynamic>?) ?? const [])
+          .map((raw) {
+            final q = raw as Map<String, dynamic>;
+            return Quotation(
+              id: q['id'] as String,
+              status: QuotationStatus.fromApi(q['status'] as String),
+              amount: Money.fromJson(q['amount'] as Map<String, dynamic>),
+              description: q['description'] as String?,
+              validUntil: parseApiDate(q['validUntil'] as String),
+              revisionNo: q['revisionNo'] as int,
+            );
+          })
+          .toList(growable: false),
+      booking: switch (map['booking']) {
+        final Map<String, dynamic> b => Booking(
+          id: b['id'] as String,
+          status: BookingStatus.fromApi(b['status'] as String),
+          agreedAmount: Money.fromJson(
+            b['agreedAmount'] as Map<String, dynamic>,
+          ),
+          serviceDate: parseApiDate(b['serviceDate'] as String),
+          cancelledBy: b['cancelledBy'] as String?,
+          cancelReason: b['cancelReason'] as String?,
+          canCancel: b['canCancel'] as bool,
+          canComplete: b['canComplete'] as bool,
+        ),
+        _ => null,
+      },
     );
   }
 }

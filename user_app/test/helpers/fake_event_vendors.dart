@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:user_app/core/auth/session_service.dart';
 import 'package:user_app/core/error/failure.dart';
 import 'package:user_app/core/error/result.dart';
+import 'package:user_app/core/money/money.dart';
 import 'package:user_app/features/event_vendors/domain/event_vendor.dart';
 import 'package:user_app/features/explore/domain/listing.dart';
 import 'package:user_app/features/wishlist/domain/wishlist.dart';
@@ -35,10 +36,13 @@ class FakeEventVendorsRepository implements EventVendorsRepository {
     EventVendorStatus? status,
     String? Function()? notes,
     List<Enquiry>? enquiries,
+    List<Quotation>? quotations,
+    Booking? Function()? booking,
     required bool editable,
   }) {
     final next = enquiries ?? v.enquiries;
     final s = status ?? v.status;
+    final b = booking == null ? v.booking : booking();
     return EventVendor(
       id: v.id,
       status: s,
@@ -49,10 +53,182 @@ class FakeEventVendorsRepository implements EventVendorsRepository {
       canEnquire:
           editable &&
           v.isAvailable &&
-          s != EventVendorStatus.booked &&
+          (b == null || b.status == BookingStatus.cancelled) &&
           !next.any((e) => e.status.isLive),
       version: v.version + 1,
+      quotations: quotations ?? v.quotations,
+      booking: b,
     );
+  }
+
+  /// Plays the vendor (M33 later): sends a quote on the vendor's enquiry.
+  Quotation sendQuote(
+    String eventId,
+    String eventVendorId,
+    String amount, {
+    bool expired = false,
+    DateTime? validUntil,
+  }) {
+    final v = byEvent[eventId]!.firstWhere((e) => e.id == eventVendorId);
+    final quote = Quotation(
+      id: 'q-${++_seq}',
+      status: expired ? QuotationStatus.expired : QuotationStatus.sent,
+      amount: Money.parse(amount, 'INR'),
+      description: 'Full day coverage',
+      validUntil: validUntil ?? DateTime(2026, 12, 1),
+      revisionNo: v.quotations.length + 1,
+    );
+    _replace(
+      eventId,
+      _with(
+        v,
+        status: EventVendorStatus.quoted,
+        quotations: [quote, ...v.quotations],
+        editable: true,
+      ),
+    );
+    return quote;
+  }
+
+  Booking _booking(
+    Booking? from, {
+    required BookingStatus status,
+    Money? amount,
+    String? reason,
+    bool canComplete = false,
+  }) => Booking(
+    id: from?.id ?? 'b-${++_seq}',
+    status: status,
+    agreedAmount: amount ?? from!.agreedAmount,
+    serviceDate: from?.serviceDate ?? DateTime(2026, 11, 7),
+    cancelledBy: reason == null ? null : 'USER',
+    cancelReason: reason,
+    canCancel: status == BookingStatus.confirmed,
+    canComplete: canComplete && status == BookingStatus.confirmed,
+  );
+
+  /// Lets the booking be marked completed (its service date has come).
+  void serviceDateReached(String eventId, String eventVendorId) {
+    final v = byEvent[eventId]!.firstWhere((e) => e.id == eventVendorId);
+    _replace(
+      eventId,
+      _with(
+        v,
+        booking: () => _booking(
+          v.booking,
+          status: BookingStatus.confirmed,
+          canComplete: true,
+        ),
+        editable: true,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<EventVendor>> acceptQuotation(
+    String eventId,
+    String eventVendorId,
+    String quotationId, {
+    required String idempotencyKey,
+  }) async {
+    calls.add('accept:$quotationId');
+    idempotencyKeys.add(idempotencyKey);
+    final f = _failure<EventVendor>();
+    if (f != null) return f;
+    final v = byEvent[eventId]!.firstWhere((e) => e.id == eventVendorId);
+    final quote = v.quotations.firstWhere((q) => q.id == quotationId);
+    final next = _with(
+      v,
+      status: EventVendorStatus.booked,
+      quotations: [
+        for (final q in v.quotations)
+          q.id == quotationId
+              ? Quotation(
+                  id: q.id,
+                  status: QuotationStatus.accepted,
+                  amount: q.amount,
+                  description: q.description,
+                  validUntil: q.validUntil,
+                  revisionNo: q.revisionNo,
+                )
+              : q,
+      ],
+      booking: () =>
+          _booking(null, status: BookingStatus.confirmed, amount: quote.amount),
+      editable: true,
+    );
+    _replace(eventId, next);
+    onChanged?.call();
+    return Ok(next);
+  }
+
+  @override
+  Future<Result<EventVendor>> rejectQuotation(
+    String eventId,
+    String eventVendorId,
+    String quotationId,
+  ) async {
+    calls.add('reject:$quotationId');
+    final v = byEvent[eventId]!.firstWhere((e) => e.id == eventVendorId);
+    final next = _with(
+      v,
+      status: EventVendorStatus.enquired,
+      quotations: [
+        for (final q in v.quotations)
+          q.id == quotationId
+              ? Quotation(
+                  id: q.id,
+                  status: QuotationStatus.rejected,
+                  amount: q.amount,
+                  description: q.description,
+                  validUntil: q.validUntil,
+                  revisionNo: q.revisionNo,
+                )
+              : q,
+      ],
+      editable: true,
+    );
+    _replace(eventId, next);
+    onChanged?.call();
+    return Ok(next);
+  }
+
+  @override
+  Future<Result<EventVendor>> cancelBooking(
+    String eventId,
+    String eventVendorId,
+    String reason,
+  ) async {
+    calls.add('cancelBooking:$eventVendorId:$reason');
+    final v = byEvent[eventId]!.firstWhere((e) => e.id == eventVendorId);
+    final next = _with(
+      v,
+      status: EventVendorStatus.cancelled,
+      booking: () =>
+          _booking(v.booking, status: BookingStatus.cancelled, reason: reason),
+      editable: true,
+    );
+    _replace(eventId, next);
+    onChanged?.call();
+    return Ok(next);
+  }
+
+  @override
+  Future<Result<EventVendor>> completeBooking(
+    String eventId,
+    String eventVendorId,
+  ) async {
+    calls.add('complete:$eventVendorId');
+    final v = byEvent[eventId]!.firstWhere((e) => e.id == eventVendorId);
+    final next = _with(
+      v,
+      status: EventVendorStatus.completed,
+      booking: () => _booking(v.booking, status: BookingStatus.completed),
+      editable: true,
+    );
+    _replace(eventId, next);
+    onChanged?.call();
+    return Ok(next);
   }
 
   void _replace(String eventId, EventVendor v) {

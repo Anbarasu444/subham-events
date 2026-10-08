@@ -29,7 +29,8 @@
     "migration:show": "npm run typeorm -- migration:show",
     "migration:generate": "cross-env TS_NODE_TRANSPILE_ONLY=true typeorm-ts-node-commonjs -d src/database/data-source.ts migration:generate",
     "migration:create": "typeorm migration:create",
-    "seed:dev-samples": "cross-env TS_NODE_TRANSPILE_ONLY=true ts-node src/database/seed-dev-samples.ts"
+    "seed:dev-samples": "cross-env TS_NODE_TRANSPILE_ONLY=true ts-node src/database/seed-dev-samples.ts",
+    "seed:dev-quotes": "cross-env TS_NODE_TRANSPILE_ONLY=true SEED_FILE=dev-sample-quotes.sql ts-node src/database/seed-dev-samples.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.7",

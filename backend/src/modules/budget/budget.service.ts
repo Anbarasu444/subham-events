@@ -17,8 +17,8 @@ import type { BudgetDto } from './budget.dto';
  * Per-event budget (M11, domain-model.md §7). Owner-only through the event
  * (another user's or a deleted event → 404). Changes need a PLANNING event
  * (read-only otherwise, like the checklist) and lock the event row.
- * Committed (M15) and Paid (M16) are zero until bookings and payment notes
- * exist; the user's own expenses (answer 5) count as spent.
+ * Committed sums confirmed/completed bookings (M15); Paid is zero until
+ * payment notes exist (M16); the user's own expenses (answer 5) count as spent.
  */
 @Injectable()
 export class BudgetService {
@@ -142,6 +142,25 @@ export class BudgetService {
         eventId: event.id,
         deletedAt: IsNull(),
       });
+    // Committed (M15): agreed amounts of confirmed and completed bookings.
+    const bookingRows = await manager.query<
+      { category_id: string; agreed_amount: string; currency: string }[]
+    >(
+      `SELECT ev.category_id, b.agreed_amount::text AS agreed_amount, b.currency
+         FROM bookings b JOIN event_vendors ev ON ev.id = b.event_vendor_id
+        WHERE b.event_id = $1 AND b.status IN ('CONFIRMED', 'COMPLETED')`,
+      [event.id],
+    );
+    const committedBy = new Map<string, Money>();
+    let committed = Money.zero();
+    for (const b of bookingRows) {
+      const amount = Money.fromDb(b.agreed_amount, b.currency);
+      committed = committed.add(amount);
+      committedBy.set(
+        b.category_id,
+        (committedBy.get(b.category_id) ?? Money.zero()).add(amount),
+      );
+    }
     const expenseRows = await manager
       .getRepository(EventExpenseEntity)
       .findBy({ eventId: event.id, deletedAt: IsNull() });
@@ -169,6 +188,7 @@ export class BudgetService {
       ...new Set([
         ...allocations.map((a) => a.categoryId),
         ...expensesBy.keys(),
+        ...committedBy.keys(),
       ]),
     ].filter((id) => !published.has(id));
     const archived = archivedIds.length
@@ -194,19 +214,19 @@ export class BudgetService {
       planned: planned.toJSON(),
       unplanned: unplanned ? unplanned.toJSON() : null,
       isOverPlanned: unplanned ? unplanned.isNegative() : false,
-      committed: zero.toJSON(),
+      committed: committed.toJSON(),
       paid: zero.toJSON(),
       expenses: expenses.toJSON(),
       spent: zero.add(expenses).toJSON(),
       remaining: total
-        ? total.subtract(zero).subtract(expenses).toJSON()
+        ? total.subtract(committed).subtract(expenses).toJSON()
         : null,
       categories: [...categories, ...archived].map((c) => ({
         categoryId: c.id,
         name: c.name,
         isArchived: !published.has(c.id),
         planned: byCategory.get(c.id)?.toJSON() ?? null,
-        committed: zero.toJSON(),
+        committed: (committedBy.get(c.id) ?? zero).toJSON(),
         paid: zero.toJSON(),
         expenses: (expensesBy.get(c.id) ?? zero).toJSON(),
       })),

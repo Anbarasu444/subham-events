@@ -10,7 +10,7 @@
 |---|---|---|---|
 | R1 | Same-type vendors per event | **Allowed** (e.g. two photographers) | User |
 | R2 | Events per user | **Unlimited**, concurrently | User |
-| R3 | Quotations | ⏸ **HOLD** — multiplicity, revisions, expiry, cancellation rights pending client confirmation | User (hold) |
+| R3 | Quotations | ✅ **Resolved 2026-10-08 (M15):** one live quote per enquiry (a revision SUPERSEDES the previous); optional valid-until, expired quotes cannot be accepted (no date = valid until the event date); the vendor may WITHDRAW until accepted; accepting one vendor does not affect others (R1); rejecting keeps the enquiry open for a new quote | User |
 | R4 | Outside vendors | **No outside vendors** — every event vendor and booking is a platform vendor listing | User |
 | R5 | User-to-vendor payments | **User-only notes**, like checklist entries; **no confirmation** by vendor or user; the platform collects no money | User |
 | R6 | Platform fee | ⏸ **HOLD** — charging basis, renewal, resubmission charging pending client confirmation | User (hold) |
@@ -33,7 +33,7 @@
 | A4 | The **star rating is visible immediately**; only the **comment** waits for admin approval. A rejected comment leaves the rating public without text. | Review lifecycle §4.9 |
 | A5 | Reviews are allowed only for a **completed booking**, one per booking; the user cannot edit after submission (edits would re-enter moderation); vendor replies are out of scope for now. | Review eligibility |
 | A6 | RSVP is anonymous-friendly: guest enters **name (required)**, response **Attending / Not attending / Maybe**, **guest count (default 1)**, optional message; no login; one RSVP per browser/device (re-submitting updates it). No phone/email collected. | Privacy, data model §5.15 |
-| A7 | A **booking is completed** automatically the day after the service date (job) unless cancelled; the user can also mark it completed earlier. Either party can **cancel** a confirmed booking with a reason. | Booking lifecycle §4.6 |
+| A7 | ✅ (confirmed 2026-10-08, M15) A **booking is completed** automatically the day after the service date (job) unless cancelled; the user can also mark it completed earlier. Either party can **cancel** a confirmed booking with a reason. | Booking lifecycle §4.6 |
 | A9 | ✅ (confirmed by the user 2026-10-08, M14 spec) **Vendor view of the user:** before a booking is CONFIRMED the vendor sees the user's display name, event type, event date, city and guest estimate only; after CONFIRMED also the user's phone number and venue name/address. Never: email, budget, payment notes, other vendors, `event_vendors.notes` (private to the user). | Privacy (security review M1) |
 | A10 | ✅ **Vendor business phone/email** are shown on approved listings to **signed-in users only** (guests are asked to sign in), with tap-to-call / tap-to-email (user answer, M13 spec 2026-10-08). | Privacy |
 | A11 | Budget "Paid" counts **all** of the user's payment notes (including on cancelled bookings); notes on cancelled bookings are shown separately as "paid to cancelled vendors". Notes can still be added to a cancelled booking (e.g. a refund-less advance). | Budget §7 |
@@ -192,8 +192,12 @@ As `payment-architecture.md` §1.3: `CREATED → PENDING → SUCCESS | EXPIRED`;
 - `OPEN → DECLINED` (vendor, optional reason) ⇒ N11-variant to user.
 - Created `OPEN` (user) ⇒ N9 to vendor.
 
-### 4.9 Quotation ⏸ R3
-Base states: `SENT → ACCEPTED` (user) ⇒ creates booking (§4.10), N11; `SENT → REJECTED` (user) ⇒ N11. **On hold:** `SUPERSEDED` (revisions), `EXPIRED` (validity), `WITHDRAWN` (vendor) and multiplicity per enquiry.
+### 4.9 Quotation — R3 (resolved M15)
+- Created `SENT` (vendor) ⇒ N10 to the user; enquiry → QUOTED, event vendor → QUOTED. At most **one SENT quote per enquiry**: a revision (`revision_no + 1`) moves the previous one to `SUPERSEDED`.
+- `SENT → ACCEPTED` (user, not expired) ⇒ creates the booking (§4.10) in the same transaction, enquiry CLOSED (SYSTEM), N11 to the vendor.
+- `SENT → REJECTED` (user) ⇒ N11; enquiry back to OPEN and event vendor back to ENQUIRED so the vendor can send a new quote.
+- `SENT → WITHDRAWN` (vendor, until accepted) ⇒ N11-variant to the user (M33).
+- **EXPIRED** is derived, not stored: a SENT quote whose `valid_until` (or, without one, the event date) is before today in the event's time zone is shown as EXPIRED and cannot be accepted.
 
 ### 4.10 Booking (`bookings.status`) — A7
 - Created `CONFIRMED` atomically with quotation acceptance (idempotent) ⇒ N12 to both.

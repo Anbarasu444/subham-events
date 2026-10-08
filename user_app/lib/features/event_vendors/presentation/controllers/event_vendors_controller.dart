@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/result.dart';
 import '../../../../core/state/view_state.dart';
+import '../../../../core/utils/request_id.dart';
 import '../../../events/domain/repositories/events_repository.dart';
 import '../../domain/event_vendor.dart';
 
@@ -25,6 +26,9 @@ class EventVendorsController extends GetxController {
   final RxSet<String> busy = <String>{}.obs;
 
   int _generation = 0;
+
+  /// One key per quote: retrying an accept never books twice.
+  final Map<String, String> _acceptKeys = {};
   StreamSubscription<void>? _changes;
 
   EventVendorList? get list => switch (state.value) {
@@ -74,6 +78,27 @@ class EventVendorsController extends GetxController {
     vendor.id,
     () => _vendors.closeEnquiry(eventId, vendor.id, enquiry.id),
   );
+
+  Future<Failure?> acceptQuotation(EventVendor vendor, Quotation quote) => _run(
+    vendor.id,
+    () => _vendors.acceptQuotation(
+      eventId,
+      vendor.id,
+      quote.id,
+      idempotencyKey: _acceptKeys.putIfAbsent(quote.id, generateRequestId),
+    ),
+  );
+
+  Future<Failure?> rejectQuotation(EventVendor vendor, Quotation quote) => _run(
+    vendor.id,
+    () => _vendors.rejectQuotation(eventId, vendor.id, quote.id),
+  );
+
+  Future<Failure?> cancelBooking(EventVendor vendor, String reason) =>
+      _run(vendor.id, () => _vendors.cancelBooking(eventId, vendor.id, reason));
+
+  Future<Failure?> completeBooking(EventVendor vendor) =>
+      _run(vendor.id, () => _vendors.completeBooking(eventId, vendor.id));
 
   Future<Failure?> _run<T>(
     String key,

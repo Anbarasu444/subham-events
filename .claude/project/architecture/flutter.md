@@ -167,6 +167,10 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 - `features/wishlist`: `WishlistRepository`; `WishlistController` (session-wide, fenix) holds saved ids for every heart, toggles optimistically with rollback and a generation guard, clears on sign-out and reloads on sign-in; `SaveButton` (guests → "Sign in to save vendors"); Menu → `SavedVendorsView` (paged, "No longer listed" items). Explore has a "Saved" filter chip (`ListingQuery.saved`).
 - `features/event_vendors`: `EventVendorsRepository` (changes call `EventsRepository.notifyChanged`); `EventVendorsController` per event (Vendors tab); `eventVendorSlivers` (status chips, private note dialog, remove/close confirmations, honest "the vendor will reply in the app" copy); `showEnquirySheet` + `EnquiryFormController` (editable starter text with only A9 details, optional preferred date, same-input retries reuse the `Idempotency-Key`); `addListingToEvent` (details page; one planning event → direct, else a chooser; Undo).
 
+## 6h. Quotes and bookings (M15)
+
+- `EventVendor` carries `quotations` and `booking`; `openQuote` is the latest SENT/EXPIRED quote. `EventVendorsController.acceptQuotation` keeps one Idempotency-Key per quote (a retried accept never books twice); reject, cancel (reason dialog, 3–500) and complete reload the list. The vendor card shows a quote panel (amount, valid until or expired, Accept & book with an exact-amount confirmation, Decline) or a booking panel (agreed amount, service date, Mark completed, Cancel booking).
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

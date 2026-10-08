@@ -1,10 +1,11 @@
 import '../../../core/error/result.dart';
+import '../../../core/money/money.dart';
 import '../../explore/domain/listing.dart';
 
 enum EventVendorStatus {
   added('Added'),
   enquired('Enquiry sent'),
-  quoted('Quote received'),
+  quoted('Quote waiting'),
   booked('Booked'),
   completed('Completed'),
   cancelled('Cancelled'),
@@ -30,6 +31,78 @@ enum EnquiryStatus {
 
   static EnquiryStatus fromApi(String value) =>
       EnquiryStatus.values.byName(value.toLowerCase());
+}
+
+enum QuotationStatus {
+  sent('Waiting for you'),
+  expired('Expired'),
+  accepted('Accepted'),
+  rejected('Declined'),
+  superseded('Replaced by a newer quote'),
+  withdrawn('Withdrawn by the vendor');
+
+  const QuotationStatus(this.label);
+  final String label;
+
+  static QuotationStatus fromApi(String value) =>
+      QuotationStatus.values.byName(value.toLowerCase());
+}
+
+/// A vendor's price offer (M15, R3). EXPIRED comes from the server.
+class Quotation {
+  const Quotation({
+    required this.id,
+    required this.status,
+    required this.amount,
+    required this.description,
+    required this.validUntil,
+    required this.revisionNo,
+  });
+
+  final String id;
+  final QuotationStatus status;
+  final Money amount;
+  final String? description;
+
+  /// Last day it can be accepted.
+  final DateTime validUntil;
+  final int revisionNo;
+}
+
+enum BookingStatus {
+  confirmed('Booked'),
+  cancelled('Cancelled'),
+  completed('Completed');
+
+  const BookingStatus(this.label);
+  final String label;
+
+  static BookingStatus fromApi(String value) =>
+      BookingStatus.values.byName(value.toLowerCase());
+}
+
+/// A confirmed engagement (M15, A7). [agreedAmount] comes from the accepted
+/// quote and never changes.
+class Booking {
+  const Booking({
+    required this.id,
+    required this.status,
+    required this.agreedAmount,
+    required this.serviceDate,
+    required this.cancelledBy,
+    required this.cancelReason,
+    required this.canCancel,
+    required this.canComplete,
+  });
+
+  final String id;
+  final BookingStatus status;
+  final Money agreedAmount;
+  final DateTime serviceDate;
+  final String? cancelledBy;
+  final String? cancelReason;
+  final bool canCancel;
+  final bool canComplete;
 }
 
 class Enquiry {
@@ -64,6 +137,8 @@ class EventVendor {
     required this.enquiries,
     required this.canEnquire,
     required this.version,
+    this.quotations = const [],
+    this.booking,
   });
 
   final String id;
@@ -78,6 +153,22 @@ class EventVendor {
   final List<Enquiry> enquiries;
   final bool canEnquire;
   final int version;
+
+  /// Newest first (all revisions).
+  final List<Quotation> quotations;
+
+  /// The active booking, else the latest cancelled one.
+  final Booking? booking;
+
+  /// The latest quote, when it still matters (waiting or expired).
+  Quotation? get openQuote {
+    final latest = quotations.firstOrNull;
+    return latest != null &&
+            (latest.status == QuotationStatus.sent ||
+                latest.status == QuotationStatus.expired)
+        ? latest
+        : null;
+  }
 
   Enquiry? get liveEnquiry =>
       enquiries.where((e) => e.status.isLive).firstOrNull;
@@ -133,5 +224,27 @@ abstract class EventVendorsRepository {
     String eventId,
     String eventVendorId,
     String enquiryId,
+  );
+
+  /// Books the vendor at the quoted amount (server copies it; M15).
+  Future<Result<EventVendor>> acceptQuotation(
+    String eventId,
+    String eventVendorId,
+    String quotationId, {
+    required String idempotencyKey,
+  });
+  Future<Result<EventVendor>> rejectQuotation(
+    String eventId,
+    String eventVendorId,
+    String quotationId,
+  );
+  Future<Result<EventVendor>> cancelBooking(
+    String eventId,
+    String eventVendorId,
+    String reason,
+  );
+  Future<Result<EventVendor>> completeBooking(
+    String eventId,
+    String eventVendorId,
   );
 }

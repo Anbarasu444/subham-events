@@ -333,7 +333,21 @@ class _VendorCard extends StatelessWidget {
                     ),
                 ],
               ),
-              if (live != null)
+              if (vendor.booking != null)
+                _BookingPanel(
+                  vendor: vendor,
+                  controller: controller,
+                  busy: busy,
+                )
+              else if (vendor.openQuote != null)
+                _QuotePanel(
+                  vendor: vendor,
+                  quote: vendor.openQuote!,
+                  controller: controller,
+                  editable: editable,
+                  busy: busy,
+                ),
+              if (live != null && vendor.openQuote == null)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.xs),
                   child: Text(
@@ -437,6 +451,274 @@ class _NoteDialogState extends State<_NoteDialog> {
       TextButton(
         onPressed: () => Navigator.of(context).pop(_text.text),
         child: const Text('Save'),
+      ),
+    ],
+  );
+}
+
+/// The latest quote: amount, validity, Accept / Decline (M15, R3).
+class _QuotePanel extends StatelessWidget {
+  const _QuotePanel({
+    required this.vendor,
+    required this.quote,
+    required this.controller,
+    required this.editable,
+    required this.busy,
+  });
+
+  final EventVendor vendor;
+  final Quotation quote;
+  final EventVendorsController controller;
+  final bool editable;
+  final bool busy;
+
+  Future<void> _accept(BuildContext context) async {
+    if (!await _confirm(
+          context,
+          title:
+              'Book ${vendor.listing.vendorName} for '
+              '${quote.amount.format()}?',
+          body:
+              'This becomes the agreed amount in your budget. The vendor '
+              'is told the booking is confirmed.',
+          action: 'Book',
+        ) ||
+        !context.mounted) {
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final failure = await controller.acceptQuotation(vendor, quote);
+    if (failure == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('${vendor.listing.vendorName} is booked.')),
+      );
+    } else if (context.mounted) {
+      await _report(context, Future.value(failure));
+    }
+  }
+
+  Future<void> _decline(BuildContext context) async {
+    if (!await _confirm(
+          context,
+          title: 'Decline this quote?',
+          body: 'The vendor can send you a new one.',
+          action: 'Decline',
+        ) ||
+        !context.mounted) {
+      return;
+    }
+    await _report(context, controller.rejectQuotation(vendor, quote));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final expired = quote.status == QuotationStatus.expired;
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: const BorderRadius.all(AppRadii.sm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            header: true,
+            child: Text(
+              quote.revisionNo > 1 ? 'Revised quote' : 'Quote received',
+              style: theme.textTheme.labelLarge,
+            ),
+          ),
+          Text(quote.amount.format(), style: theme.textTheme.titleLarge),
+          Text(
+            expired
+                ? 'Expired on ${formatLongDate(quote.validUntil)}. Ask the '
+                      'vendor for a new quote.'
+                : 'Valid until ${formatLongDate(quote.validUntil)}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: expired ? theme.colorScheme.error : null,
+            ),
+          ),
+          if (quote.description != null) ...[
+            const SizedBox(height: AppSpacing.xxs),
+            Text(quote.description!),
+          ],
+          if (editable && !expired && !busy) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => _accept(context),
+                  icon: const Icon(Icons.check),
+                  label: const Text('Accept & book'),
+                ),
+                OutlinedButton(
+                  onPressed: () => _decline(context),
+                  child: const Text('Decline'),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The booking: agreed amount, date, Cancel / Mark completed (M15, A7).
+class _BookingPanel extends StatelessWidget {
+  const _BookingPanel({
+    required this.vendor,
+    required this.controller,
+    required this.busy,
+  });
+
+  final EventVendor vendor;
+  final EventVendorsController controller;
+  final bool busy;
+
+  Future<void> _cancel(BuildContext context) async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (_) =>
+          _CancelBookingDialog(vendorName: vendor.listing.vendorName),
+    );
+    if (reason == null || !context.mounted) return;
+    await _report(context, controller.cancelBooking(vendor, reason));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final booking = vendor.booking!;
+    final cancelled = booking.status == BookingStatus.cancelled;
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: cancelled
+            ? theme.colorScheme.surfaceContainerHighest
+            : theme.colorScheme.secondaryContainer,
+        borderRadius: const BorderRadius.all(AppRadii.sm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            header: true,
+            child: Text(switch (booking.status) {
+              BookingStatus.confirmed => 'Booking confirmed',
+              BookingStatus.completed => 'Booking completed',
+              BookingStatus.cancelled => 'Booking cancelled',
+            }, style: theme.textTheme.labelLarge),
+          ),
+          Text(
+            'Agreed ${booking.agreedAmount.format()}',
+            style: theme.textTheme.titleMedium,
+          ),
+          Text('Service on ${formatLongDate(booking.serviceDate)}'),
+          if (cancelled && booking.cancelReason != null)
+            Text(
+              'Reason: ${booking.cancelReason}',
+              style: theme.textTheme.bodySmall,
+            ),
+          if (!busy && (booking.canCancel || booking.canComplete)) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: [
+                if (booking.canComplete)
+                  FilledButton.tonal(
+                    onPressed: () =>
+                        _report(context, controller.completeBooking(vendor)),
+                    child: const Text('Mark completed'),
+                  ),
+                if (booking.canCancel)
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                    ),
+                    onPressed: () => _cancel(context),
+                    child: const Text('Cancel booking'),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Asks for the reason the vendor will see (3–500 characters, A7).
+class _CancelBookingDialog extends StatefulWidget {
+  const _CancelBookingDialog({required this.vendorName});
+
+  final String vendorName;
+
+  @override
+  State<_CancelBookingDialog> createState() => _CancelBookingDialogState();
+}
+
+class _CancelBookingDialogState extends State<_CancelBookingDialog> {
+  final TextEditingController _reason = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final text = _reason.text.trim();
+    if (text.length < 3) {
+      setState(() => _error = 'Tell the vendor why (at least 3 characters).');
+      return;
+    }
+    Navigator.of(context).pop(text);
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text('Cancel the booking with ${widget.vendorName}?'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'The vendor will be told. Any refund or cancellation fee is '
+          'agreed with them directly.',
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextField(
+          controller: _reason,
+          autofocus: true,
+          maxLength: 500,
+          minLines: 2,
+          maxLines: 4,
+          textCapitalization: TextCapitalization.sentences,
+          onChanged: (_) => setState(() => _error = null),
+          decoration: InputDecoration(labelText: 'Reason', errorText: _error),
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Keep booking'),
+      ),
+      TextButton(
+        style: TextButton.styleFrom(
+          foregroundColor: Theme.of(context).colorScheme.error,
+        ),
+        onPressed: _submit,
+        child: const Text('Cancel booking'),
       ),
     ],
   );

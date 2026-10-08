@@ -87,6 +87,9 @@ The platform **does not collect any user-to-vendor money** (user decision 2026-1
 - Not idempotency-critical (no money moves), but creation uses the standard `Idempotency-Key` support to avoid duplicate notes on retries.
 - No Razorpay, no reconciliation, no refunds.
 
+### 2.2 Agreed amount (M15)
+`bookings.agreed_amount` is copied server-side from the accepted quotation and never changes; it feeds the budget's **Committed**. It records what was agreed, not money paid: no payment moves through the platform for event vendors. Payments the user makes are their own notes (M16).
+
 ### 2.1 Budget is planning, not payment (M11)
 The event budget (`budget_allocations`, `GET /events/{id}/budget`) holds **planned** amounts only. It is neither a platform-fee nor an event-payment record: no money moves, nothing is verified, and it shares no tables or enums with either payment domain. "Paid" in the budget will be the sum of the user's own payment notes (M16); "Committed" the agreed amounts of confirmed bookings (M15).
 
