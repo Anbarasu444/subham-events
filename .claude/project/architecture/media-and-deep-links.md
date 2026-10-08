@@ -10,7 +10,7 @@
 | Vendor/listing image | vendor | public **after listing approval**; private before | 30 MB | JPEG, PNG, WebP, HEIC |
 | Vendor/listing video | vendor | same as above | 30 MB | MP4 (H.264/HEVC), MOV |
 | Category icon/banner | admin | public | 5 MB | PNG, WebP |
-| Event cover / event media | user | private | 15 MB | JPEG, PNG, WebP, HEIC |
+| Event cover / event media | user | private | **5 MB** (M10 user decision) | JPEG, PNG, WebP, HEIC/HEIF |
 | Invitation assets (generated) | user | unlisted (unguessable token) | 10 MB | PNG, PDF |
 | CMS content media | admin | public | 10 MB | JPEG, PNG, WebP |
 
@@ -55,18 +55,19 @@ sequenceDiagram
 ```
 
 - The upload token is single-use and short-lived; the API fixes `folder`, `fileName` and `isPrivateFile`, and the backend re-checks every attribute after upload (the client's upload request is never trusted).
-- ImageKit upload-time `checks` (size/mime) are used as a first filter where available; the authoritative check is the backend's file-details verification. The exact upload-check syntax is confirmed when M8 implements media.
-- Abandoned `PENDING_UPLOAD` rows and orphaned ImageKit files (uploaded but never completed) are cleaned by a daily job after 24 h.
+- ImageKit upload-time `checks` (size/mime) are used as a first filter where available; the authoritative check is the backend's file-details verification. **Implemented in M10:** ImageKit **upload API v2** — the backend issues a single-use JWT (HS256 with the private key, `kid` = public key, ≤ 10 min) that signs `fileName`, `folder`, `isPrivateFile=true`, `useUniqueFileName=false`, `overwriteFile=false` and `checks: '"file.size" <= "5mb"'`; ImageKit rejects requests whose fields differ from the token and tokens used twice (verified live 2026-10-08). The backend calls the REST API directly (no SDK dependency): `GET /v1/files/{id}/details`, `GET /v1/files?path=…&searchQuery=name="…"` (search is eventually consistent — a just-uploaded file may not appear for a few seconds), `DELETE /v1/files/{id}`; signed URLs = HMAC-SHA1(private key, path-and-query without endpoint + expiry) appended as `ik-t`/`ik-s`; delivered variants add `md-false` (no metadata).
+- **M10 implementation notes:** upload intent `POST /media/uploads` (event cover), completion `POST /media/uploads/{mediaId}/complete`, attach via `PUT /events/{id}/cover`. Rejected files are deleted only when they sit at the reserved path (a wrong path may be someone else's file). Unsigned URLs of private files return 403 (verified live).
+- Abandoned `PENDING_UPLOAD` rows are marked `REJECTED` (reason `ABANDONED`) by an hourly job after 24 h, and any file at their reserved path is deleted. Rejected uploads delete their file when it is at the reserved path. At most 3 unfinished uploads per event.
 - No worker-side image processing: thumbnails and sizes are produced by ImageKit URL transformations. SVG uploads are not accepted from users/vendors (admin category icons use PNG/WebP).
 - Malware scanning: not in launch scope; revisit in M65 (Security Audit) — noted in threat model.
 
 ## 4. Delivery
 
 - Variants via ImageKit transformations in the signed URL: `thumb` (`w-320`, WebP/auto format, quality 70) for lists, `medium` (`w-1080`) for details, video poster frame (`ik-thumbnail.jpg`) for video cards; original only on explicit request.
-- Image metadata (EXIF/GPS) is not exposed: delivered variants must strip metadata (ImageKit default behaviour to be verified in M8; the original file is never served to other users).
+- Image metadata (EXIF/GPS) is not exposed: delivered variants use `md-false` (M10) and the original file is never served.
 - Signed URLs are returned in response DTOs (`url`, `expiresAt`). Clients cache images by `mediaId+variant` key (not by URL) so URL rotation does not defeat caching.
 - Loss of visibility: when an entity stops being public (listing rejected, suspended, unpublished; vendor suspended; category withdrawn) the backend immediately stops issuing URLs for it; already-issued public URLs expire within their TTL (≤ 24 h), and a purge-cache request is sent to ImageKit for the affected files. If faster removal is required, the file is deleted.
-- Deletion: soft-delete in DB immediately; ImageKit file deleted by job; cache purged.
+- Deletion: soft-delete in DB immediately; per R11 (interim development rule) the ImageKit file is **kept** and simply no longer served (no URLs are issued for deleted media). File deletion/purge follows the final R11 policy (M21/M72).
 - Delivery is from the ImageKit endpoint (or a custom media sub-domain configured in ImageKit), which is separate from the API and Admin CMS domains (cookie-less); content types are those validated at completion.
 
 ## 5. Deep linking

@@ -62,6 +62,10 @@ export class EventEntity {
   @Column({ type: 'text', default: 'INR' })
   currency: string;
 
+  /** Cover photo (M10) — a READY `media` row of kind EVENT_COVER. */
+  @Column({ name: 'cover_media_id', type: 'uuid', nullable: true })
+  coverMediaId: string | null;
+
   @Column({ type: 'text', default: 'PLANNING' })
   status: EventStatus;
 

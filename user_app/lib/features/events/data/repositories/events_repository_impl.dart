@@ -95,6 +95,14 @@ class EventsRepositoryImpl implements EventsRepository {
       _data(await _remote.action(id, 'complete'));
 
   @override
+  Future<Result<PlannerEvent>> setCover(String id, String mediaId) async =>
+      _data(await _remote.setCover(id, mediaId));
+
+  @override
+  Future<Result<PlannerEvent>> removeCover(String id) async =>
+      _data(await _remote.removeCover(id));
+
+  @override
   Future<Result<void>> delete(String id) async {
     final result = await _remote.delete(id);
     return switch (result) {

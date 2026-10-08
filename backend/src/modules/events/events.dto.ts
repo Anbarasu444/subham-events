@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   Matches,
   Max,
@@ -26,6 +27,7 @@ import {
   type EventStatus,
 } from './event.entity';
 import { isCalendarDate, isValidTimeZone } from './event-rules';
+import type { CoverDto } from '../media/media.dto';
 import {
   EMPTY_CHECKLIST_SUMMARY,
   type ChecklistSummaryDto,
@@ -141,6 +143,11 @@ export class UpdateEventDto extends EventFieldsDto {
   version: number;
 }
 
+export class SetCoverDto {
+  @IsUUID()
+  mediaId: string;
+}
+
 export const EVENT_SCOPES = ['all', 'upcoming', 'past'] as const;
 export type EventScope = (typeof EVENT_SCOPES)[number];
 
@@ -182,6 +189,8 @@ export interface EventDto {
   status: EventStatus;
   /** Checklist progress (M9). */
   checklist: ChecklistSummaryDto;
+  /** Signed, resized cover photo URLs (M10), or null. */
+  cover: CoverDto | null;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -190,6 +199,7 @@ export interface EventDto {
 export function toEventDto(
   event: EventEntity,
   checklist: ChecklistSummaryDto = EMPTY_CHECKLIST_SUMMARY,
+  cover: CoverDto | null = null,
 ): EventDto {
   return {
     id: event.id,
@@ -208,6 +218,7 @@ export function toEventDto(
         : Money.fromDb(event.totalBudgetAmount, event.currency).toJSON(),
     status: event.status,
     checklist,
+    cover,
     version: event.version,
     createdAt: event.createdAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),

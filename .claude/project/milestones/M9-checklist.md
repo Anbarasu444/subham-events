@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **CONFIRMED** — ratified by `START MILESTONE M9` on 2026-10-07 |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M9` on 2026-10-07; milestone COMPLETED 2026-10-07 |
 | Phase | User App |
 | Depends on | M8 COMPLETED and approved (`APPROVE MILESTONE M8`) |
 | Primary owner agent | user-app-manager + backend-manager + database-manager (security-manager, performance-manager, ui-manager, notification-manager, code-reviewer reviewers) |
@@ -107,3 +107,4 @@ For each of their events, a signed-in user keeps a checklist of tasks they write
 | 2026-10-07 | CONFIRMED by `START MILESTONE M9` | User |
 | 2026-10-07 | Implementation decisions after reviews (recorded, low risk): blank notes are stored as no notes; a reorder never overlaps other changes; checklist changes refresh event screens once per burst (400 ms); the event title moved from the checklist app bar into the page (200 % text) | Claude |
 | 2026-10-07 | Set IN_REVIEW (signed-in simulator check not run — simulator signed out; covered by e2e + widget tests) | Claude |
+| 2026-10-07 | `APPROVE MILESTONE M9` → COMPLETED | User |

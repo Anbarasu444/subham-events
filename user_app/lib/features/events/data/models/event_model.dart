@@ -24,6 +24,17 @@ abstract final class EventModel {
       status: EventStatus.fromApi(map['status'] as String),
       version: map['version'] as int,
       checklist: checklistSummaryFromJson(map['checklist']),
+      cover: coverFromJson(map['cover']),
+    );
+  }
+
+  static EventCover? coverFromJson(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    return EventCover(
+      mediaId: json['mediaId'] as String,
+      url: json['url'] as String,
+      thumbnailUrl: json['thumbnailUrl'] as String,
+      expiresAt: DateTime.parse(json['expiresAt'] as String),
     );
   }
 

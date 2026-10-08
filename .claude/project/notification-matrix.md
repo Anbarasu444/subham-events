@@ -119,3 +119,4 @@ Rows are confirmed (and amended through the spec change log) by the milestone th
 |---|---|---|
 | M8 | Event created / edited / cancelled / reopened / completed / deleted by its owner; event auto-completed the day after its date | No notification: the owner made the change (or a date-driven housekeeping change with no action needed), and no other party is attached to an event before vendors exist (M14+). Vendor-facing event changes are evaluated again in M14/M15. |
 | M9 | Checklist item added / edited / ticked / unticked / reordered / deleted by the event owner | No notification: the owner made the change. Due today / overdue reminders (N16) are deferred to M17 (scheduled) and M18 (push) — user decision 2026-10-07; M9 only highlights overdue tasks in the app. |
+| M10 | Event cover photo added / changed / removed; event screen | No notification: the owner's own change; no other party involved. |

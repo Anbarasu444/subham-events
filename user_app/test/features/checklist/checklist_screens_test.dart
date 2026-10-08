@@ -19,6 +19,7 @@ import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 import '../../helpers/fake_checklist_repository.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/test_session.dart';
+import '../../helpers/viewport.dart';
 
 final DateTime _today = dateOnly(DateTime.now());
 DateTime _inDays(int days) => _today.add(Duration(days: days));
@@ -34,6 +35,7 @@ void main() {
     ShellTab tab = ShellTab.events,
   }) async {
     Get.testMode = true;
+    usePhoneSize(tester);
     Get.put<AppConfig>(
       const AppConfig(
         flavor: Flavor.staging,
@@ -61,22 +63,17 @@ void main() {
     return checklists;
   }
 
-  /// Opens the event page, then its checklist card.
+  /// Opens the event screen, then its Checklist tab (M10).
   Future<void> openChecklist(WidgetTester tester, String eventTitle) async {
     await tester.tap(find.text(eventTitle));
     await tester.pumpAndSettle();
-    final card = find.text('Checklist');
-    await tester.scrollUntilVisible(
-      card,
-      150,
-      scrollable: find
-          .descendant(
-            of: find.byType(ListView).last,
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.tap(card);
+    final tab = find.widgetWithText(Tab, 'Checklist');
+    if (tab.evaluate().isEmpty) {
+      // Small screen / large text: scroll the header away; the tabs pin.
+      await tester.drag(find.byType(NestedScrollView), const Offset(0, -400));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(tab);
     await tester.pumpAndSettle();
   }
 

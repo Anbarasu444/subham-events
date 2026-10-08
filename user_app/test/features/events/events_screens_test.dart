@@ -4,7 +4,10 @@ import 'package:get/get.dart';
 import 'package:user_app/app/config/app_config.dart';
 import 'package:user_app/core/auth/session.dart';
 import 'package:user_app/core/auth/session_service.dart';
+import 'package:user_app/core/platform/external_actions.dart';
+import 'package:user_app/core/platform/photo_picker.dart';
 import 'package:user_app/core/utils/date_format.dart';
+import 'package:user_app/features/media/domain/media_repository.dart';
 import 'package:user_app/features/checklist/domain/repositories/checklist_repository.dart';
 import 'package:user_app/features/events/domain/entities/planner_event.dart';
 import 'package:user_app/features/events/domain/repositories/events_repository.dart';
@@ -17,7 +20,9 @@ import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 
 import '../../helpers/fake_checklist_repository.dart';
 import '../../helpers/fake_events_repository.dart';
+import '../../helpers/fake_media.dart';
 import '../../helpers/test_session.dart';
+import '../../helpers/viewport.dart';
 
 final DateTime _today = dateOnly(DateTime.now());
 DateTime _inDays(int days) => _today.add(Duration(days: days));
@@ -31,6 +36,7 @@ void main() {
     ShellTab tab = ShellTab.events,
   }) async {
     Get.testMode = true;
+    usePhoneSize(tester);
     Get.put<AppConfig>(
       const AppConfig(
         flavor: Flavor.staging,
@@ -45,6 +51,9 @@ void main() {
     final repo = FakeEventsRepository(events: events, today: _today);
     Get.put<EventsRepository>(repo);
     Get.put(MyEventsController(repo, session));
+    Get.put<ExternalActions>(FakeExternalActions());
+    Get.put<MediaRepository>(FakeMediaRepository());
+    Get.put<PhotoPicker>(FakePhotoPicker(photo));
     final checklists = FakeChecklistRepository(onChanged: repo.notifyChanged);
     Get.put<ChecklistRepository>(checklists);
     Get.put(HomeController(session, buildDashboardSources(repo, checklists)));
@@ -160,7 +169,9 @@ void main() {
     await tester.pumpAndSettle();
     final error = find.text('Enter an amount like 50000 or 50000.50.');
     expect(error, findsOneWidget);
-    expect(tester.getRect(error).bottom, lessThan(600));
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(tester.getRect(error).bottom, lessThan(screenHeight));
   });
 
   testWidgets('asks before discarding unsaved changes', (tester) async {
@@ -189,29 +200,152 @@ void main() {
     await tester.tap(find.text('Sangeet'));
     await tester.pumpAndSettle();
 
-    await tapVisible(
-      tester,
-      find.widgetWithText(OutlinedButton, 'Cancel event'),
-    );
+    Future<void> menu(String item) async {
+      await tester.tap(find.byTooltip('More actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(item).last);
+      await tester.pumpAndSettle();
+    }
+
+    await menu('Cancel event');
     expect(find.text('Cancel this event?'), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, 'Cancel event'));
     await tester.pumpAndSettle();
     expect(repo.events.single.status, EventStatus.cancelled);
-    // The status chip sits at the top of the page.
-    await tester.drag(find.byType(ListView).last, const Offset(0, 2000));
-    await tester.pumpAndSettle();
-    expect(find.text('Cancelled'), findsOneWidget);
-    expect(find.widgetWithText(OutlinedButton, 'Reopen event'), findsOneWidget);
+    expect(find.text('Cancelled'), findsOneWidget); // header status chip
 
-    await tapVisible(
-      tester,
-      find.widgetWithText(OutlinedButton, 'Delete event'),
-    );
+    await tester.tap(find.byTooltip('More actions'));
+    await tester.pumpAndSettle();
+    expect(find.text('Reopen event'), findsOneWidget);
+    expect(find.text('Cancel event'), findsNothing);
+    await tester.tap(find.text('Delete event'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextButton, 'Delete'));
     await tester.pumpAndSettle();
     expect(repo.events, isEmpty);
     expect(find.text('Event deleted'), findsOneWidget);
     expect(find.text('No upcoming events'), findsOneWidget);
+  });
+
+  testWidgets('event screen: header, tabs and honest placeholders', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      events: [testEvent('a', date: _inDays(12), title: 'Sangeet')],
+    );
+    await tester.tap(find.text('Sangeet'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sangeet'), findsOneWidget); // header title
+    expect(find.text('In 12 days'), findsOneWidget);
+    expect(find.text('Add cover photo'), findsOneWidget);
+    for (final tab in ['Overview', 'Checklist', 'Budget', 'Vendors']) {
+      expect(find.widgetWithText(Tab, tab), findsOneWidget);
+    }
+    await tester.tap(find.widgetWithText(Tab, 'Budget'));
+    await tester.pumpAndSettle();
+    expect(find.text('Budget planning is coming'), findsOneWidget);
+    await tester.tap(find.widgetWithText(Tab, 'Vendors'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explore vendors'));
+    await tester.pumpAndSettle();
+    expect(Get.find<ShellController>().current.value, ShellTab.explore);
+  });
+
+  testWidgets('Open in Maps and Share hand off to other apps', (tester) async {
+    final repo = await pump(tester);
+    repo.events.add(
+      FakeEventsRepository.fromInput(
+        'v',
+        EventInput(
+          eventType: 'Wedding',
+          title: 'Reception',
+          eventDate: _inDays(20),
+          city: 'Chennai',
+          venueName: 'Lotus Hall',
+        ),
+      ),
+    );
+    await Get.find<MyEventsController>().load(EventScope.upcoming);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reception'));
+    await tester.pumpAndSettle();
+    final external = Get.find<ExternalActions>() as FakeExternalActions;
+    await tester.tap(find.text('Open in Maps'));
+    await tester.pumpAndSettle();
+    expect(external.maps.single, 'Lotus Hall, Chennai');
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Share'));
+    await tester.pumpAndSettle();
+    expect(external.shared.single, startsWith('Reception\nWedding · '));
+  });
+
+  testWidgets('adds a cover photo from the cover button', (tester) async {
+    final repo = await pump(
+      tester,
+      events: [testEvent('a', date: _inDays(5), title: 'Sangeet')],
+    );
+    await tester.tap(find.text('Sangeet'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add cover photo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from photos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cover photo updated'), findsOneWidget);
+    expect(repo.events.single.cover?.mediaId, 'media-1');
+    expect(find.text('Change cover'), findsOneWidget);
+  });
+
+  testWidgets('a past planning event offers Mark as completed', (tester) async {
+    final repo = await pump(
+      tester,
+      events: [testEvent('p', date: _inDays(-2), title: 'Haldi')],
+    );
+    await tester.tap(find.text('Past'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Haldi'));
+    await tester.pumpAndSettle();
+    expect(find.text('This event date has passed.'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Mark as completed'));
+    await tester.pumpAndSettle();
+    expect(repo.events.single.status, EventStatus.completed);
+    expect(find.text('This event date has passed.'), findsNothing);
+  });
+
+  testWidgets('removes the cover only after confirming', (tester) async {
+    final repo = await pump(
+      tester,
+      events: [
+        FakeEventsRepository.withCover(
+          testEvent('a', date: _inDays(5), title: 'Sangeet'),
+          EventCover(
+            mediaId: 'm0',
+            url: 'https://ik.test/m0',
+            thumbnailUrl: 'https://ik.test/m0?thumb',
+            expiresAt: DateTime.utc(2030),
+          ),
+        ),
+      ],
+    );
+    await tester.tap(find.text('Sangeet'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Change cover'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove cover photo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove cover photo?'), findsOneWidget);
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
+    expect(repo.events.single.cover, isNotNull);
+
+    await tester.tap(find.text('Change cover'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove cover photo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Remove'));
+    await tester.pumpAndSettle();
+    expect(repo.events.single.cover, isNull);
+    expect(find.text('Cover photo removed'), findsOneWidget);
+    expect(find.text('Add cover photo'), findsOneWidget);
   });
 
   testWidgets('Home shows the next event and opens it in My Events', (

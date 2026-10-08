@@ -12,6 +12,8 @@ import {
 } from '../../common/pagination/cursor';
 import { AuditService } from '../audit/audit.service';
 import { ChecklistSummaryService } from '../checklist/checklist-summary.service';
+import { CoverUrlService } from '../media/cover-url.service';
+import { MediaEntity } from '../media/media.entity';
 import { EventEntity, type EventStatus } from './event.entity';
 import {
   DEFAULT_EVENT_TIME_ZONE,
@@ -60,7 +62,119 @@ export class EventsService {
     private readonly events: Repository<EventEntity>,
     private readonly audit: AuditService,
     private readonly checklists: ChecklistSummaryService,
+    private readonly covers: CoverUrlService,
   ) {}
+
+  /** Event responses with checklist progress and signed cover URLs. */
+  private async dtos(
+    events: EventEntity[],
+    now = new Date(),
+    manager?: EntityManager,
+  ): Promise<EventDto[]> {
+    const [summaries, covers] = await Promise.all([
+      this.checklists.forEvents(
+        events.map((e) => e.id),
+        now,
+        manager,
+      ),
+      this.covers.forMedia(
+        events.map((e) => e.coverMediaId),
+        now,
+        manager,
+      ),
+    ]);
+    return events.map((e) =>
+      toEventDto(
+        e,
+        summaries.get(e.id),
+        e.coverMediaId ? (covers.get(e.coverMediaId) ?? null) : null,
+      ),
+    );
+  }
+
+  private async dto(
+    event: EventEntity,
+    now = new Date(),
+    manager?: EntityManager,
+  ): Promise<EventDto> {
+    return (await this.dtos([event], now, manager))[0];
+  }
+
+  /**
+   * Sets the event's cover to an uploaded, verified photo (M10). Like other
+   * event details (M8), the cover can change in any status. The previous
+   * cover is soft-deleted (R11: the file is kept, no longer served).
+   */
+  async setCover(
+    manager: EntityManager,
+    userId: string,
+    id: string,
+    mediaId: string,
+    context: RequestContext,
+    now = new Date(),
+  ): Promise<EventDto> {
+    const event = await this.lockOwned(manager, userId, id);
+    const media = await manager.getRepository(MediaEntity).findOneBy({
+      id: mediaId,
+      ownerType: 'EVENT',
+      ownerId: id,
+      kind: 'EVENT_COVER',
+      uploadedById: userId,
+      deletedAt: IsNull(),
+    });
+    if (!media || media.status !== 'READY') {
+      throw new AppException(
+        ErrorCode.MEDIA_INVALID,
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'This photo is not ready to be used as the cover.',
+        [{ field: 'mediaId', code: 'MEDIA_NOT_READY', message: 'Not ready' }],
+      );
+    }
+    if (event.coverMediaId === mediaId) return this.dto(event, now, manager);
+    const previous = event.coverMediaId;
+    event.coverMediaId = mediaId;
+    const saved = await manager.getRepository(EventEntity).save(event);
+    if (previous) {
+      await manager.update(MediaEntity, previous, { deletedAt: now });
+    }
+    await this.audit.record(manager, {
+      actorType: 'USER',
+      actorId: userId,
+      action: 'EVENT_COVER_SET',
+      entityType: 'EVENT',
+      entityId: id,
+      requestId: context.requestId,
+      ip: context.ip,
+      summary: { mediaId, replaced: previous },
+    });
+    return this.dto(saved, now, manager);
+  }
+
+  async removeCover(
+    manager: EntityManager,
+    userId: string,
+    id: string,
+    context: RequestContext,
+    now = new Date(),
+  ): Promise<EventDto> {
+    const event = await this.lockOwned(manager, userId, id);
+    const previous = event.coverMediaId;
+    if (!previous) return this.dto(event, now, manager);
+    event.coverMediaId = null;
+    const saved = await manager.getRepository(EventEntity).save(event);
+    await manager.update(MediaEntity, previous, { deletedAt: now });
+    await this.audit.record(manager, {
+      actorType: 'USER',
+      actorId: userId,
+      action: 'EVENT_COVER_REMOVED',
+      entityType: 'EVENT',
+      entityId: id,
+      requestId: context.requestId,
+      ip: context.ip,
+      summary: { mediaId: previous },
+    });
+    return this.dto(saved, now, manager);
+  }
 
   async create(
     manager: EntityManager,
@@ -157,14 +271,7 @@ export class EventsService {
       d: last.eventDate,
       i: last.id,
     }));
-    const summaries = await this.checklists.forEvents(
-      items.map((e) => e.id),
-      now,
-    );
-    return {
-      items: items.map((e) => toEventDto(e, summaries.get(e.id))),
-      page,
-    };
+    return { items: await this.dtos(items, now), page };
   }
 
   async get(userId: string, id: string): Promise<EventDto> {
@@ -174,7 +281,7 @@ export class EventsService {
       deletedAt: IsNull(),
     });
     if (!event) throw notFound();
-    return toEventDto(event, await this.checklists.forEvent(event.id));
+    return this.dto(event);
   }
 
   async update(
@@ -240,10 +347,7 @@ export class EventsService {
     }
 
     if (changed.length === 0) {
-      return toEventDto(
-        event,
-        await this.checklists.forEvent(event.id, new Date(), manager),
-      );
+      return this.dto(event, new Date(), manager);
     }
     const saved = await manager.getRepository(EventEntity).save(event);
     await this.audit.record(manager, {
@@ -257,10 +361,7 @@ export class EventsService {
       summary: { fields: changed },
     });
     // A date or time-zone change can change what is overdue.
-    return toEventDto(
-      saved,
-      await this.checklists.forEvent(saved.id, new Date(), manager),
-    );
+    return this.dto(saved, new Date(), manager);
   }
 
   async transition(
@@ -294,10 +395,7 @@ export class EventsService {
       ip: context.ip,
       summary: { from, to: target },
     });
-    return toEventDto(
-      saved,
-      await this.checklists.forEvent(saved.id, now, manager),
-    );
+    return this.dto(saved, now, manager);
   }
 
   /** Soft delete (R11): the row is kept and hidden. */

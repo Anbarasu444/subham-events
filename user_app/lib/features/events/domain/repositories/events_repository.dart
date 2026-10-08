@@ -43,4 +43,8 @@ abstract class EventsRepository {
   Future<Result<PlannerEvent>> reopen(String id);
   Future<Result<PlannerEvent>> complete(String id);
   Future<Result<void>> delete(String id);
+
+  /// Uses an uploaded, verified photo as the event's cover (M10).
+  Future<Result<PlannerEvent>> setCover(String id, String mediaId);
+  Future<Result<PlannerEvent>> removeCover(String id);
 }

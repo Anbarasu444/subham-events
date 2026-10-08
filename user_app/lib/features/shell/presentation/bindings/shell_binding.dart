@@ -3,6 +3,12 @@ import 'package:get/get.dart';
 import '../../../../core/auth/session_service.dart';
 import '../../../../core/crash/crash_reporter.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/platform/external_actions.dart';
+import '../../../../core/platform/photo_picker.dart';
+import '../../../media/data/imagekit_uploader.dart';
+import '../../../media/data/media_remote_data_source.dart';
+import '../../../media/data/media_repository_impl.dart';
+import '../../../media/domain/media_repository.dart';
 import '../../../checklist/data/datasources/checklist_remote_data_source.dart';
 import '../../../checklist/data/repositories/checklist_repository_impl.dart';
 import '../../../checklist/domain/repositories/checklist_repository.dart';
@@ -22,6 +28,20 @@ class ShellBinding extends Bindings {
     // Events (M8): shared by My Events and the Home dashboard.
     Get.lazyPut<EventsRepository>(
       () => EventsRepositoryImpl(EventsRemoteDataSource(Get.find<ApiClient>())),
+      fenix: true,
+    );
+    // Event cover photos (M10): upload via ImageKit, device picker, and
+    // hand-offs to Maps / the share sheet.
+    Get.lazyPut<MediaRepository>(
+      () => MediaRepositoryImpl(
+        MediaRemoteDataSource(Get.find<ApiClient>()),
+        ImageKitUploader(),
+      ),
+      fenix: true,
+    );
+    Get.lazyPut<PhotoPicker>(ImagePickerPhotoPicker.new, fenix: true);
+    Get.lazyPut<ExternalActions>(
+      () => const PlatformExternalActions(),
       fenix: true,
     );
     // Checklist (M9): changes refresh event progress everywhere.

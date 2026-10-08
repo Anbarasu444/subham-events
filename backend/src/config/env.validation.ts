@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   Max,
   Min,
   validateSync,
@@ -56,6 +57,36 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsString()
   FIREBASE_PROJECT_ID?: string;
+
+  /**
+   * ImageKit (ADR-0007). The three keys are needed for media uploads; without
+   * them the media endpoints answer 503 and the rest of the API works.
+   * MEDIA_ROOT_FOLDER defaults to `/<APP_ENV>` (e.g. `/local`).
+   */
+  @IsOptional()
+  @Matches(/^public_[A-Za-z0-9+/=_-]+$/, {
+    message: 'IMAGEKIT_PUBLIC_KEY must start with public_',
+  })
+  IMAGEKIT_PUBLIC_KEY?: string;
+
+  @IsOptional()
+  @Matches(/^private_[A-Za-z0-9+/=_-]+$/, {
+    message: 'IMAGEKIT_PRIVATE_KEY must start with private_',
+  })
+  IMAGEKIT_PRIVATE_KEY?: string;
+
+  @IsOptional()
+  @Matches(/^https:\/\/[A-Za-z0-9.-]+(\/[A-Za-z0-9_-]+)*$/, {
+    message:
+      'IMAGEKIT_URL_ENDPOINT must be an https URL without a trailing slash, e.g. https://ik.imagekit.io/your_id',
+  })
+  IMAGEKIT_URL_ENDPOINT?: string;
+
+  @IsOptional()
+  @Matches(/^\/[A-Za-z0-9_-]+$/, {
+    message: 'MEDIA_ROOT_FOLDER must look like /local',
+  })
+  MEDIA_ROOT_FOLDER?: string;
 }
 
 /**
@@ -69,6 +100,17 @@ export function validateEnv(
     enableImplicitConversion: true,
   });
   const errors = validateSync(validated, { skipMissingProperties: false });
+  const imageKit = [
+    validated.IMAGEKIT_PUBLIC_KEY,
+    validated.IMAGEKIT_PRIVATE_KEY,
+    validated.IMAGEKIT_URL_ENDPOINT,
+  ];
+  if (imageKit.some(Boolean) && !imageKit.every(Boolean)) {
+    // Names only — never echo values (they include a secret).
+    throw new Error(
+      'Invalid environment configuration: set all of IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY and IMAGEKIT_URL_ENDPOINT, or none of them',
+    );
+  }
   if (errors.length > 0) {
     const details = errors
       .map(

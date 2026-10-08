@@ -92,105 +92,127 @@ class _ChecklistBody extends StatelessWidget {
   final String? eventTitle;
 
   @override
-  Widget build(BuildContext context) {
-    final pending = list.pending;
-    final done = list.done;
-    final editable = list.isEditable;
-    return CustomScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.page,
-            AppSpacing.sm,
-            AppSpacing.page,
-            AppSpacing.xs,
-          ),
-          sliver: SliverList.list(
-            children: [
-              if (eventTitle != null) ...[
-                Text(
-                  eventTitle!,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-              ],
-              ChecklistProgress(summary: list.summary),
-              if (!editable) ...[
-                const SizedBox(height: AppSpacing.sm),
-                const _ReadOnlyBanner(),
-              ],
-            ],
-          ),
-        ),
-        _SectionHeader(
-          'To do',
-          count: pending.length,
-          hint: editable && pending.length > 1
-              ? 'Drag the handle or use the menu to reorder'
-              : null,
-        ),
-        if (pending.isEmpty)
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.page,
-                vertical: AppSpacing.sm,
-              ),
-              child: Text('All done — nice work!'),
+  Widget build(BuildContext context) => CustomScrollView(
+    physics: const AlwaysScrollableScrollPhysics(),
+    slivers: checklistContentSlivers(
+      context,
+      list,
+      controller,
+      eventTitle: eventTitle,
+    ),
+  );
+}
+
+/// The checklist's slivers (progress, To do, Done), shared by the checklist
+/// page and the event screen's Checklist tab (M10). [onAdd] adds an inline
+/// "Add task" button (the tab has no floating button).
+List<Widget> checklistContentSlivers(
+  BuildContext context,
+  Checklist list,
+  ChecklistController controller, {
+  String? eventTitle,
+  VoidCallback? onAdd,
+}) {
+  final pending = list.pending;
+  final done = list.done;
+  final editable = list.isEditable;
+  return [
+    SliverPadding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.page,
+        AppSpacing.sm,
+        AppSpacing.page,
+        AppSpacing.xs,
+      ),
+      sliver: SliverList.list(
+        children: [
+          if (eventTitle != null) ...[
+            Text(eventTitle, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppSpacing.xs),
+          ],
+          ChecklistProgress(summary: list.summary),
+          if (editable && onAdd != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            AppButton(
+              label: 'Add task',
+              icon: Icons.add,
+              variant: AppButtonVariant.secondary,
+              onPressed: onAdd,
             ),
-          )
-        else if (editable)
-          SliverReorderableList(
-            itemCount: pending.length,
-            // The dragged row gets its own surface so rows below don't show
-            // through it.
-            proxyDecorator: (child, _, _) => Material(
-              elevation: 4,
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              borderRadius: const BorderRadius.all(AppRadii.sm),
-              child: child,
-            ),
-            onReorderItem: (from, to) =>
-                _report(context, controller.movePending(from, to)),
-            itemBuilder: (context, index) => _ItemTile(
-              key: ValueKey(pending[index].id),
-              item: pending[index],
-              index: index,
-              pendingCount: pending.length,
-              controller: controller,
-              editable: true,
-            ),
-          )
-        else
-          SliverList.builder(
-            itemCount: pending.length,
-            itemBuilder: (context, index) => _ItemTile(
-              item: pending[index],
-              index: index,
-              pendingCount: pending.length,
-              controller: controller,
-              editable: false,
-            ),
-          ),
-        if (done.isNotEmpty) ...[
-          _SectionHeader('Done', count: done.length),
-          SliverList.builder(
-            itemCount: done.length,
-            itemBuilder: (context, index) => _ItemTile(
-              item: done[index],
-              index: index,
-              pendingCount: pending.length,
-              controller: controller,
-              editable: editable,
-            ),
-          ),
+          ],
+          if (!editable) ...[
+            const SizedBox(height: AppSpacing.sm),
+            const _ReadOnlyBanner(),
+          ],
         ],
-        // Room for the floating button.
-        const SliverToBoxAdapter(child: SizedBox(height: 96)),
-      ],
-    );
-  }
+      ),
+    ),
+    _SectionHeader(
+      'To do',
+      count: pending.length,
+      hint: editable && pending.length > 1
+          ? 'Drag the handle or use the menu to reorder'
+          : null,
+    ),
+    if (pending.isEmpty)
+      const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.page,
+            vertical: AppSpacing.sm,
+          ),
+          child: Text('All done — nice work!'),
+        ),
+      )
+    else if (editable)
+      SliverReorderableList(
+        itemCount: pending.length,
+        // The dragged row gets its own surface so rows below don't show
+        // through it.
+        proxyDecorator: (child, _, _) => Material(
+          elevation: 4,
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: const BorderRadius.all(AppRadii.sm),
+          child: child,
+        ),
+        onReorderItem: (from, to) =>
+            _report(context, controller.movePending(from, to)),
+        itemBuilder: (context, index) => _ItemTile(
+          key: ValueKey(pending[index].id),
+          item: pending[index],
+          index: index,
+          pendingCount: pending.length,
+          controller: controller,
+          editable: true,
+        ),
+      )
+    else
+      SliverList.builder(
+        itemCount: pending.length,
+        itemBuilder: (context, index) => _ItemTile(
+          item: pending[index],
+          index: index,
+          pendingCount: pending.length,
+          controller: controller,
+          editable: false,
+        ),
+      ),
+    if (done.isNotEmpty) ...[
+      _SectionHeader('Done', count: done.length),
+      SliverList.builder(
+        itemCount: done.length,
+        itemBuilder: (context, index) => _ItemTile(
+          item: done[index],
+          index: index,
+          pendingCount: pending.length,
+          controller: controller,
+          editable: editable,
+        ),
+      ),
+    ],
+    // Room for the floating button.
+    const SliverToBoxAdapter(child: SizedBox(height: 96)),
+  ];
 }
 
 class _ReadOnlyBanner extends StatelessWidget {

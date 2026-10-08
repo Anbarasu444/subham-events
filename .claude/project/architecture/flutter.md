@@ -142,6 +142,13 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 - Add/edit is a bottom sheet (`ChecklistItemFormController`, one idempotency key per add intent). Completed/cancelled events show a read-only banner and disabled checkboxes.
 - Entry points: event page checklist card, Home "Checklist progress" (`ChecklistProgressSource`: next event's progress + up to three urgent tasks), Menu → Checklist (`ChecklistPickerView`: picks a PLANNING event, opens the only one directly).
 
+## 6d. Event screen and cover photos (M10)
+
+- `EventDetailView` is the event's home: pinned app bar (Edit + "More actions" menu with cover, complete, reopen, cancel, delete), a header that scrolls away (cover 16:7 — photo or an event-type gradient band — title, type, date/time, countdown, status) and a pinned `TabBar` (Overview · Checklist · Budget · Vendors) via `NestedScrollView` + `SliverOverlapAbsorber`/`Injector`. Each tab keeps its own scroll position (`PageStorageKey`) and pull-to-refresh. The Checklist tab reuses `checklistContentSlivers` from M9.
+- Cover photos: `PhotoPicker` (image_picker, downscaled to ≤ 2400 px, quality 85) → `MediaRepository` (backend upload intent → `ImageKitUploader`, its own Dio with long timeouts → backend completion) → `EventsRepository.setCover`. Client checks (type, 5 MB) mirror the server; the server verifies. Images load with `CachedNetworkImage` keyed by `mediaId:variant` (`AppCacheManager`), so rotating signed URLs still hit the cache.
+- `ExternalActions` wraps `url_launcher` (Google Maps search URL) and `share_plus` (plain-text event details) so screens are testable.
+- Platform: iOS `NSPhotoLibraryUsageDescription` / `NSCameraUsageDescription`; Android `<queries>` for https VIEW.
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

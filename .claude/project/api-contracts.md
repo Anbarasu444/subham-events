@@ -256,7 +256,7 @@ Shared rules for `/events/{eventId}/checklist…`:
 - Writes need the event to be PLANNING (M9 answer 2: completed/cancelled → read only) → otherwise `409 INVALID_STATE_TRANSITION`. Writes are rate limited (300/min per IP, bucket `checklist-write`) and audited (`CHECKLIST_ITEM_CREATED|UPDATED|COMPLETED|REOPENED|DELETED`, `CHECKLIST_REORDERED`; summaries hold ids/field names only, never titles or notes).
 - `ChecklistItemDto`: `{ id, title (1–120), notes (≤ 1000) | null, dueDate "YYYY-MM-DD" | null, status: PENDING | DONE, isOverdue, completedAt | null, sortOrder, version, createdAt, updatedAt }`. `isOverdue` = PENDING with a due date before today in the event's time zone (derived, §4.12). Past due dates are accepted.
 - `ChecklistDto`: `{ eventId, isEditable, summary: { total, done, overdue }, items: ChecklistItemDto[] }` (items in the user's order).
-- `EventDto` (all event routes) gains `checklist: { total, done, overdue }` (one aggregate query per list page).
+- `EventDto` (all event routes) gains `checklist: { total, done, overdue }` (one aggregate query per list page) and, from M10, `cover` (see Media uploads).
 - Notifications: none for owner changes; due/overdue notifications (N16) are built with Reminders in M17 (push M18).
 
 ### GET /api/v1/events/{eventId}/checklist
@@ -276,6 +276,21 @@ Shared rules for `/events/{eventId}/checklist…`:
 
 ### DELETE /api/v1/events/{eventId}/checklist/{itemId}
 - Milestone: M9 · Response 204. Soft delete (R11).
+
+### Media uploads and event cover (M10)
+Flow (media-and-deep-links.md §3): `POST /media/uploads` → app uploads the file **directly to ImageKit** with the returned parameters → `POST /media/uploads/{mediaId}/complete` → `PUT /events/{id}/cover`. All routes: Bearer (registered user); 10 requests/min per IP (`media-upload`); without ImageKit settings → `503 SERVICE_UNAVAILABLE`.
+
+### POST /api/v1/media/uploads
+- Milestone: M10 · Request `{ kind: "EVENT_COVER", ownerId: <eventId>, contentType: image/jpeg|png|webp|heic|heif, sizeBytes ≤ 5242880 }`. The event must be the caller's and not deleted (else 404).
+- Response 201 `{ data: { mediaId, uploadUrl, token, fields, expire, maxBytes } }` — ImageKit **upload API v2**: `token` is a single-use JWT (HS256, private key, 10-minute expiry) that signs every entry of `fields` (`fileName`, `folder` = `/{root}/event-cover/event/{eventId}`, `isPrivateFile: "true"`, `useUniqueFileName: "false"`, `overwriteFile: "false"`, `checks`). The app posts `file` + `token` + `fields` unchanged; ImageKit rejects changed fields or a reused token. At most 3 unfinished uploads per event (`409 LIMIT_REACHED`).
+
+### POST /api/v1/media/uploads/{mediaId}/complete
+- Milestone: M10 · Request `{ fileId }` (ImageKit file id). Only the uploader; else 404. The server fetches the file from ImageKit and requires the exact reserved path, a private file, an allowed MIME type and ≤ 5 MB; otherwise the file is deleted (if at the reserved path), the media row becomes REJECTED and `422 MEDIA_INVALID` is returned with `details[0].code` = `NOT_FOUND | WRONG_PATH | NOT_PRIVATE | TYPE_NOT_ALLOWED | EMPTY | TOO_LARGE` (audited as `MEDIA_REJECTED`). Repeating a successful completion is harmless; two concurrent completions cannot both succeed.
+- Response 200 `{ data: { mediaId, status: "READY" } }`. Audit `MEDIA_UPLOADED`.
+
+### PUT /api/v1/events/{id}/cover · DELETE /api/v1/events/{id}/cover
+- Milestone: M10 · PUT `{ mediaId }` (a READY EVENT_COVER of this event uploaded by the caller, else `422 MEDIA_INVALID`/`MEDIA_NOT_READY`) → 200 `{ data: EventDto }`. The previous cover is soft-deleted. DELETE removes the cover → 200 `{ data: EventDto }`. Audit `EVENT_COVER_SET` / `EVENT_COVER_REMOVED`.
+- `EventDto.cover`: `{ mediaId, url, thumbnailUrl, expiresAt } | null` — signed ImageKit URLs of resized variants (`w-1200` / `w-480`, `f-auto`, `md-false` = no EXIF/GPS metadata), valid 15 minutes; clients cache images by `mediaId` + variant, not by URL. Originals are never served.
 
 ### Background: event auto-complete (no endpoint)
 - Hourly in-process job (disabled with `BACKGROUND_JOBS_ENABLED=false`): PLANNING events whose date is before today in their zone become COMPLETED. Audit: `EVENT_AUTO_COMPLETED` (actor `SYSTEM`). No notification.

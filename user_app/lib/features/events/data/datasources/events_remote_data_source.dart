@@ -46,6 +46,18 @@ class EventsRemoteDataSource {
   Future<Result<ApiResponse<PlannerEvent>>> action(String id, String action) =>
       _api.post('/events/$id/$action', decode: EventModel.fromJson);
 
+  Future<Result<ApiResponse<PlannerEvent>>> setCover(
+    String id,
+    String mediaId,
+  ) => _api.put(
+    '/events/$id/cover',
+    body: {'mediaId': mediaId},
+    decode: EventModel.fromJson,
+  );
+
+  Future<Result<ApiResponse<PlannerEvent>>> removeCover(String id) =>
+      _api.delete('/events/$id/cover', decode: EventModel.fromJson);
+
   Future<Result<ApiResponse<void>>> delete(String id) =>
       _api.delete('/events/$id', decode: (_) {});
 }

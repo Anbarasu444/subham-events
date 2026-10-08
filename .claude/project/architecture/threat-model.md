@@ -63,5 +63,7 @@
 | Admin permission matrix detail | M40 |
 | Account-merge support process (Google ↔ phone conflicts) | M21 or later, if requested |
 | **Account deletion keeps all data (R11 — interim development rule; final policy to be discussed, owner M21)** — conflicts with DPDP Act 2023 erasure rights and Google Play / App Store account-deletion requirements; legal review or switch to anonymisation needed before release | M72 (blocking for store release) |
+| Media uploads (M10): single-use ImageKit v2 upload tokens sign folder/name/privacy/overwrite, plus server-side verification (exact path, private flag, MIME allow-list, 1 B–5 MB) before use; rejected/abandoned files deleted at the reserved path. Re-check with malware scanning | M65 |
+| Private event photos are served through signed URLs (15 min TTL); anyone holding a URL can view it until it expires | M65 |
 | Penetration test | M65 |
 | Admin two-factor verification (not required at launch by user decision) | M53 / M65 |

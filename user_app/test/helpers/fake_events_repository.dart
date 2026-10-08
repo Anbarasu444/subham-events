@@ -128,6 +128,54 @@ class FakeEventsRepository implements EventsRepository {
     return const Ok(null);
   }
 
+  @override
+  Future<Result<PlannerEvent>> setCover(String id, String mediaId) async {
+    calls.add('setCover:$id:$mediaId');
+    final failure = _failure<PlannerEvent>();
+    if (failure != null) return failure;
+    final current = events.firstWhere((e) => e.id == id);
+    final updated = withCover(
+      current,
+      EventCover(
+        mediaId: mediaId,
+        url: 'https://ik.test/$mediaId',
+        thumbnailUrl: 'https://ik.test/$mediaId?thumb',
+        expiresAt: DateTime.utc(2030),
+      ),
+    );
+    _replace(updated);
+    return Ok(updated);
+  }
+
+  @override
+  Future<Result<PlannerEvent>> removeCover(String id) async {
+    calls.add('removeCover:$id');
+    final failure = _failure<PlannerEvent>();
+    if (failure != null) return failure;
+    final updated = withCover(events.firstWhere((e) => e.id == id), null);
+    _replace(updated);
+    return Ok(updated);
+  }
+
+  static PlannerEvent withCover(PlannerEvent e, EventCover? cover) =>
+      PlannerEvent(
+        id: e.id,
+        eventType: e.eventType,
+        title: e.title,
+        eventDate: e.eventDate,
+        startTime: e.startTime,
+        timeZone: e.timeZone,
+        city: e.city,
+        venueName: e.venueName,
+        venueAddress: e.venueAddress,
+        guestCountEstimate: e.guestCountEstimate,
+        totalBudget: e.totalBudget,
+        status: e.status,
+        version: e.version + 1,
+        checklist: e.checklist,
+        cover: cover,
+      );
+
   Future<Result<PlannerEvent>> _status(
     String id,
     String name,
@@ -190,6 +238,7 @@ class FakeEventsRepository implements EventsRepository {
     status: status ?? e.status,
     version: e.version + 1,
     checklist: e.checklist,
+    cover: e.cover,
   );
 }
 

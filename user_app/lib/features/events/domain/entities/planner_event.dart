@@ -50,6 +50,22 @@ class ChecklistSummary {
   int get hashCode => Object.hash(total, done, overdue);
 }
 
+/// Signed, resized cover photo URLs (M10). URLs expire ([expiresAt]); images
+/// are cached by [mediaId] so a fresh URL still hits the cache.
+class EventCover {
+  const EventCover({
+    required this.mediaId,
+    required this.url,
+    required this.thumbnailUrl,
+    required this.expiresAt,
+  });
+
+  final String mediaId;
+  final String url;
+  final String thumbnailUrl;
+  final DateTime expiresAt;
+}
+
 /// A user's event (M8). [eventDate] is a calendar date (local midnight).
 class PlannerEvent {
   const PlannerEvent({
@@ -67,6 +83,7 @@ class PlannerEvent {
     required this.status,
     required this.version,
     this.checklist = ChecklistSummary.empty,
+    this.cover,
   });
 
   final String id;
@@ -89,6 +106,9 @@ class PlannerEvent {
 
   /// Checklist progress (M9).
   final ChecklistSummary checklist;
+
+  /// Cover photo (M10), or null.
+  final EventCover? cover;
 
   /// The checklist can be changed only while the event is being planned.
   bool get checklistEditable => status == EventStatus.planning;

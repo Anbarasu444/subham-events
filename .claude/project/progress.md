@@ -45,8 +45,12 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-07 | M9 Checklist (NOT_STARTED) | Spec questions answered | Due/overdue in-app only (N16 notifications → M17/M18); checklist read-only for completed/cancelled events; limits 200 items / 120 / 1000 chars; Menu → Checklist picks an event | — | — | User answers |
 | 2026-10-07 | M9 Checklist | START MILESTONE M9 | Validation passed (M8 COMPLETED and approved; spec exists, questions answered). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M9` issued by user |
 | 2026-10-07 | M9 Checklist | Set IN_REVIEW | `checklist_items` migration (applied by user), backend checklist module + checklist summary on events, User App checklist screen, event page/card progress, Home Checklist progress, Menu → Checklist picker | Backend 57 unit + 43 e2e; Flutter 167; code, security, UI reviews PASS WITH FINDINGS (fixed; GI-27/GI-29 logged) | Signed-in simulator check not run (simulator signed out) | Awaiting `APPROVE MILESTONE M9` |
+| 2026-10-07 | M9 Checklist | APPROVE MILESTONE M9 | Status → **COMPLETED**. M10 Event Details set to NOT_STARTED; spec DRAFT created (open questions: tabs vs one page, cover picture, Open in Maps, Share details) | See M9 IN_REVIEW entry | — | `APPROVE MILESTONE M9` issued by user |
+| 2026-10-07 | M10 Event Details (NOT_STARTED) | Spec questions answered | Tabs; cover photo per event via ImageKit (max 5 MB, backend media module added to scope); Open in Maps; Share as text; packages image_picker, url_launcher, share_plus approved | — | User adds ImageKit keys to backend/.env | User answers |
+| 2026-10-07 | M10 Event Details | START MILESTONE M10 | Validation passed (M9 COMPLETED and approved; spec exists, questions answered; user added ImageKit keys). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M10` issued by user |
+| 2026-10-08 | M10 Event Details | Set IN_REVIEW | Media module with ImageKit v2 signed uploads + server verification, event cover set/remove, tabbed event screen (Overview/Checklist/Budget/Vendors), cover photo flow, Open in Maps, Share | Backend 63 unit + 54 e2e; Flutter 178; ImageKit verified live; security, UI, code reviews PASS WITH FINDINGS (fixed; GI-30 logged) | Real in-app cover upload not run (simulator signed out) | Awaiting `APPROVE MILESTONE M10` |
 
 ## Status summary
 - Governance initialization: **complete**.
-- M1–M8: **COMPLETED** (M8 uncommitted — user commits personally).
-- Active milestone: **M9 — Checklist** (IN_REVIEW; awaiting `APPROVE MILESTONE M9`; uncommitted).
+- M1–M9: **COMPLETED** (committed through M9).
+- Active milestone: **M10 — Event Details** (IN_REVIEW; awaiting `APPROVE MILESTONE M10`; uncommitted).

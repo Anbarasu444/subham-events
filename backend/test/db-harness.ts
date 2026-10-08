@@ -45,10 +45,11 @@ export interface DbTestApp {
 }
 
 /** Runs migrations, then boots the app with fake token verification. */
-export async function startDbTestApp(urls: {
-  app: string;
-  migrator: string;
-}): Promise<DbTestApp> {
+export async function startDbTestApp(
+  urls: { app: string; migrator: string },
+  /** Provider overrides, e.g. a fake ImageKit client. */
+  overrides: { provide: unknown; useValue: unknown }[] = [],
+): Promise<DbTestApp> {
   const migrator = new DataSource({
     type: 'postgres',
     url: urls.migrator,
@@ -63,12 +64,17 @@ export async function startDbTestApp(urls: {
   const { configureApp } = await import('../src/app.setup');
   const verifier = new FakeTokenVerifier();
   const rateLimits = new InMemoryRateLimitStore();
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+  let builder = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(TokenVerifier)
     .useValue(verifier)
     .overrideProvider(RateLimitStore)
-    .useValue(rateLimits)
-    .compile();
+    .useValue(rateLimits);
+  for (const override of overrides) {
+    builder = builder
+      .overrideProvider(override.provide)
+      .useValue(override.useValue);
+  }
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication<INestApplication<App>>();
   configureApp(app);
   await app.init();
@@ -89,7 +95,7 @@ export async function startDbTestApp(urls: {
       // only around the test clean-up.
       await migrator.query(`ALTER TABLE audit_logs DISABLE TRIGGER USER`);
       await migrator.query(
-        'TRUNCATE checklist_items, idempotency_keys, events, notifications, audit_logs, user_roles, users, rate_limit_counters',
+        'TRUNCATE checklist_items, idempotency_keys, events, media, notifications, audit_logs, user_roles, users, rate_limit_counters',
       );
       await migrator.query(`ALTER TABLE audit_logs ENABLE TRIGGER USER`);
     },

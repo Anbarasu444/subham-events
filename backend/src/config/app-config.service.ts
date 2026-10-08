@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AppEnv, EnvironmentVariables, LogLevel } from './env.validation';
 
+export interface ImageKitConfig {
+  publicKey: string;
+  /** Secret: used only for upload signatures, signed URLs and the files API. */
+  privateKey: string;
+  urlEndpoint: string;
+  rootFolder: string;
+}
+
 /** Typed, read-only access to validated configuration. */
 @Injectable()
 export class AppConfigService {
@@ -34,6 +42,20 @@ export class AppConfigService {
     return (
       this.config.get('BACKGROUND_JOBS_ENABLED', { infer: true }) !== 'false'
     );
+  }
+
+  /** ImageKit settings, or null when media uploads are not configured. */
+  get imageKit(): ImageKitConfig | null {
+    const publicKey = this.config.get('IMAGEKIT_PUBLIC_KEY', { infer: true });
+    const privateKey = this.config.get('IMAGEKIT_PRIVATE_KEY', { infer: true });
+    const urlEndpoint = this.config.get('IMAGEKIT_URL_ENDPOINT', {
+      infer: true,
+    });
+    const rootFolder =
+      this.config.get('MEDIA_ROOT_FOLDER', { infer: true }) ||
+      `/${this.appEnv}`;
+    if (!publicKey || !privateKey || !urlEndpoint) return null;
+    return { publicKey, privateKey, urlEndpoint, rootFolder };
   }
 
   get databaseUrl(): string {

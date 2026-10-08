@@ -8,15 +8,19 @@ import '../../../../core/state/view_state.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../domain/entities/planner_event.dart';
 import '../../domain/repositories/events_repository.dart';
+import '../../../media/domain/media_repository.dart';
+import '../../../../core/platform/photo_picker.dart';
 
 enum EventCommand { cancel, reopen, complete, delete }
 
-/// One event's summary page and its actions (M8; rich details in M10).
+/// One event's home screen (M8, tabs and cover photo in M10) and its actions.
 class EventDetailController extends GetxController {
   EventDetailController(
     this._repository,
     this.eventId, {
     PlannerEvent? initial,
+    this.media,
+    this.picker,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now,
        state = Rx<ViewState<PlannerEvent>>(
@@ -24,8 +28,22 @@ class EventDetailController extends GetxController {
        );
 
   final EventsRepository _repository;
+
+  /// Cover uploads; null where photos are not available (e.g. some tests).
+  final MediaRepository? media;
+  final PhotoPicker? picker;
   final String eventId;
   final DateTime Function() _clock;
+
+  /// Cover upload progress 0.0–1.0; null when no upload is running.
+  final Rx<double?> coverProgress = Rx<double?>(null);
+
+  /// The cover is being removed.
+  final RxBool removingCover = false.obs;
+
+  bool get coverBusy => coverProgress.value != null || removingCover.value;
+
+  bool get canChangeCover => media != null && picker != null;
 
   final Rx<ViewState<PlannerEvent>> state;
   final Rx<EventCommand?> running = Rx<EventCommand?>(null);
@@ -71,6 +89,82 @@ class EventDetailController extends GetxController {
             : Failed(failure),
     };
   }
+
+  /// Picks, checks and uploads a cover photo, then makes it the cover.
+  /// Returns a message to show, or null on success or cancel.
+  Future<String?> changeCover(PhotoSource source) async {
+    final media = this.media, picker = this.picker;
+    if (media == null || picker == null || coverBusy) return null;
+    final PickedPhoto? photo;
+    try {
+      photo = await picker.pick(source);
+    } on Exception {
+      return source == PhotoSource.camera
+          ? 'The camera is not available. Check camera access in Settings.'
+          : 'Your photos are not available. Check photo access in Settings.';
+    }
+    if (photo == null || isClosed) return null; // cancelled
+    if (photoTypeOf(photo.path) == null) {
+      return 'Choose a JPEG, PNG, WebP or HEIC photo.';
+    }
+    if (photo.sizeBytes > coverMaxBytes) {
+      return 'This photo is larger than 5 MB. Choose a smaller one.';
+    }
+    coverProgress.value = 0;
+    final uploaded = await media.uploadEventCover(
+      eventId,
+      photo,
+      onProgress: (p) {
+        if (!isClosed) coverProgress.value = p;
+      },
+    );
+    final String mediaId;
+    switch (uploaded) {
+      case Err(:final failure):
+        coverProgress.value = null;
+        return _coverMessage(failure);
+      case Ok(:final value):
+        mediaId = value;
+    }
+    final result = await _repository.setCover(eventId, mediaId);
+    if (isClosed) return null;
+    coverProgress.value = null;
+    switch (result) {
+      case Ok(:final value):
+        state.value = Content(value);
+        return null;
+      case Err(:final failure):
+        return _coverMessage(failure);
+    }
+  }
+
+  /// Returns a message to show, or null on success.
+  Future<String?> removeCover() async {
+    if (coverBusy) return null;
+    removingCover.value = true;
+    final result = await _repository.removeCover(eventId);
+    if (isClosed) return null;
+    removingCover.value = false;
+    switch (result) {
+      case Ok(:final value):
+        state.value = Content(value);
+        return null;
+      case Err(:final failure):
+        return _coverMessage(failure);
+    }
+  }
+
+  static String _coverMessage(Failure failure) => switch (failure) {
+    ValidationFailure(code: 'MEDIA_INVALID', :final message) =>
+      message ?? 'This photo could not be used. Try another one.',
+    ServerFailure(statusCode: 503) =>
+      'Photos are not available right now. Please try again later.',
+    NetworkFailure() => 'You are offline. Check your connection and try again.',
+    TimeoutFailure() => 'The upload took too long. Please try again.',
+    NotFoundFailure() => 'This event no longer exists.',
+    RateLimitedFailure() => 'Too many uploads. Please wait a moment.',
+    _ => 'The photo could not be uploaded. Please try again.',
+  };
 
   /// Shows the edited event without another request.
   void replace(PlannerEvent updated) => state.value = Content(updated);

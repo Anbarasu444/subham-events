@@ -10,6 +10,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -28,6 +29,7 @@ import type { EventAction } from './event-rules';
 import {
   CreateEventDto,
   ListEventsQuery,
+  SetCoverDto,
   UpdateEventDto,
   type EventDto,
 } from './events.dto';
@@ -139,6 +141,37 @@ export class EventsController {
     @Req() req: Request,
   ): Promise<EventDto> {
     return this.transition(user, id, 'complete', req);
+  }
+
+  @Put(':id/cover')
+  @RateLimit(WRITE_LIMIT)
+  setCover(
+    @CurrentUser() user: RequestUser,
+    @Param('id', EventId()) id: string,
+    @Body() dto: SetCoverDto,
+    @Req() req: Request,
+  ): Promise<EventDto> {
+    return this.dataSource.transaction((manager) =>
+      this.events.setCover(
+        manager,
+        user.userId,
+        id,
+        dto.mediaId,
+        contextOf(req),
+      ),
+    );
+  }
+
+  @Delete(':id/cover')
+  @RateLimit(WRITE_LIMIT)
+  removeCover(
+    @CurrentUser() user: RequestUser,
+    @Param('id', EventId()) id: string,
+    @Req() req: Request,
+  ): Promise<EventDto> {
+    return this.dataSource.transaction((manager) =>
+      this.events.removeCover(manager, user.userId, id, contextOf(req)),
+    );
   }
 
   @Delete(':id')
