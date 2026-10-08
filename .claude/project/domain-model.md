@@ -27,7 +27,7 @@
 
 | ID | Assumption | Why it matters |
 |---|---|---|
-| A1 | "No outside vendors" (R4) also means **no manual/off-platform budget expenses** — the budget only tracks platform vendors (agreed amounts and payment notes). | Budget model §6 |
+| A1 | ~~"No outside vendors" (R4) also means no manual/off-platform budget expenses.~~ **Superseded 2026-10-08 (M11, user answer 5):** users note their **own expenses** (money spent outside platform bookings) per event; they count as spent. Vendor discovery and bookings still cover platform vendors only (R4). | Budget model §7 |
 | A2 | Payment notes (R5) are **private to the user** — the vendor does not see them, and they trigger no notifications. Vendor App M35 "Vendor Payment Tracking" would then show only the vendor's own view of bookings (agreed amounts), not the user's notes. | M35 scope, notifications |
 | A3 | Payment notes are recorded **against a booking** (not free-floating per event). | Data model §5.12 |
 | A4 | The **star rating is visible immediately**; only the **comment** waits for admin approval. A rejected comment leaves the rating public without text. | Review lifecycle §4.9 |
@@ -62,6 +62,7 @@ Owner module = backend module from `architecture/backend.md` §3. Vis. = who may
 | Event (`events`) | The user's planned event — central entity | `events` | Owner; admins | M8 |
 | ChecklistItem (`checklist_items`) | User-created checklist task (R8) | `checklist` | Owner | M9 |
 | BudgetAllocation (`budget_allocations`) | Planned amount per category for an event | `budget` | Owner | M11 |
+| EventExpense (`event_expenses`) | The owner's own expense note for an event (title, amount > 0, date, optional category, optional note) | `budget` | Owner | M11 |
 | EventVendor (`event_vendors`) | Event ↔ platform listing relationship; holds **agreed budget** | `event-vendors` | Event owner; the vendor (once enquired); admins | M14 |
 | WishlistItem (`wishlist_items`) | Saved listings | `wishlist` | Owner | M14 |
 | Enquiry (`enquiries`) | User's enquiry to a vendor for an event | `enquiries` | Event owner, vendor, admins | M14 |
@@ -97,6 +98,7 @@ erDiagram
   vendor_categories ||--o{ vendor_listings : groups
   vendor_categories ||--o{ platform_fee_schedules : prices
   vendor_categories ||--o{ budget_allocations : "plans by"
+  vendor_categories |o--o{ event_expenses : "optionally groups"
   vendors ||--o{ vendor_listings : offers
   vendor_listings ||--o{ listing_media : shows
   vendor_listings ||--o{ listing_submissions : "reviewed via"
@@ -104,6 +106,7 @@ erDiagram
   platform_fee_transactions ||--o{ platform_fee_payment_attempts : attempts
   events ||--o{ checklist_items : has
   events ||--o{ budget_allocations : has
+  events ||--o{ event_expenses : has
   events ||--o{ event_vendors : engages
   vendor_listings ||--o{ event_vendors : "engaged as"
   event_vendors ||--o{ enquiries : "starts with"
@@ -269,10 +272,14 @@ Per event (all server-computed, exact decimals):
 | Committed | Σ `bookings.agreed_amount` where status `CONFIRMED` or `COMPLETED` |
 | Paid (user notes) | Σ `event_payment_notes.amount` (not deleted) over **all** the event's bookings (A11); the part on cancelled bookings is shown separately |
 | Outstanding | Committed − Paid, per booking and in total (may be negative if the user over-recorded; shown as "overpaid") |
-| Remaining budget | Total budget − Committed (shown only if total budget is set) |
+| Own expenses (M11) | Σ `event_expenses.amount` (not deleted), overall and per category |
+| Spent | Paid + Own expenses |
+| Remaining budget | Total budget − Committed − Own expenses (shown only if total budget is set; negative = over) |
 | Category view | Planned vs Committed vs Paid per category (via `event_vendors.category_id`) |
 
-Listing starting prices appear only in marketplace screens, never in budget figures. ❓ A1: no manual off-platform expenses.
+Listing starting prices appear only in marketplace screens, never in budget figures. Own expenses are for spending **outside** bookings; M16 must keep payment notes on bookings separate so the same money is not counted twice (GI-32).
+
+**Implemented in M11 (Option A):** planned amounts per vendor category (`budget_allocations`), total from `events.total_budget_amount`, unplanned = total − planned (negative when over-planned), committed/paid shown as zero until M15/M16. Starter categories seeded: Venue, Catering, Decoration, Photography, Videography, Makeup & Mehendi, Music & DJ, Invitations & Printing, Transport, Gifts & Return Gifts, Priest & Rituals, Other services. Budgets are read-only for completed/cancelled events. Own expenses (user answer 5, design A) are added in M11 with the same read-only rule; notes/diary per event is deferred (answer B2, GI-31).
 
 ## 8. Data lifecycle (spec item 7) — R11
 

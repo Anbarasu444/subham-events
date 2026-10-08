@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **DRAFT** — created at the M10 approval gate (2026-10-08); becomes CONFIRMED on `START MILESTONE M11` |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M11` on 2026-10-08; open questions answered by the user and scope extended with own expenses (see change log) |
 | Phase | User App |
 | Depends on | M10 COMPLETED and approved (`APPROVE MILESTONE M10`) |
 | Primary owner agent | user-app-manager + backend-manager + database-manager (payment-manager for money rules, security-manager, ui-manager, performance-manager, code-reviewer reviewers) |
@@ -64,9 +64,16 @@ The event's **Budget tab** (M10 placeholder) and the Home **Budget overview** se
    - Flutter tests: controller, repository and widgets, including rupee input, warnings, Home section and 200 % text.
 8. Docs: api-contracts, database-schema, domain-model (category seed decision), flutter.md, payment-architecture note (budget ≠ payments), current-milestone, progress.
 
+**Own expenses (added 2026-10-08, user answer 5 → design A confirmed)**
+9. Database: `event_expenses` (`event_id`, `title` 1–120, `amount numeric(12,2) > 0`, `currency`, `spent_on date`, optional `category_id` → `vendor_categories`, optional `note` ≤ 1000, soft delete, `version`). At most 500 per event.
+10. Backend: `GET/POST /api/v1/events/{id}/expenses`, `PATCH/DELETE /api/v1/events/{id}/expenses/{expenseId}`. Owner-only (404), PLANNING-only writes (same read-only rule as the budget), `Idempotency-Key` on create, optimistic `version` on update (412), rate limited, audited without amounts or text.
+11. Budget figures gain `expenses` (sum of own expenses), `spent` = paid + expenses and per-category `expenses`; `remaining` = total − committed − expenses.
+12. User App: a "My expenses" section in the budget (add / edit / delete with confirmation, newest first), with exact rupee input, a date picker (default today in the device's calendar) and an optional category.
+
 ## Out of scope
 - Bookings and committed amounts (M15), payment notes and paid amounts (M16), vendor discovery UI (M12), admin category management (M42).
-- Off-platform or manual expenses (A1: the budget only tracks platform vendors). Revisit if the user wants them (open question 5).
+- Notes / diary per event: **later in the roadmap** (user answer B2); a spec will be drafted when it is scheduled.
+- Receipts or photos on expenses; splitting an expense across categories; currencies other than INR.
 - vendor_app / admin_cms (phase-locked).
 
 ## Cross-layer impact (CLAUDE.md Rule 7)
@@ -79,13 +86,14 @@ The event's **Budget tab** (M10 placeholder) and the Home **Budget overview** se
 | Notifications | Evaluated: owner's own changes, no notification | 8 |
 
 ## Acceptance criteria (Option A)
-- [ ] AC-1 The user can set, change and clear a planned amount per category for their event. All amounts are exact rupees end to end (`numeric(12,2)`, `"10.10"` strings, no doubles).
-- [ ] AC-2 The budget screen shows total, planned, unplanned and remaining, plus a clear warning when the plan exceeds the total. Sums are computed on the server and covered by tests.
-- [ ] AC-3 Committed and Paid show ₹0 with an honest explanation until M15/M16. Starting prices never appear in the budget.
-- [ ] AC-4 Another user's event returns 404. Budgets of completed and cancelled events follow the answer to open question 3. Every change is audited.
-- [ ] AC-5 The Home Budget overview and Menu → Budget work. They handle loading, empty, error and offline states, and render at 200 % text.
-- [ ] AC-6 Migrations apply, and the categories seed is idempotent. Backend and Flutter checks and tests pass.
-- [ ] AC-7 Security, payment (money rules), UI, performance and code reviews are done, the docs are updated, and the status is IN_REVIEW.
+- [x] AC-1 The user can set, change and clear a planned amount per category for their event. All amounts are exact rupees end to end (`numeric(12,2)`, `"10.10"` strings, no doubles).
+- [x] AC-2 The budget screen shows total, planned, unplanned and remaining, plus a clear warning when the plan exceeds the total. Sums are computed on the server and covered by tests.
+- [x] AC-3 Committed and Paid show ₹0 with an honest explanation until M15/M16. Starting prices never appear in the budget.
+- [x] AC-4 Another user's event returns 404. Budgets of completed and cancelled events follow the answer to open question 3. Every change is audited.
+- [x] AC-5 The Home Budget overview and Menu → Budget work. They handle loading, empty, error and offline states, and render at 200 % text.
+- [x] AC-6 Migrations apply, and the categories seed is idempotent. Backend and Flutter checks and tests pass.
+- [x] AC-8 The user can add, edit and delete their own expenses (exact rupees, date, optional category and note). They show in the budget: Spent, Remaining and per-category figures include them; completed and cancelled events are read only.
+- [x] AC-7 Security, payment (money rules), UI, performance and code reviews are done, the docs are updated, and the status is IN_REVIEW.
 
 ## Required reviews
 Payment/money (exactness, rounding, separation from payments), security (ownership, input limits), UI (rupee input, warnings), performance (one budget query per event), notification (none), code review.
@@ -94,7 +102,7 @@ Payment/money (exactness, rounding, separation from payments), security (ownersh
 - The seeded category list becomes the starting point for vendors in M12 and admin in M42. Changing it later is an admin task (M42) or a migration.
 - Committed and Paid stay ₹0 until M15/M16, so the screen may look partly empty until then. Honest copy mitigates this.
 
-## Open questions (answer before or at START)
+## Open questions (START issued without answers — proceeding with the proposals, 2026-10-08; the user may override before IN_REVIEW)
 1. **Approach:** Option A (plan per vendor category now, fill committed and paid later; recommended), B (move Budget after M16), or C (free-text budget lines)?
 2. **Starter categories:** proposed Venue, Catering, Decoration, Photography, Videography, Makeup & Mehendi, Music & DJ, Invitations & Printing, Transport, Gifts & Return Gifts, Priest & Rituals, Other services. Add, remove or rename any?
 3. **Completed or cancelled events:** proposed: budget **read-only**, like the checklist (M9). OK?
@@ -105,3 +113,6 @@ Payment/money (exactness, rounding, separation from payments), security (ownersh
 | Date | Change | Requested by |
 |---|---|---|
 | 2026-10-08 | Initial DRAFT created at the M10 approval gate | CLAUDE.md Rule 4 |
+| 2026-10-08 | CONFIRMED by `START MILESTONE M11` without answers to open questions 1–5; proceeding with the spec's proposals (as in M6): **Option A**; the proposed starter category list; budget **read-only** for completed/cancelled events; total budget also editable on the budget screen; **platform vendors only** (A1, no manual expense lines). Recorded as assumptions; the user can override before IN_REVIEW | User (START) / Claude (assumptions) |
+| 2026-10-08 | User answers: 1 **A**, 2 keep the starter list, 3 **read-only** for completed/cancelled, 4 total editable on the budget screen — all match the adopted proposals. Answer 5: users want to note their **own expenses** and other things "like a note pad or diary" — this reverses assumption A1 and adds scope; the concrete design (own expense entries in the budget; notes/diary) is proposed to the user for confirmation before implementation | User |
+| 2026-10-08 | User confirmed design **A** ("yes"): own expense entries inside the budget (in-scope items 9–12, AC-8). Assumptions recorded: amounts > 0; at most 500 per event; expenses follow the budget's read-only rule for completed/cancelled events; a category is optional and must be a published one when set. Notes/diary: **B2 — later in the roadmap** (out of scope here). A1 is superseded for own expenses | User |

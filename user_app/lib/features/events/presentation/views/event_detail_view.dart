@@ -11,6 +11,9 @@ import '../../../../core/theme/tokens.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/async_state_view.dart';
+import '../../../budget/domain/budget.dart';
+import '../../../budget/presentation/controllers/budget_controller.dart';
+import '../../../budget/presentation/widgets/budget_slivers.dart';
 import '../../../checklist/domain/entities/checklist_item.dart';
 import '../../../checklist/domain/repositories/checklist_repository.dart';
 import '../../../checklist/presentation/controllers/checklist_controller.dart';
@@ -200,11 +203,7 @@ class _EventScreen extends StatelessWidget {
                 onAdd: () => _addTask(context),
                 onRefresh: _refresh,
               ),
-              _TabScroll(
-                storageKey: 'budget',
-                onRefresh: _refresh,
-                slivers: [_BudgetTab(event: event)],
-              ),
+              _BudgetTab(eventId: event.id),
               _TabScroll(
                 storageKey: 'vendors',
                 onRefresh: _refresh,
@@ -983,34 +982,68 @@ class _CompleteSuggestion extends StatelessWidget {
   }
 }
 
+/// Budget tab (M11): the event's budget; its controller is created when
+/// the tab is first built.
 class _BudgetTab extends StatelessWidget {
-  const _BudgetTab({required this.event});
+  const _BudgetTab({required this.eventId});
 
-  final PlannerEvent event;
+  final String eventId;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SliverPadding(
-      padding: const EdgeInsets.all(AppSpacing.page),
-      sliver: SliverList.list(
-        children: [
-          _Row(
-            icon: Icons.account_balance_wallet_outlined,
-            label: 'Total budget',
-            value: event.totalBudget?.format() ?? 'Not set',
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text('Budget planning is coming', style: theme.textTheme.titleMedium),
-          const SizedBox(height: AppSpacing.xs),
-          const Text(
-            'Soon you can plan amounts per category and see what is booked '
-            'and paid. For now, set a total budget by editing the event.',
+  Widget build(BuildContext context) => GetBuilder<BudgetController>(
+    init: BudgetController(
+      Get.find<BudgetRepository>(),
+      Get.find<EventsRepository>(),
+      eventId,
+    ),
+    global: false,
+    builder: (budget) => Obx(() {
+      final state = budget.state.value;
+      final List<Widget> slivers = switch (state) {
+        Content(:final data, :final isStale) => [
+          if (isStale) const SliverToBoxAdapter(child: StaleBanner()),
+          ...budgetSlivers(context, data, budget),
+        ],
+        Failed(:final failure) => [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.page),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    failureTitle(failure),
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(failureMessage(failure)),
+                  if (failure.isRetryable) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    AppButton(
+                      label: 'Try again',
+                      icon: Icons.refresh,
+                      onPressed: budget.load,
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ],
-      ),
-    );
-  }
+        _ => const [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      };
+      return _TabScroll(
+        storageKey: 'budget',
+        onRefresh: budget.load,
+        slivers: slivers,
+      );
+    }),
+  );
 }
 
 class _VendorsTab extends StatelessWidget {

@@ -12,6 +12,8 @@ import '../../../events/presentation/widgets/event_card.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../checklist/presentation/checklist_navigation.dart';
 import '../../../checklist/presentation/widgets/checklist_progress.dart';
+import '../../../budget/presentation/views/budget_view.dart';
+import '../../data/budget_overview_source.dart';
 import '../../data/checklist_progress_source.dart';
 import '../../data/upcoming_event_source.dart';
 import '../controllers/home_controller.dart';
@@ -115,8 +117,11 @@ class HomeTabView extends GetView<HomeController> {
         icon: Icons.account_balance_wallet_outlined,
         state: state,
         onRetry: retry,
-        emptyMessage:
-            'Track planned and paid amounts once you create an event.',
+        emptyMessage: signedIn
+            ? 'Plan an upcoming event to see its budget here.'
+            : 'Track planned and paid amounts once you create an event.',
+        contentBuilder: (context, data) =>
+            _BudgetOverviewCard(data: data as BudgetOverviewData),
       ),
       DashboardSectionId.explore => DashboardSectionCard(
         title: 'Explore vendors',
@@ -219,6 +224,101 @@ class _ChecklistProgressCard extends StatelessWidget {
         AppButton(
           label: summary.total == 0 ? 'Add tasks' : 'Open checklist',
           icon: Icons.checklist_outlined,
+          variant: AppButtonVariant.secondary,
+          onPressed: _open,
+        ),
+      ],
+    );
+  }
+}
+
+class _BudgetOverviewCard extends StatelessWidget {
+  const _BudgetOverviewCard({required this.data});
+
+  final BudgetOverviewData data;
+
+  void _open() => Get.find<ShellController>().pushInTab(
+    ShellTab.events,
+    BudgetNavigation.route(
+      eventId: data.event.id,
+      eventTitle: data.event.title,
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final budget = data.budget;
+    final total = budget.totalBudget;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          data.event.title,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          total == null
+              ? budget.planned.minorUnits == BigInt.zero
+                    ? 'No budget planned yet.'
+                    : 'Planned ${budget.planned.format()} · no total set'
+              : 'Planned ${budget.planned.format()} of ${total.format()}',
+          style: theme.textTheme.bodyMedium,
+        ),
+        if (budget.plannedShare != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          ClipRRect(
+            borderRadius: const BorderRadius.all(AppRadii.sm),
+            child: LinearProgressIndicator(
+              value: budget.plannedShare,
+              minHeight: 8,
+              color: budget.isOverPlanned ? theme.colorScheme.error : null,
+              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+              semanticsLabel: 'Share of the total budget planned',
+            ),
+          ),
+        ],
+        if (budget.overPlannedBy != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    'Over budget by ${budget.overPlannedBy!.format()}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (budget.unplanned != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
+            child: Text('Not yet planned: ${budget.unplanned!.format()}'),
+          ),
+        if (budget.spent.minorUnits > BigInt.zero)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
+            child: Text('Spent so far: ${budget.spent.format()}'),
+          ),
+        const SizedBox(height: AppSpacing.sm),
+        AppButton(
+          label: total == null && budget.planned.minorUnits == BigInt.zero
+              ? 'Plan budget'
+              : 'Open budget',
+          icon: Icons.account_balance_wallet_outlined,
           variant: AppButtonVariant.secondary,
           onPressed: _open,
         ),

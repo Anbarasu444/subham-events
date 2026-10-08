@@ -4,13 +4,13 @@ import 'package:get/get.dart';
 
 import '../../../../core/error/result.dart';
 import '../../../../core/state/view_state.dart';
-import '../../../events/domain/entities/planner_event.dart';
-import '../../../events/domain/repositories/events_repository.dart';
+import '../../domain/entities/planner_event.dart';
+import '../../domain/repositories/events_repository.dart';
 
-/// Menu → Checklist (M9 answer 4): the user's events that are being planned.
-/// The view opens the checklist directly when there is exactly one.
-class ChecklistPickerController extends GetxController {
-  ChecklistPickerController(this._events);
+/// Menu → Checklist / Budget (M9, M11): the user's events being planned.
+/// The view opens the page directly when there is exactly one.
+class PlanningEventPickerController extends GetxController {
+  PlanningEventPickerController(this._events);
 
   /// Plenty for a picker; more planning events than this is unusual.
   static const limit = 100;

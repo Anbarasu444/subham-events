@@ -8,6 +8,7 @@ import 'package:user_app/core/platform/external_actions.dart';
 import 'package:user_app/core/platform/photo_picker.dart';
 import 'package:user_app/core/utils/date_format.dart';
 import 'package:user_app/features/media/domain/media_repository.dart';
+import 'package:user_app/features/budget/domain/budget.dart';
 import 'package:user_app/features/checklist/domain/repositories/checklist_repository.dart';
 import 'package:user_app/features/events/domain/entities/planner_event.dart';
 import 'package:user_app/features/events/domain/repositories/events_repository.dart';
@@ -18,6 +19,7 @@ import 'package:user_app/features/shell/presentation/controllers/shell_controlle
 import 'package:user_app/features/shell/presentation/controllers/shell_tab.dart';
 import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 
+import '../../helpers/fake_budget_repository.dart';
 import '../../helpers/fake_checklist_repository.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/fake_media.dart';
@@ -56,7 +58,11 @@ void main() {
     Get.put<PhotoPicker>(FakePhotoPicker(photo));
     final checklists = FakeChecklistRepository(onChanged: repo.notifyChanged);
     Get.put<ChecklistRepository>(checklists);
-    Get.put(HomeController(session, buildDashboardSources(repo, checklists)));
+    final budgets = FakeBudgetRepository(onChanged: repo.notifyChanged);
+    Get.put<BudgetRepository>(budgets);
+    Get.put(
+      HomeController(session, buildDashboardSources(repo, checklists, budgets)),
+    );
     Get.put(ShellController(initialTab: tab));
     await tester.pumpWidget(const GetMaterialApp(home: ShellView()));
     await tester.pumpAndSettle();
@@ -244,7 +250,7 @@ void main() {
     }
     await tester.tap(find.widgetWithText(Tab, 'Budget'));
     await tester.pumpAndSettle();
-    expect(find.text('Budget planning is coming'), findsOneWidget);
+    expect(find.text('Total budget'), findsOneWidget);
     await tester.tap(find.widgetWithText(Tab, 'Vendors'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Explore vendors'));

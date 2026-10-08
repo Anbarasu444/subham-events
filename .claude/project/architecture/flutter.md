@@ -149,6 +149,13 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 - `ExternalActions` wraps `url_launcher` (Google Maps search URL) and `share_plus` (plain-text event details) so screens are testable.
 - Platform: iOS `NSPhotoLibraryUsageDescription` / `NSCameraUsageDescription`; Android `<queries>` for https VIEW.
 
+## 6e. Budget (M11)
+
+- `features/budget`: `BudgetRepository` (network-only; every change calls `EventsRepository.notifyChanged()`), `BudgetController` (per-category busy keys, generation guard, total changed through the event's PATCH), `budgetSlivers` shared by the event screen's Budget tab and `BudgetView` (Home / Menu), `showMoneySheet` for exact rupee input (`Money.tryParseInput`).
+- The app keeps `Money` non-negative: an over-planned budget's negative `unplanned` is read as `Budget.overPlannedBy`.
+- Own expenses (user answer 5): `BudgetRepository.loadExpenses/addExpense/updateExpense/deleteExpense`; `BudgetController.expenses` has its own `ViewState` (loading/empty/error/stale) next to the budget's; `ExpenseFormController` + `showExpenseSheet` (title, exact amount > 0, date, optional offered category, note; same-input retries reuse the `Idempotency-Key`). A negative `remaining` is read as `Budget.overspentBy`.
+- Home "Budget overview" (`BudgetOverviewSource`) shows the next event's planned/total and spent so far; Menu → Budget and Menu → Checklist share `PlanningEventPickerView` (one planning event → opens directly).
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

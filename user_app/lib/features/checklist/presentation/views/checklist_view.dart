@@ -233,7 +233,7 @@ class _ReadOnlyBanner extends StatelessWidget {
           const SizedBox(width: AppSpacing.xs),
           const Expanded(
             child: Text(
-              'This event is completed or cancelled, so its checklist is read only. Reopen the event to make changes.',
+              'This event is completed or cancelled, so its checklist is read only. You can reopen it (while its date has not passed) to make changes.',
             ),
           ),
         ],

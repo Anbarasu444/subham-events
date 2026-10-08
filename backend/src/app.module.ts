@@ -8,6 +8,8 @@ import { AppConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { BudgetModule } from './modules/budget/budget.module';
+import { CategoriesModule } from './modules/categories/categories.module';
 import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -24,6 +26,8 @@ import { UsersModule } from './modules/users/users.module';
     AuthModule,
     HealthModule,
     EventsModule,
+    CategoriesModule,
+    BudgetModule,
   ],
   providers: [
     { provide: APP_PIPE, useFactory: createValidationPipe },

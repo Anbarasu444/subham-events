@@ -9,7 +9,10 @@ import '../../../../core/theme/tokens.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/session_message.dart';
 import '../../../shell/presentation/controllers/shell_tab.dart';
-import '../../../checklist/presentation/views/checklist_picker_view.dart';
+import '../../../budget/presentation/views/budget_view.dart';
+import '../../../checklist/presentation/checklist_navigation.dart';
+import '../../../checklist/presentation/widgets/checklist_progress.dart';
+import '../../../events/presentation/views/planning_event_picker_view.dart';
 import 'coming_soon_view.dart';
 
 /// One Menu entry (M6 user decision). [guestVisible] entries are shown to
@@ -34,13 +37,34 @@ class MenuSection {
   final List<MenuEntry> entries;
 }
 
-Widget _checklistPage(BuildContext _) => const ChecklistPickerView();
+Widget _checklistPage(BuildContext _) => PlanningEventPickerView(
+  title: 'Checklist',
+  icon: Icons.checklist_outlined,
+  emptyMessage: 'Create an event to start its checklist.',
+  routeFor: (event) =>
+      ChecklistNavigation.route(eventId: event.id, eventTitle: event.title),
+  detailBuilder: (event) => ChecklistProgress(summary: event.checklist),
+);
+
+Widget _budgetPage(BuildContext _) => PlanningEventPickerView(
+  title: 'Budget',
+  icon: Icons.account_balance_wallet_outlined,
+  emptyMessage: 'Create an event to plan its budget.',
+  routeFor: (event) =>
+      BudgetNavigation.route(eventId: event.id, eventTitle: event.title),
+  detailBuilder: (event) =>
+      Text('Total budget: ${event.totalBudget?.format() ?? 'not set'}'),
+);
 
 const menuSections = [
   MenuSection('Planning', [
     MenuEntry('Schedule', Icons.schedule_outlined),
     MenuEntry('Checklist', Icons.checklist_outlined, page: _checklistPage),
-    MenuEntry('Budget', Icons.account_balance_wallet_outlined),
+    MenuEntry(
+      'Budget',
+      Icons.account_balance_wallet_outlined,
+      page: _budgetPage,
+    ),
     MenuEntry('Messages', Icons.chat_bubble_outline),
   ]),
   MenuSection('Account', [

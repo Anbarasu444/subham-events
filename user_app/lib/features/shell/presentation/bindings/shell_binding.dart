@@ -9,6 +9,8 @@ import '../../../media/data/imagekit_uploader.dart';
 import '../../../media/data/media_remote_data_source.dart';
 import '../../../media/data/media_repository_impl.dart';
 import '../../../media/domain/media_repository.dart';
+import '../../../budget/data/budget_repository_impl.dart';
+import '../../../budget/domain/budget.dart';
 import '../../../checklist/data/datasources/checklist_remote_data_source.dart';
 import '../../../checklist/data/repositories/checklist_repository_impl.dart';
 import '../../../checklist/domain/repositories/checklist_repository.dart';
@@ -44,6 +46,14 @@ class ShellBinding extends Bindings {
       () => const PlatformExternalActions(),
       fenix: true,
     );
+    // Budget (M11): changes refresh Home and event screens.
+    Get.lazyPut<BudgetRepository>(
+      () => BudgetRepositoryImpl(
+        Get.find<ApiClient>(),
+        Get.find<EventsRepository>().notifyChanged,
+      ),
+      fenix: true,
+    );
     // Checklist (M9): changes refresh event progress everywhere.
     Get.lazyPut<ChecklistRepository>(
       () => ChecklistRepositoryImpl(
@@ -65,6 +75,7 @@ class ShellBinding extends Bindings {
         buildDashboardSources(
           Get.find<EventsRepository>(),
           Get.find<ChecklistRepository>(),
+          Get.find<BudgetRepository>(),
         ),
         reporter: Get.find<CrashReporter>(),
       ),

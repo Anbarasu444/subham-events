@@ -292,6 +292,32 @@ Flow (media-and-deep-links.md §3): `POST /media/uploads` → app uploads the fi
 - Milestone: M10 · PUT `{ mediaId }` (a READY EVENT_COVER of this event uploaded by the caller, else `422 MEDIA_INVALID`/`MEDIA_NOT_READY`) → 200 `{ data: EventDto }`. The previous cover is soft-deleted. DELETE removes the cover → 200 `{ data: EventDto }`. Audit `EVENT_COVER_SET` / `EVENT_COVER_REMOVED`.
 - `EventDto.cover`: `{ mediaId, url, thumbnailUrl, expiresAt } | null` — signed ImageKit URLs of resized variants (`w-1200` / `w-480`, `f-auto`, `md-false` = no EXIF/GPS metadata), valid 15 minutes; clients cache images by `mediaId` + variant, not by URL. Originals are never served.
 
+### GET /api/v1/vendor-categories
+- Milestone: M11 · Auth: **Public** · Response 200 `{ data: [{ id, name, slug, sortOrder }] }` — PUBLISHED categories in display order (seeded starter list; admin management M42; reused by vendor discovery M12). Rate limited 120/min per IP (`categories-read`); `Cache-Control: public, max-age=300`.
+
+### Event budget (M11)
+Owner-only through the event (another user's/deleted event, malformed or unpublished category → 404). Writes need a PLANNING event (else `409 INVALID_STATE_TRANSITION`), are rate limited (120/min per IP, `budget-write`) and audited (`BUDGET_ALLOCATION_SET` with `{ categoryId, created }`, `BUDGET_ALLOCATION_CLEARED` — amounts are not copied into the audit log). All figures are computed server-side with exact decimals (ADR-0014); listing starting prices never appear. No notifications.
+- `BudgetDto`: `{ eventId, isEditable, totalBudget: Money | null, planned: Money, unplanned: Money | null, isOverPlanned, committed: Money, paid: Money, expenses: Money, spent: Money, remaining: Money | null, categories: [{ categoryId, name, isArchived, planned: Money | null, committed: Money, paid: Money, expenses: Money }] }`. Lines are the PUBLISHED categories plus any no-longer-published category the event still has a plan for (`isArchived: true`, listed last; it can be cleared but not set). `unplanned` = total − planned (null without a total; **negative**, e.g. `"-100000.00"`, when over-planned; `unplanned` and `remaining` are the only Money fields that can be negative). `committed`/`paid` are `"0.00"` until bookings (M15) and payment notes (M16); `expenses` = the user's own expenses; `spent` = paid + expenses; `remaining` = total − committed − expenses (null without a total; **negative** when over). A no-longer-offered category is also listed when it has own expenses.
+
+### GET /api/v1/events/{eventId}/budget
+- Milestone: M11 · Response 200 `{ data: BudgetDto }` (also for completed/cancelled events, `isEditable: false`).
+
+### PUT /api/v1/events/{eventId}/budget/allocations/{categoryId} · DELETE …
+- Milestone: M11 · PUT `{ planned: { amount: "40000.00", currency: "INR" } }` (≥ 0, exact two decimals, currency must be the event's currency else `422 VALIDATION_FAILED`) → 200 `{ data: BudgetDto }`; repeating the same amount changes nothing (naturally idempotent). DELETE clears the plan (soft delete) → 200 `{ data: BudgetDto }`; clearing a category with no plan (including an archived one) is a no-op that still returns the budget. The total budget stays on the event (`PATCH /events/{id}` `totalBudget`).
+
+### Own expenses (M11, user answer 5)
+Same access rules as the budget: owner-only through the event (another user's/deleted event, unknown expense → 404), writes only while the event is PLANNING (`409 INVALID_STATE_TRANSITION`), rate limited with the budget (`budget-write`, 120/min per IP), audited (`EXPENSE_CREATED`, `EXPENSE_UPDATED` with changed field names, `EXPENSE_DELETED`; ids only — no amounts or text). No notifications. Records only: no money moves (payment-architecture §2.1).
+- `ExpenseDto`: `{ id, title, amount: Money, spentOn: "YYYY-MM-DD", categoryId: uuid | null, categoryName: string | null, note: string | null, version, createdAt, updatedAt }`.
+
+### GET /api/v1/events/{eventId}/expenses
+- Response 200 `{ data: { eventId, isEditable, total: Money, expenses: ExpenseDto[] } }`, newest first (`spentOn` desc, then creation). At most 500 per event, so no pagination.
+
+### POST /api/v1/events/{eventId}/expenses
+- `Idempotency-Key` required (missing → 428). Body `{ title (1–120, trimmed), amount: Money (> 0, exact two decimals, event currency), spentOn: "YYYY-MM-DD", categoryId?: uuid | null (an offered category), note?: string | null (≤ 1000; blank → null) }` → 201 `{ data: ExpenseDto }`. Errors: 422 `VALIDATION_FAILED` (`AMOUNT_NOT_POSITIVE`, `CURRENCY_MISMATCH`, `UNKNOWN_CATEGORY`, field errors), 409 `LIMIT_REACHED` (500).
+
+### PATCH /api/v1/events/{eventId}/expenses/{expenseId} · DELETE …
+- PATCH: any of the create fields plus required `version` → 200 `{ data: ExpenseDto }`; stale version → 412 `PRECONDITION_FAILED`. A category that is no longer offered may stay on the expense but cannot be newly chosen. DELETE → 204 (soft delete).
+
 ### Background: event auto-complete (no endpoint)
 - Hourly in-process job (disabled with `BACKGROUND_JOBS_ENABLED=false`): PLANNING events whose date is before today in their zone become COMPLETED. Audit: `EVENT_AUTO_COMPLETED` (actor `SYSTEM`). No notification.
 

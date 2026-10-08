@@ -16,7 +16,7 @@ Each milestone has (or must have, before START) a spec in `milestones/` with sco
 | M8 | Event Management | User App | [M8](milestones/M8-event-management.md) (COMPLETED) |
 | M9 | Checklist | User App | [M9](milestones/M9-checklist.md) (COMPLETED) |
 | M10 | Event Details | User App | [M10](milestones/M10-event-details.md) (COMPLETED) |
-| M11 | Budget Management | User App | [M11](milestones/M11-budget-management.md) (DRAFT) |
+| M11 | Budget Management | User App | [M11](milestones/M11-budget-management.md) (IN_REVIEW) |
 | M12 | Vendor Discovery | User App | — |
 | M13 | Vendor Details | User App | — |
 | M14 | Wishlist / Contact / Enquiry | User App | — |

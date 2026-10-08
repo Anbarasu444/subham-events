@@ -6,6 +6,7 @@ import 'package:user_app/core/auth/session.dart';
 import 'package:user_app/core/auth/session_service.dart';
 import 'package:user_app/core/utils/date_format.dart';
 import 'package:user_app/features/checklist/domain/entities/checklist_item.dart';
+import 'package:user_app/features/budget/domain/budget.dart';
 import 'package:user_app/features/checklist/domain/repositories/checklist_repository.dart';
 import 'package:user_app/features/events/domain/entities/planner_event.dart';
 import 'package:user_app/features/events/domain/repositories/events_repository.dart';
@@ -16,6 +17,7 @@ import 'package:user_app/features/shell/presentation/controllers/shell_controlle
 import 'package:user_app/features/shell/presentation/controllers/shell_tab.dart';
 import 'package:user_app/features/shell/presentation/views/shell_view.dart';
 
+import '../../helpers/fake_budget_repository.dart';
 import '../../helpers/fake_checklist_repository.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/test_session.dart';
@@ -55,8 +57,12 @@ void main() {
       onChanged: repo.notifyChanged,
     );
     Get.put<ChecklistRepository>(checklists);
+    final budgets = FakeBudgetRepository(onChanged: repo.notifyChanged);
+    Get.put<BudgetRepository>(budgets);
     Get.put(MyEventsController(repo, session));
-    Get.put(HomeController(session, buildDashboardSources(repo, checklists)));
+    Get.put(
+      HomeController(session, buildDashboardSources(repo, checklists, budgets)),
+    );
     Get.put(ShellController(initialTab: tab));
     await tester.pumpWidget(const GetMaterialApp(home: ShellView()));
     await tester.pumpAndSettle();

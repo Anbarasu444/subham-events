@@ -87,6 +87,11 @@ The platform **does not collect any user-to-vendor money** (user decision 2026-1
 - Not idempotency-critical (no money moves), but creation uses the standard `Idempotency-Key` support to avoid duplicate notes on retries.
 - No Razorpay, no reconciliation, no refunds.
 
+### 2.1 Budget is planning, not payment (M11)
+The event budget (`budget_allocations`, `GET /events/{id}/budget`) holds **planned** amounts only. It is neither a platform-fee nor an event-payment record: no money moves, nothing is verified, and it shares no tables or enums with either payment domain. "Paid" in the budget will be the sum of the user's own payment notes (M16); "Committed" the agreed amounts of confirmed bookings (M15).
+
+**Own expenses (`event_expenses`, M11)** are the user's notes of money spent outside platform bookings. Like the budget they are records only — no money moves, no Razorpay, no verification — and they are kept apart from both payment domains. Spent = Paid + own expenses; Remaining = Total − Committed − own expenses. M16 payment notes belong to bookings; the UI must steer users to record a booked vendor's payment there, not as an own expense (GI-32).
+
 ## 3. Reconciliation & reporting
 
 - Daily job driven by **Razorpay's list of captured payments** for the previous day: each is matched by `order_id` to a transaction; any capture not matched to a `SUCCESS` transaction (including late captures on old `EXPIRED` orders), or any amount/currency mismatch → `REVIEW_REQUIRED` + FINANCE_ADMIN notification. PENDING transactions older than 15 min are also polled.

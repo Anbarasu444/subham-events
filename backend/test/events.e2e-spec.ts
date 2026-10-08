@@ -86,7 +86,7 @@ describeDb('Events with PostgreSQL (e2e)', () => {
     rateLimits.clear();
     await migrator.query(`ALTER TABLE audit_logs DISABLE TRIGGER USER`);
     await migrator.query(
-      'TRUNCATE checklist_items, idempotency_keys, events, media, notifications, audit_logs, user_roles, users, rate_limit_counters',
+      'TRUNCATE event_expenses, budget_allocations, checklist_items, idempotency_keys, events, media, notifications, audit_logs, user_roles, users, rate_limit_counters',
     );
     await migrator.query(`ALTER TABLE audit_logs ENABLE TRIGGER USER`);
     await signIn('uid-a');

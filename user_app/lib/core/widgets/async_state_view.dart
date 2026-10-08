@@ -52,7 +52,7 @@ class AsyncStateView<T> extends StatelessWidget {
           key: const ValueKey('content'),
           child: Column(
             children: [
-              if (isStale) const _StaleBanner(),
+              if (isStale) const StaleBanner(),
               Expanded(child: builder(context, data)),
             ],
           ),
@@ -144,8 +144,9 @@ class _Message extends StatelessWidget {
   }
 }
 
-class _StaleBanner extends StatelessWidget {
-  const _StaleBanner();
+/// "Showing saved data" strip for content kept after a failed refresh.
+class StaleBanner extends StatelessWidget {
+  const StaleBanner({super.key});
 
   @override
   Widget build(BuildContext context) {

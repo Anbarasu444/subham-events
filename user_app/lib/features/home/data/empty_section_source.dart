@@ -1,12 +1,14 @@
 import '../../../core/error/result.dart';
+import '../../budget/domain/budget.dart';
 import '../../checklist/domain/repositories/checklist_repository.dart';
+import 'budget_overview_source.dart';
 import '../../events/domain/repositories/events_repository.dart';
 import 'checklist_progress_source.dart';
 import '../domain/dashboard_section.dart';
 import 'upcoming_event_source.dart';
 
 /// Placeholder source until the feature that owns the section exists
-/// (Budget → M11, Explore → M12; Upcoming event since M8, Checklist M9).
+/// (Explore → M12; Upcoming event since M8, Checklist M9, Budget M11).
 class EmptySectionSource implements DashboardSectionSource {
   const EmptySectionSource(this.id, {this.requiresSignIn = false});
 
@@ -36,9 +38,10 @@ const defaultDashboardSources = <DashboardSectionSource>[
 List<DashboardSectionSource> buildDashboardSources(
   EventsRepository events,
   ChecklistRepository checklists,
+  BudgetRepository budgets,
 ) => [
   UpcomingEventSource(events),
   ChecklistProgressSource(events, checklists),
-  const EmptySectionSource(DashboardSectionId.budget, requiresSignIn: true),
+  BudgetOverviewSource(events, budgets),
   const EmptySectionSource(DashboardSectionId.explore),
 ];
