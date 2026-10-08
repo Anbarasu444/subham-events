@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **CONFIRMED** — ratified by `START MILESTONE M10` on 2026-10-07 |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M10` on 2026-10-07; milestone COMPLETED 2026-10-08 |
 | Phase | User App |
 | Depends on | M9 COMPLETED and approved (`APPROVE MILESTONE M9`) |
 | Primary owner agent | user-app-manager + backend-manager + database-manager (security-manager, ui-manager, performance-manager, code-reviewer reviewers) |
@@ -99,3 +99,4 @@ Interpretation note: the user's reply "1. tabs 2. yes 3. yes 4. maximum 5MB - Ye
 | 2026-10-08 | Review fixes (recorded): ImageKit upload API v2 (single-use signed upload settings) instead of v1 signatures; abandoned/rejected files deleted; max 3 unfinished uploads per event and 10 upload requests/min; `md-false` on delivered images; cover removal asks to confirm; status actions in a menu with an Overview "Mark as completed" prompt after the date | Claude |
 | 2026-10-08 | Item 6 endpoint names aligned with the implemented contract (`/media/uploads`, `…/complete`, `PUT /events/{id}/cover {mediaId}`). Decision (recorded, low risk): the cover follows the M8 rule for event details and can change in any status; the checklist stays read-only for completed/cancelled events (M9). `thumbnailUrl` is returned for later list use | Claude |
 | 2026-10-08 | Set IN_REVIEW (real cover upload from the signed-in app not run — simulator signed out; ImageKit verified live, app chain covered by tests) | Claude |
+| 2026-10-08 | `APPROVE MILESTONE M10` → COMPLETED | User |

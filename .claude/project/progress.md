@@ -49,8 +49,9 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-07 | M10 Event Details (NOT_STARTED) | Spec questions answered | Tabs; cover photo per event via ImageKit (max 5 MB, backend media module added to scope); Open in Maps; Share as text; packages image_picker, url_launcher, share_plus approved | — | User adds ImageKit keys to backend/.env | User answers |
 | 2026-10-07 | M10 Event Details | START MILESTONE M10 | Validation passed (M9 COMPLETED and approved; spec exists, questions answered; user added ImageKit keys). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M10` issued by user |
 | 2026-10-08 | M10 Event Details | Set IN_REVIEW | Media module with ImageKit v2 signed uploads + server verification, event cover set/remove, tabbed event screen (Overview/Checklist/Budget/Vendors), cover photo flow, Open in Maps, Share | Backend 63 unit + 54 e2e; Flutter 178; ImageKit verified live; security, UI, code reviews PASS WITH FINDINGS (fixed; GI-30 logged) | Real in-app cover upload not run (simulator signed out) | Awaiting `APPROVE MILESTONE M10` |
+| 2026-10-08 | M10 Event Details | APPROVE MILESTONE M10 | Status → **COMPLETED**. M11 Budget Management set to NOT_STARTED; spec DRAFT created (open questions: approach A/B/C, starter categories, read-only for completed events, total editing, manual expenses) | See M10 IN_REVIEW entry | — | `APPROVE MILESTONE M10` issued by user |
 
 ## Status summary
 - Governance initialization: **complete**.
-- M1–M9: **COMPLETED** (committed through M9).
-- Active milestone: **M10 — Event Details** (IN_REVIEW; awaiting `APPROVE MILESTONE M10`; uncommitted).
+- M1–M10: **COMPLETED** (committed through M9; M10 uncommitted — user commits personally).
+- Next milestone: **M11 — Budget Management** (NOT_STARTED; spec DRAFT; waiting for `START MILESTONE M11`).
