@@ -11,6 +11,7 @@ import {
   type CursorPageMeta,
 } from '../../common/pagination/cursor';
 import { closeLiveEnquiries } from '../event-vendors/event-vendors.service';
+import { cancelReminders } from '../reminders/reminders.service';
 import { AuditService } from '../audit/audit.service';
 import { ChecklistSummaryService } from '../checklist/checklist-summary.service';
 import { CoverUrlService } from '../media/cover-url.service';
@@ -389,6 +390,7 @@ export class EventsService {
     // Cancelling closes open enquiries (domain-model.md §4.6, M14).
     if (target === 'CANCELLED') {
       await closeLiveEnquiries(manager, { eventId: id }, 'SYSTEM', now);
+      await cancelReminders(manager, { eventId: id }, 'EVENT_CANCELLED', now);
     }
     await this.audit.record(manager, {
       actorType: 'USER',
@@ -414,6 +416,7 @@ export class EventsService {
     const event = await this.lockOwned(manager, userId, id);
     // A deleted event's open enquiries close too, so vendors never answer one.
     await closeLiveEnquiries(manager, { eventId: id }, 'SYSTEM', now);
+    await cancelReminders(manager, { eventId: id }, 'EVENT_DELETED', now);
     event.deletedAt = now;
     await manager.getRepository(EventEntity).save(event);
     await this.audit.record(manager, {

@@ -16,6 +16,8 @@ import '../../../budget/presentation/views/budget_view.dart';
 import '../../../explore/presentation/controllers/explore_controller.dart';
 import '../../../explore/presentation/widgets/category_icon.dart';
 import '../../../explore/presentation/widgets/listing_card_tile.dart';
+import '../../../reminders/domain/reminder.dart';
+import '../../../reminders/presentation/widgets/due_reminders_banner.dart';
 import '../../data/explore_section_source.dart';
 import '../../data/budget_overview_source.dart';
 import '../../data/checklist_progress_source.dart';
@@ -80,6 +82,13 @@ class HomeTabView extends GetView<HomeController> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
+            // Due and next reminders (M17); signed-in users only.
+            Obx(
+              () =>
+                  controller.signedIn && Get.isRegistered<RemindersRepository>()
+                  ? const DueRemindersBanner()
+                  : const SizedBox.shrink(),
+            ),
             for (final source in controller.sources) ...[
               Obx(() => _section(source.id, signedIn: controller.signedIn)),
               const SizedBox(height: AppSpacing.md),

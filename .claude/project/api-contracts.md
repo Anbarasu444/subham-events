@@ -341,6 +341,16 @@ Owner-only through the event (another user's/deleted event → 404); writes need
 - `POST …/enquiries/{enquiryId}/close` → 200 `{ data: EventVendorDto }`: CLOSED (USER); the event vendor returns to ADDED so a new enquiry can be sent. Already closed → 409.
 - Cancelling or deleting an event closes its live enquiries (SYSTEM).
 
+### Reminders (M17, §4.13)
+Owner-only through the event (404 otherwise); writes need a PLANNING event (409), rate limited (`reminders-write` 120/min), audited (`REMINDER_CREATED/UPDATED/CANCELLED`, ids and field names only — no titles).
+- `ReminderDto`: `{ id, eventId, eventTitle, title, remindAt (ISO instant, UTC), status: SCHEDULED|SENT|CANCELLED, checklistItemId, checklistItemTitle, sentAt, seenAt, cancelReason: USER|TASK_DONE|TASK_DELETED|EVENT_CANCELLED|EVENT_DELETED|null, version }`.
+- `GET /api/v1/events/{id}/reminders` → `{ data: { eventId, isEditable, upcoming: ReminderDto[] (soonest first), past: ReminderDto[] (newest first, ≤ 50) } }`.
+- `POST /api/v1/events/{id}/reminders` — **Idempotency-Key required** — `{ title (1–120, trimmed), remindAt (ISO-8601 with offset, in the future), checklistItemId? (a live task of this event) }` → 201; at most 200 scheduled per event (409 `LIMIT_REACHED`).
+- `PATCH …/reminders/{reminderId}` (`title?`, `remindAt?`, `checklistItemId?`, `version`) → 200; only SCHEDULED (409); stale version → 412.
+- `POST …/reminders/{reminderId}/cancel` → 200 (SCHEDULED → CANCELLED, reason USER). `POST …/reminders/{reminderId}/seen` → 204 (dismisses the in-app "due" banner; any event status).
+- `GET /api/v1/me/reminders?scope=upcoming|due&limit` (≤ 50) → `{ data: ReminderDto[] }`: scheduled across the user's events (soonest first), or sent and not yet seen.
+- Server jobs: due reminders → SENT + N17 (every minute); checklist N16 "due today"/"overdue" once per task per state from 09:00 event-local (every 15 minutes). Auto-cancel: task done or deleted, event cancelled or deleted.
+
 ### Payments (M16; R5, A2, A3, A11)
 The user's **private payment notes** per booking — records only, no money moves, nothing is verified, no notifications (A2). Owner-only through the event (another user's/deleted event or unknown booking → 404). Allowed for CONFIRMED, COMPLETED and CANCELLED bookings (A11) while the event is PLANNING, COMPLETED or CANCELLED. Rate limited (`payments-write`, 120/min); audited (`PAYMENT_NOTE_CREATED/UPDATED/DELETED`, ids and field names only — no amounts or notes).
 - `PaymentDto`: `{ id, amount: Money, paidOn: "YYYY-MM-DD", method: CASH|UPI|BANK_TRANSFER|CARD|CHEQUE|OTHER, kind: ADVANCE|INSTALMENT|FINAL|OTHER, note, version, createdAt }`.

@@ -12,6 +12,7 @@ import { BudgetModule } from './modules/budget/budget.module';
 import { ListingsModule } from './modules/listings/listings.module';
 import { EventVendorsModule } from './modules/event-vendors/event-vendors.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
+import { RemindersModule } from './modules/reminders/reminders.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
@@ -34,6 +35,7 @@ import { UsersModule } from './modules/users/users.module';
     ListingsModule,
     WishlistModule,
     EventVendorsModule,
+    RemindersModule,
   ],
   providers: [
     { provide: APP_PIPE, useFactory: createValidationPipe },

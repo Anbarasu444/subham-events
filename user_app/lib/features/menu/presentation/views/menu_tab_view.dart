@@ -13,6 +13,7 @@ import '../../../budget/presentation/views/budget_view.dart';
 import '../../../checklist/presentation/checklist_navigation.dart';
 import '../../../checklist/presentation/widgets/checklist_progress.dart';
 import '../../../events/presentation/views/planning_event_picker_view.dart';
+import '../../../reminders/presentation/views/schedule_view.dart';
 import '../../../wishlist/presentation/views/saved_vendors_view.dart';
 import 'coming_soon_view.dart';
 
@@ -59,9 +60,11 @@ Widget _budgetPage(BuildContext _) => PlanningEventPickerView(
 
 Widget _savedVendorsPage(BuildContext _) => const SavedVendorsView();
 
+Widget _schedulePage(BuildContext _) => const ScheduleView();
+
 const menuSections = [
   MenuSection('Planning', [
-    MenuEntry('Schedule', Icons.schedule_outlined),
+    MenuEntry('Schedule', Icons.schedule_outlined, page: _schedulePage),
     MenuEntry('Checklist', Icons.checklist_outlined, page: _checklistPage),
     MenuEntry(
       'Budget',

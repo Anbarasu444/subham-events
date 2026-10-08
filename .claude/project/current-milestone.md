@@ -4,61 +4,71 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M16** |
-| Milestone name | Event Payments |
+| Milestone ID | **M17** |
+| Milestone name | Reminders |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M16-event-payments.md` (status: CONFIRMED 2026-10-08) |
+| Spec | `.claude/project/milestones/M17-reminders.md` (status: CONFIRMED 2026-10-08) |
 | Started date | 2026-10-08 |
 | Completed date | — |
-| Approval status | Awaiting `APPROVE MILESTONE M16` (set IN_REVIEW 2026-10-08) |
+| Approval status | Awaiting `APPROVE MILESTONE M17` (set IN_REVIEW 2026-10-08) |
 
 ## Objective
-Private payment notes per booking (R5: no money moves): add/edit/delete, paid and balance per booking, budget Paid/Spent/Outstanding, GI-32 hint.
+Per-event reminders (create, reschedule, cancel, optional checklist link), a due job creating N17, checklist due/overdue alerts (N16), auto-cancel rules; shown on Home, the event screen and Menu → Schedule. Phone pushes from M18 (Option A).
 
 ## Completed work / In-progress work / Blocked work
-- **Database:** migration `1792200000000-EventPaymentNotes` — **the user runs `npm run migration:run`**.
-- **Backend:** payments module under event vendors (list with exact paid/balance/overpaid, create with Idempotency-Key, edit with version, soft delete; booking-keyed so cancelled bookings stay reachable, A11; allowed after the event; paid date not in the future; 100 per booking; audit without amounts or notes; no notifications, A2); `BookingDto.paid`; budget Paid / paidToCancelled / Outstanding / per-category Paid / Spent.
-- **User App:** "Paid ₹X of ₹Y · balance" and a Payments button on every booking (also cancelled); Payments page (totals, list, add/edit sheet, delete confirmation, "for your records — no money is sent" copy); budget lines "of which to cancelled vendors" and "Still to pay vendors"; GI-32 hint in the own-expense sheet.
+- **Database:** migration `1792300000000-Reminders` — **the user runs `npm run migration:run`**.
+- **Backend:** `reminders` module (event list, my upcoming/due, create with Idempotency-Key, reschedule with version, cancel, mark seen; owner-only; PLANNING-only writes; audit without titles), `ReminderJobs` (due reminders every minute → SENT + N17; N16 every 15 minutes from 09:00 event-local, once per task per state), auto-cancel hooks in checklist (done/deleted) and events (cancelled/deleted).
+- **User App:** Reminders card in the event Overview (add/edit/cancel), reminder sheet (title, date/time, task), "Remind me" on checklist tasks (6 PM the day before), Menu → Schedule, Home banner for due reminders (Dismiss) and the next one.
 - Nothing blocked.
 
 ## Tests completed
-- Backend: unit 74/74 (incl. paid/cancelled/outstanding figures), e2e 113/113 (incl. 7 M16 tests: exact totals and budget, overpaid, edit/412/soft delete with audit free of amounts and notes, privacy (no notifications, 404 for others), validation incl. future date and 428, A11 cancelled bookings, after completion / deleted event); lint, typecheck and build clean.
-- User App: `flutter analyze` clean; `flutter test` 258/258 (payments JSON, budget fields, form key reuse and zero amount; Payments page add/edit/overpaid/delete, retry, 200 % text; GI-32 hint; booking panel paid line).
-- Not verified: signed-in device run.
+- Backend: unit 74/74, e2e 120/120 (incl. 7 M17 tests: create/list/reschedule/cancel with audit free of titles, validation incl. past/no-offset/unknown task/428, owner-only and read-only with event-cancel auto-cancel, due job fires exactly once with N17 and the due list/seen flow, my upcoming across events, task done/deleted auto-cancel, N16 at 09:00 once per state and the next day's overdue); lint, typecheck and build clean.
+- User App: `flutter analyze` clean; `flutter test` 268/268 (default time rules, UTC round-trip, form past-time and key reuse; screens: add/cancel in Overview, "Remind me" prefill, read-only, Schedule order, Home due banner dismiss, 200 % text).
+- Not verified: signed-in device run; real-time firing on a running server (jobs tested directly).
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security / privacy review | Done — owner-only, composite FK to the booking/event, no notifications, audit without amounts or notes, Idempotency-Key on create |
-| Payment / money review | Done — exact decimals, no money movement, separate from platform fees (payment-architecture §2.3), A11 figures tested |
-| Performance review | Done — paid sums per booking in one grouped query; budget in one query with indexed sub-sums |
-| UI review | Done — clear "no money is sent" copy, balance/overpaid, confirmations, 200 % text |
+| Security / privacy review | Done — owner-only, composite FK to tasks, titles not audited, Idempotency-Key on create |
+| Performance review | Done — partial index for the due job, batched SKIP LOCKED updates; N16 set-based insert with conflict skip |
+| UI review | Done — honest "phone alerts arrive with a later update" copy, confirmation on cancel, 200 % text |
 | Code review | Done (self-review) |
-| Notification review | Done — none by design (A2) |
-| Documentation | Done (api-contracts, database-schema, notification-matrix, payment-architecture §2.3, flutter.md §6i, known-issues GI-32 mitigated, spec, progress) |
+| Notification review | Done — N16/N17 in-app; pushes at M18; no quiet hours beyond 09:00 for N16 (answer 5) |
+| Documentation | Done (api-contracts, database-schema, notification-matrix, flutter.md §6j, spec, progress) |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-34 (GI-32 mitigated).
-- Business rules on hold: R6 (before M28/M29), R10 (before M26). R11 final policy by M21. A2, A3, A11 confirmed.
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-34.
+- Business rules on hold: R6 (before M28/M29), R10 (before M26). R11 final policy by M21.
 
 ## Files changed
-- database: `database/migrations/1792200000000-EventPaymentNotes.ts`
-- backend: `src/modules/event-vendors/{payment-note.entity.ts,payments.dto.ts,payments.service.ts,payments.controller.ts,event-vendors.module.ts,event-vendors.service.ts,event-vendors.dto.ts}`, `src/modules/budget/{budget.service.ts,budget.dto.ts,budget.service.spec.ts}`, `test/payments.e2e-spec.ts`, TRUNCATE lists in `test/{db-harness,auth.e2e-spec,events.e2e-spec}.ts`
-- user_app: `lib/features/event_vendors/{domain/payment.dart,domain/event_vendor.dart,data/payments_repository_impl.dart,data/event_vendors_repository_impl.dart,presentation/controllers/payments_controller.dart,presentation/controllers/payment_form_controller.dart,presentation/widgets/payment_sheet.dart,presentation/views/payments_view.dart,presentation/widgets/event_vendor_slivers.dart}`, `lib/features/budget/{domain/budget.dart,data/budget_model.dart,presentation/widgets/budget_slivers.dart,presentation/widgets/expense_sheet.dart}`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/payments/payments_test.dart`, `test/helpers/{fake_payments.dart,fake_event_vendors.dart}`, `test/features/engagement/engagement_test.dart`
-- docs: api-contracts, database-schema, notification-matrix, payment-architecture, known-issues, architecture/flutter.md, M16 spec, milestones.md, current-milestone, progress
+- database: `database/migrations/1792300000000-Reminders.ts`
+- backend: `src/modules/reminders/*`, `src/modules/checklist/checklist.service.ts` (auto-cancel), `src/modules/events/events.service.ts` (auto-cancel), `src/app.module.ts`, `test/reminders.e2e-spec.ts`, TRUNCATE lists in `test/{db-harness,auth.e2e-spec,events.e2e-spec}.ts`
+- user_app: `lib/features/reminders/**`, `lib/features/events/presentation/views/event_detail_view.dart`, `lib/features/checklist/presentation/views/checklist_view.dart`, `lib/features/menu/presentation/views/menu_tab_view.dart`, `lib/features/home/presentation/views/home_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/reminders/reminders_test.dart`, `test/helpers/{fake_reminders.dart,fake_event_vendors.dart}`, `test/features/shell/shell_test.dart`
+- docs: api-contracts, database-schema, notification-matrix, architecture/flutter.md, M17 spec, milestones.md, current-milestone, progress
 
 ## Files pending approval
-- M14–M16 files are uncommitted unless the user has committed them.
+- M14–M16 are committed and pushed by the user (`stg`). M17 files are uncommitted.
 
 ## Next milestone
-- M17 — Reminders (spec drafted at the M16 gate).
+- M18 — Notification Center + FCM (spec drafted at the M17 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M16 Event Payments: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-08 |
+| Completed / approved | 2026-10-08 — `APPROVE MILESTONE M16` issued by the user |
+| Spec | `milestones/M16-event-payments.md` (CONFIRMED) |
+
+Evidence at approval: private payment notes per booking (add/edit/delete, exact paid/balance/overpaid), budget Paid/Spent/Outstanding/paid-to-cancelled, GI-32 hint, no notifications (A2); backend 74 unit + 113 e2e, Flutter 258 tests; reviews done. Not verified: signed-in device run. Dev DB migration `1792200000000-EventPaymentNotes` to be run by the user.
 
 ## Previous milestone — M15 Quotations & Booking: COMPLETED
 

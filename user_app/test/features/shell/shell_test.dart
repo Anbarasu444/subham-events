@@ -25,7 +25,10 @@ import '../../helpers/fake_budget_repository.dart';
 import '../../helpers/fake_checklist_repository.dart';
 import 'package:user_app/features/explore/domain/listing.dart';
 
+import 'package:user_app/features/reminders/domain/reminder.dart';
+
 import '../../helpers/fake_discovery_repository.dart';
+import '../../helpers/fake_reminders.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/recording_reporter.dart';
 
@@ -286,11 +289,11 @@ void main() {
     );
     expect(find.text('Planning'), findsOneWidget);
     expect(find.text('Account'), findsOneWidget);
-    await tester.tap(find.text('Schedule'));
+    await tester.tap(find.text('Messages'));
     await tester.pumpAndSettle();
     expect(find.text('Coming soon'), findsOneWidget);
     expect(
-      find.text('Schedule will be available in a future update.'),
+      find.text('Messages will be available in a future update.'),
       findsOneWidget,
     );
   });
@@ -303,7 +306,7 @@ void main() {
       initial: ShellTab.menu,
       state: const SignedInSession(_profile),
     );
-    await tester.tap(find.text('Schedule'));
+    await tester.tap(find.text('Messages'));
     await tester.pumpAndSettle();
     expect(find.text('Coming soon'), findsOneWidget);
 
@@ -343,6 +346,7 @@ void main() {
     );
     Get.put<BudgetRepository>(FakeBudgetRepository());
     Get.put<DiscoveryRepository>(FakeDiscoveryRepository());
+    Get.put<RemindersRepository>(FakeRemindersRepository());
     await tester.pumpWidget(
       GetMaterialApp(
         initialRoute: AppRoutes.home,

@@ -1,3 +1,5 @@
+import '../../../reminders/presentation/controllers/reminder_controllers.dart';
+import '../../../reminders/presentation/widgets/reminder_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:get/get.dart';
@@ -281,7 +283,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-enum _ItemAction { edit, up, down, delete }
+enum _ItemAction { edit, remind, up, down, delete }
 
 class _ItemTile extends StatelessWidget {
   const _ItemTile({
@@ -384,6 +386,11 @@ class _ItemTile extends StatelessWidget {
                             value: _ItemAction.edit,
                             child: Text('Edit'),
                           ),
+                          if (!item.isDone)
+                            const PopupMenuItem(
+                              value: _ItemAction.remind,
+                              child: Text('Remind me'),
+                            ),
                           if (!item.isDone && index > 0)
                             const PopupMenuItem(
                               value: _ItemAction.up,
@@ -463,10 +470,35 @@ class _ItemTile extends StatelessWidget {
     if (saved != null) controller.applySaved(saved);
   }
 
+  /// "Remind me" (M17 answer 6): 6 PM the day before the due date.
+  Future<void> _remind(BuildContext context) async {
+    final saved = await showReminderSheet(
+      context,
+      eventId: controller.eventId,
+      tasks: [
+        for (final i in controller.checklist?.items ?? const <ChecklistItem>[])
+          if (!i.isDone) (id: i.id, title: i.title),
+      ],
+      title: item.title,
+      at: defaultReminderTime(item.dueDate, DateTime.now()),
+      taskId: item.id,
+    );
+    if (saved == null || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Reminder set for ${formatReminderTime(context, saved.remindAt)}.',
+        ),
+      ),
+    );
+  }
+
   Future<void> _onAction(BuildContext context, _ItemAction action) async {
     switch (action) {
       case _ItemAction.edit:
         await _edit(context);
+      case _ItemAction.remind:
+        await _remind(context);
       case _ItemAction.up:
         await _report(context, controller.movePending(index, index - 1));
       case _ItemAction.down:

@@ -5,7 +5,10 @@ import 'package:user_app/core/error/result.dart';
 import 'package:user_app/core/money/money.dart';
 import 'package:user_app/features/event_vendors/domain/event_vendor.dart';
 import 'package:user_app/features/explore/domain/listing.dart';
+import 'package:user_app/features/reminders/domain/reminder.dart';
 import 'package:user_app/features/wishlist/domain/wishlist.dart';
+
+import 'fake_reminders.dart';
 import 'package:user_app/features/wishlist/presentation/controllers/wishlist_controller.dart';
 
 /// In-memory event vendors following the server rules (enough for widgets).
@@ -435,5 +438,10 @@ registerEngagement({
             ),
           )
           as FakeEventVendorsRepository;
+  if (!Get.isRegistered<RemindersRepository>()) {
+    Get.put<RemindersRepository>(
+      FakeRemindersRepository(readOnlyEvents: readOnlyEvents),
+    );
+  }
   return (wishlist: wishlist, vendors: vendors);
 }

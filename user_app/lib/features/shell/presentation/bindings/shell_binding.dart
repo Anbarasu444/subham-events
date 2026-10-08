@@ -26,6 +26,8 @@ import '../../../explore/data/discovery_repository_impl.dart';
 import '../../../explore/domain/listing.dart';
 import '../../../explore/presentation/controllers/explore_controller.dart';
 import '../../../home/data/empty_section_source.dart';
+import '../../../reminders/data/reminders_repository_impl.dart';
+import '../../../reminders/domain/reminder.dart';
 import '../../../wishlist/data/wishlist_repository_impl.dart';
 import '../../../wishlist/domain/wishlist.dart';
 import '../../../wishlist/presentation/controllers/wishlist_controller.dart';
@@ -111,6 +113,11 @@ class ShellBinding extends Bindings {
         Get.find<ApiClient>(),
         Get.find<EventsRepository>().notifyChanged,
       ),
+      fenix: true,
+    );
+    // Reminders (M17).
+    Get.lazyPut<RemindersRepository>(
+      () => RemindersRepositoryImpl(Get.find<ApiClient>()),
       fenix: true,
     );
     Get.lazyPut(

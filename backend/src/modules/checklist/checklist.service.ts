@@ -5,6 +5,7 @@ import { AppException } from '../../common/errors/app.exception';
 import { ErrorCode } from '../../common/errors/error-codes';
 import { uuidv7 } from '../../common/ids/uuid-v7';
 import { AuditService } from '../audit/audit.service';
+import { cancelReminders } from '../reminders/reminders.service';
 import { localDate } from '../events/event-rules';
 import { EventEntity } from '../events/event.entity';
 import type { RequestContext } from '../events/events.service';
@@ -185,6 +186,15 @@ export class ChecklistService {
     }
     item.status = target;
     item.completedAt = target === 'DONE' ? now : null;
+    // A finished task's reminders are no longer needed (§4.13).
+    if (target === 'DONE') {
+      await cancelReminders(
+        manager,
+        { checklistItemId: itemId },
+        'TASK_DONE',
+        now,
+      );
+    }
     const saved = await manager.getRepository(ChecklistItemEntity).save(item);
     await this.record(
       manager,
@@ -267,6 +277,12 @@ export class ChecklistService {
   ): Promise<void> {
     await this.lockEditableEvent(manager, userId, eventId);
     const item = await this.findItem(manager, eventId, itemId);
+    await cancelReminders(
+      manager,
+      { checklistItemId: itemId },
+      'TASK_DELETED',
+      now,
+    );
     item.deletedAt = now;
     await manager.getRepository(ChecklistItemEntity).save(item);
     await this.record(

@@ -175,6 +175,10 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 
 - `features/event_vendors`: `PaymentsRepository` (changes call `EventsRepository.notifyChanged`), `PaymentsController` + `PaymentsView` (totals with balance/overpaid, list, delete confirmation), `PaymentFormController` + `showPaymentSheet` (exact amount > 0, date not in the future, method, kind, note; same-input retries reuse the Idempotency-Key). The booking panel shows "Paid ₹X of ₹Y · balance/overpaid" and a Payments button (also for cancelled bookings, A11). Budget summary adds "of which to cancelled vendors" and "Still to pay vendors"; the expense sheet hints when its category has a booked vendor (GI-32).
 
+## 6j. Reminders (M17)
+
+- `features/reminders`: `RemindersRepository` (own `changes` stream), `EventRemindersController` + `RemindersSection` in the event Overview (add, edit, cancel with confirmation, read only when not planning), `ReminderFormController` + `showReminderSheet` (title, date and time pickers, optional task; future time only; same-input retries reuse the Idempotency-Key; times sent as UTC), `defaultReminderTime` (6 PM the day before the due date), checklist "Remind me" action, Menu → `ScheduleView` (all upcoming), Home `DueRemindersBanner` (due unseen reminders with Dismiss, plus the next one). No local device notifications (answer 1, Option A); pushes come with M18.
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |
