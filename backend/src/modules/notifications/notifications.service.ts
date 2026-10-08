@@ -17,6 +17,8 @@ export interface InAppNotification {
   entityType?: string;
   entityId?: string;
   deepLink?: string;
+  /** Structured fields for the client (no secrets, minimal personal data). */
+  data?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -43,7 +45,7 @@ export class NotificationsService {
       title: n.title,
       body: n.body,
       deepLink: n.deepLink ?? null,
-      data: {},
+      data: (n.data ?? {}) as NotificationEntity['data'] & object,
       pushPolicy: 'NEVER',
       deliveryStatus: 'NOT_REQUIRED',
     });

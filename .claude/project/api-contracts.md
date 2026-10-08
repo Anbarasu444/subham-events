@@ -321,6 +321,26 @@ Public (guests allowed), read only, rate limited 120/min per IP (`listings-read`
 ### GET /api/v1/listings/{id}/related (M13)
 - Public, rate limited. Response 200 `{ data: { sameVendor: ListingCardDto[], similar: ListingCardDto[] } }`: up to 6 other visible listings of the same vendor, and up to 6 visible listings of **other** vendors in the same category whose city or service areas include the listing's city; both newest first. 404 as above.
 
+### Saved vendors (M14)
+Signed-in only; private to the user; rate limited (`wishlist-write`, 120/min) on writes.
+- `GET /api/v1/me/wishlist?limit&cursor` → `{ data: [{ listing: ListingCardDto, isAvailable, savedAt }], meta.page }`, newest first. `isAvailable: false` when the listing was hidden after saving.
+- `GET /api/v1/me/wishlist/ids` → `{ data: string[] }` (all saved listing ids, ≤ 500; heart state).
+- `PUT /api/v1/me/wishlist/{listingId}` → 204, idempotent; only visible listings (else 404); at most 500 (409 `LIMIT_REACHED`). `DELETE …` → 204 (soft delete; no-op if not saved).
+- `GET /api/v1/listings?saved=true` (optional auth): only the caller's saved listings; guests → 401 `AUTH_REQUIRED`.
+
+### Event vendors (M14)
+Owner-only through the event (another user's/deleted event → 404); writes need a PLANNING event (409 `INVALID_STATE_TRANSITION`), rate limited (`event-vendors-write` 120/min) and audited (`EVENT_VENDOR_ADDED/UPDATED/REMOVED`, ids and field names only). No amounts here (agreed amounts are bookings, M15).
+- `EventVendorDto`: `{ id, status: ADDED|ENQUIRED|QUOTED|BOOKED|COMPLETED|CANCELLED, notes (private), listing: ListingCardDto, isAvailable, enquiries: EnquiryDto[] (newest first), canEnquire, version, createdAt }`; `EnquiryDto`: `{ id, status: OPEN|QUOTED|DECLINED|CLOSED, message, preferredDate, closedBy: USER|VENDOR|SYSTEM|null, closedAt, createdAt }`.
+- `GET /api/v1/events/{id}/vendors` → `{ data: { eventId, isEditable, vendors: EventVendorDto[] } }` (REMOVED ones excluded).
+- `POST /api/v1/events/{id}/vendors` `{ listingId }` → 201 (added) or **200 with the existing vendor** (already on the event; naturally idempotent). Visible listings only (404); your own listing → 403 `FORBIDDEN_PERMISSION` (A12); at most 100 per event.
+- `PATCH /api/v1/events/{id}/vendors/{eventVendorId}` `{ notes?, version }` → 200; stale version → 412.
+- `DELETE …/{eventVendorId}` → 204: REMOVED (from ADDED/ENQUIRED/QUOTED; else 409); its live enquiry is closed (USER). A removed listing can be added again (new row).
+
+### Enquiries (M14)
+- `POST /api/v1/events/{id}/vendors/{eventVendorId}/enquiries` — **Idempotency-Key required** (428 without) — `{ message (10–1000, trimmed), preferredDate? (YYYY-MM-DD, today or later in the event's zone) }` → 201 `{ data: EventVendorDto }` (status → ENQUIRED). One live (OPEN/QUOTED) enquiry per event vendor (409 `DUPLICATE`); listing must still be visible (404); own listing 403; booked vendor 409. Rate limited `enquiries-write` 20/min. Creates **N9** (in-app, audience VENDOR) for the vendor's user with A9 fields only (`customerName, eventType, eventDate, city, guestCountEstimate, listingId`); push later (M36). Audited `ENQUIRY_SENT` (ids only).
+- `POST …/enquiries/{enquiryId}/close` → 200 `{ data: EventVendorDto }`: CLOSED (USER); the event vendor returns to ADDED so a new enquiry can be sent. Already closed → 409.
+- Cancelling or deleting an event closes its live enquiries (SYSTEM).
+
 ### GET /api/v1/listings/cities
 - Response 200 `{ data: string[] }`: the cities and service areas of visible listings, case-insensitively unique, alphabetical, at most 500. `Cache-Control: public, max-age=300`.
 

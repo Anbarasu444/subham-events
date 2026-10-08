@@ -162,6 +162,11 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 - Listing details (M13): `ListingNavigation.open` pushes `ListingDetailView` in the current tab (cards everywhere use it). `ListingDetailController` shows the tapped card at once, loads details and related lists separately, reloads details on sign-in/out (contact appears only for signed-in users, A10), maps 404 to "no longer listed". Call/email/share go through `ExternalActions` (`call`, `email`, `shareText`); Android declares `tel`/`mailto` queries.
 - Home "Explore vendors" (`ExploreSectionSource`, guests too): categories plus three listings in the next event's city, falling back to all cities when none match.
 
+## 6g. Saved vendors, event vendors and enquiries (M14)
+
+- `features/wishlist`: `WishlistRepository`; `WishlistController` (session-wide, fenix) holds saved ids for every heart, toggles optimistically with rollback and a generation guard, clears on sign-out and reloads on sign-in; `SaveButton` (guests → "Sign in to save vendors"); Menu → `SavedVendorsView` (paged, "No longer listed" items). Explore has a "Saved" filter chip (`ListingQuery.saved`).
+- `features/event_vendors`: `EventVendorsRepository` (changes call `EventsRepository.notifyChanged`); `EventVendorsController` per event (Vendors tab); `eventVendorSlivers` (status chips, private note dialog, remove/close confirmations, honest "the vendor will reply in the app" copy); `showEnquirySheet` + `EnquiryFormController` (editable starter text with only A9 details, optional preferred date, same-input retries reuse the `Idempotency-Key`); `addListingToEvent` (details page; one planning event → direct, else a chooser; Undo).
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

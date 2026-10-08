@@ -36,13 +36,15 @@ const Id = () =>
 export class ListingsController {
   constructor(private readonly listings: ListingsService) {}
 
+  /** Public; `saved=true` needs a signed-in caller. */
   @Get()
-  @Public()
+  @OptionalAuth()
   @RateLimit(READ_LIMIT)
   async search(
     @Query() query: ListListingsQuery,
+    @CurrentUser() user: RequestUser | undefined,
   ): Promise<Enveloped<ListingCardDto[]>> {
-    const { items, page } = await this.listings.search(query);
+    const { items, page } = await this.listings.search(query, user?.userId);
     return new Enveloped(items, { page });
   }
 

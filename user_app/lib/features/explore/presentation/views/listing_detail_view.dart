@@ -9,6 +9,9 @@ import '../../../../core/theme/tokens.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/async_state_view.dart';
 import '../../../shell/presentation/controllers/shell_controller.dart';
+import '../../../event_vendors/presentation/widgets/add_to_event_sheet.dart';
+import '../../../wishlist/presentation/controllers/wishlist_controller.dart';
+import '../../../wishlist/presentation/widgets/save_button.dart';
 import '../../domain/listing.dart';
 import '../controllers/listing_detail_controller.dart';
 import '../widgets/category_icon.dart';
@@ -56,6 +59,8 @@ class ListingDetailView extends StatelessWidget {
         appBar: AppBar(
           title: Text(card?.category.name ?? 'Vendor'),
           actions: [
+            if (card != null && Get.isRegistered<WishlistController>())
+              SaveButton(listingId: card.id, name: card.title),
             if (card != null)
               Builder(
                 builder: (buttonContext) => IconButton(
@@ -101,6 +106,16 @@ class ListingDetailView extends StatelessWidget {
                     sliver: SliverList.list(
                       children: [
                         _Summary(card: card),
+                        if (data != null) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          AppButton(
+                            label: 'Add to event',
+                            icon: Icons.playlist_add,
+                            onPressed: () => c.signedIn
+                                ? addListingToEvent(context, card)
+                                : _askToSignIn(context),
+                          ),
+                        ],
                         const SizedBox(height: AppSpacing.md),
                         ..._details(context, c, state, data),
                       ],
@@ -137,6 +152,28 @@ class ListingDetailView extends StatelessWidget {
       );
     }),
   );
+
+  void _askToSignIn(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Sign in to add vendors to your events.'),
+          action: SnackBarAction(
+            label: 'Sign in',
+            onPressed: () {
+              final tab = Get.isRegistered<ShellController>()
+                  ? Get.find<ShellController>().current.value
+                  : null;
+              Get.toNamed<void>(
+                AppRoutes.signIn,
+                parameters: {if (tab != null) 'returnTo': AppRoutes.tab(tab)},
+              );
+            },
+          ),
+        ),
+      );
+  }
 
   List<Widget> _details(
     BuildContext context,

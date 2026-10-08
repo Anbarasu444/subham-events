@@ -62,6 +62,7 @@ enum ListingSort {
 /// Discovery filters; all optional and combined.
 class ListingQuery {
   const ListingQuery({
+    this.saved = false,
     this.categoryId,
     this.city,
     this.text,
@@ -70,6 +71,8 @@ class ListingQuery {
     this.sort = ListingSort.relevance,
   });
 
+  /// Only the signed-in user's saved listings (M14).
+  final bool saved;
   final String? categoryId;
   final String? city;
   final String? text;
@@ -78,6 +81,7 @@ class ListingQuery {
   final ListingSort sort;
 
   bool get hasFilters =>
+      saved ||
       categoryId != null ||
       city != null ||
       text != null ||
@@ -86,6 +90,7 @@ class ListingQuery {
       sort != ListingSort.relevance;
 
   ListingQuery copyWith({
+    bool? saved,
     String? Function()? categoryId,
     String? Function()? city,
     String? Function()? text,
@@ -93,6 +98,7 @@ class ListingQuery {
     Money? Function()? maxPrice,
     ListingSort? sort,
   }) => ListingQuery(
+    saved: saved ?? this.saved,
     categoryId: categoryId == null ? this.categoryId : categoryId(),
     city: city == null ? this.city : city(),
     text: text == null ? this.text : text(),
@@ -104,6 +110,7 @@ class ListingQuery {
   @override
   bool operator ==(Object other) =>
       other is ListingQuery &&
+      other.saved == saved &&
       other.categoryId == categoryId &&
       other.city == city &&
       other.text == text &&
@@ -113,7 +120,7 @@ class ListingQuery {
 
   @override
   int get hashCode =>
-      Object.hash(categoryId, city, text, minPrice, maxPrice, sort);
+      Object.hash(saved, categoryId, city, text, minPrice, maxPrice, sort);
 }
 
 /// Vendor phone/email (A10): only sent to signed-in users.

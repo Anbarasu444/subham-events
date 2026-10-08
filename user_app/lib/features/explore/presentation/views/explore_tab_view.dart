@@ -205,6 +205,24 @@ class _ActiveFilters extends StatelessWidget {
             label: const Text('Filters'),
             onPressed: onOpen,
           ),
+          FilterChip(
+            avatar: q.saved
+                ? null
+                : const Icon(Icons.favorite_border, size: 18),
+            label: const Text('Saved'),
+            selected: q.saved,
+            onSelected: (on) {
+              if (!controller.setSaved(on)) {
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text('Sign in to see your saved vendors.'),
+                    ),
+                  );
+              }
+            },
+          ),
           if (q.city != null)
             InputChip(
               avatar: const Icon(Icons.place_outlined, size: 18),

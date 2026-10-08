@@ -4,6 +4,8 @@ import type { ListingSort } from './listings.dto';
 
 /** Validated, normalised discovery filters. */
 export interface ListingFilters {
+  /** Only listings this user saved (M14 "Saved" filter). */
+  savedByUserId?: string;
   categoryId?: string;
   city?: string;
   q?: string;
@@ -83,6 +85,11 @@ export class ListingsRepository {
       return `$${params.length}`;
     };
     const where = [VISIBLE];
+    if (filters.savedByUserId) {
+      where.push(
+        `EXISTS (SELECT 1 FROM wishlist_items w WHERE w.listing_id = l.id AND w.user_id = ${p(filters.savedByUserId)}::uuid AND w.deleted_at IS NULL)`,
+      );
+    }
     if (filters.categoryId)
       where.push(`l.category_id = ${p(filters.categoryId)}::uuid`);
     if (filters.city) {
@@ -151,6 +158,24 @@ export class ListingsRepository {
         ORDER BY ${order}
         LIMIT ${p(limit)}::int`,
       params,
+    );
+  }
+
+  /**
+   * Cards for [ids] whether visible or not, with `is_available` (M14:
+   * saved and event vendors show listings that were hidden since).
+   */
+  cardsByIds(
+    ids: string[],
+  ): Promise<(ListingRow & { is_available: boolean })[]> {
+    if (ids.length === 0) return Promise.resolve([]);
+    return this.dataSource.query(
+      `SELECT ${CARD_COLUMNS}, 0 AS rank, (${VISIBLE}) AS is_available
+         FROM vendor_listings l
+         JOIN vendors v ON v.id = l.vendor_id
+         JOIN vendor_categories c ON c.id = l.category_id
+        WHERE l.id = ANY($1::uuid[])`,
+      [ids],
     );
   }
 

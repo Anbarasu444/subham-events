@@ -36,6 +36,11 @@ export class ListListingsQuery {
   @IsUUID()
   categoryId?: string;
 
+  /** `true` = only the caller's saved listings (sign-in required, M14). */
+  @IsOptional()
+  @IsIn(['true'])
+  saved?: 'true';
+
   /** Matches the listing's city or one of its service areas (O2). */
   @IsOptional()
   @Transform(trimToUndefined)

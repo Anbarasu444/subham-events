@@ -34,7 +34,7 @@
 | A5 | Reviews are allowed only for a **completed booking**, one per booking; the user cannot edit after submission (edits would re-enter moderation); vendor replies are out of scope for now. | Review eligibility |
 | A6 | RSVP is anonymous-friendly: guest enters **name (required)**, response **Attending / Not attending / Maybe**, **guest count (default 1)**, optional message; no login; one RSVP per browser/device (re-submitting updates it). No phone/email collected. | Privacy, data model §5.15 |
 | A7 | A **booking is completed** automatically the day after the service date (job) unless cancelled; the user can also mark it completed earlier. Either party can **cancel** a confirmed booking with a reason. | Booking lifecycle §4.6 |
-| A9 | **Vendor view of the user:** before a booking is CONFIRMED the vendor sees the user's display name, event type, event date, city and guest estimate only; after CONFIRMED also the user's phone number and venue name/address. Never: email, budget, payment notes, other vendors, `event_vendors.notes` (private to the user). | Privacy (security review M1) |
+| A9 | ✅ (confirmed by the user 2026-10-08, M14 spec) **Vendor view of the user:** before a booking is CONFIRMED the vendor sees the user's display name, event type, event date, city and guest estimate only; after CONFIRMED also the user's phone number and venue name/address. Never: email, budget, payment notes, other vendors, `event_vendors.notes` (private to the user). | Privacy (security review M1) |
 | A10 | ✅ **Vendor business phone/email** are shown on approved listings to **signed-in users only** (guests are asked to sign in), with tap-to-call / tap-to-email (user answer, M13 spec 2026-10-08). | Privacy |
 | A11 | Budget "Paid" counts **all** of the user's payment notes (including on cancelled bookings); notes on cancelled bookings are shown separately as "paid to cancelled vendors". Notes can still be added to a cancelled booking (e.g. a refund-less advance). | Budget §7 |
 | A12 | **Self-dealing ban:** a user cannot enquire with, book or review their own vendor listing; reviews only after the booking's service date. | Review integrity (security review H1) |
@@ -183,6 +183,8 @@ As `payment-architecture.md` §1.3: `CREATED → PENDING → SUCCESS | EXPIRED`;
 - `ADDED | ENQUIRED | QUOTED → REMOVED` (user).
 - `BOOKED → CANCELLED` (booking cancelled) — the user may enquire again (new enquiry) → `ENQUIRED`.
 - **Agreed budget:** `bookings.agreed_amount` (copied from the accepted quotation, immutable per booking) is the **only authoritative value**; it never comes from the listing starting price. `event_vendors` holds no amount column — budget queries read the active booking. A re-booking after cancellation creates a new booking with its own amount. ⏸ R3 may add revision rules.
+
+**M14 implementation notes:** a REMOVED event vendor frees the listing (partial unique index), so it can be added again as a new row; closing the live enquiry by the user returns the event vendor to ADDED; deleting (as well as cancelling) an event closes its live enquiries (SYSTEM).
 
 ### 4.8 Enquiry (`enquiries.status`)
 - `OPEN → QUOTED` (vendor sends a quotation) ⇒ N10.

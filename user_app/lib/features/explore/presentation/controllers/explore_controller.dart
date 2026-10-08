@@ -128,6 +128,13 @@ class ExploreController extends GetxController {
     _debounce = Timer(searchDelay, search);
   }
 
+  /// "Saved" chip; guests are asked to sign in (returns false).
+  bool setSaved(bool saved) {
+    if (saved && !_session.isSignedIn) return false;
+    _apply(query.value.copyWith(saved: saved));
+    return true;
+  }
+
   void setCategory(String? categoryId) =>
       _apply(query.value.copyWith(categoryId: () => categoryId));
 

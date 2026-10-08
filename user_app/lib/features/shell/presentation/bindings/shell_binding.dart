@@ -18,10 +18,15 @@ import '../../../events/data/datasources/events_remote_data_source.dart';
 import '../../../events/data/repositories/events_repository_impl.dart';
 import '../../../events/domain/repositories/events_repository.dart';
 import '../../../events/presentation/controllers/my_events_controller.dart';
+import '../../../event_vendors/data/event_vendors_repository_impl.dart';
+import '../../../event_vendors/domain/event_vendor.dart';
 import '../../../explore/data/discovery_repository_impl.dart';
 import '../../../explore/domain/listing.dart';
 import '../../../explore/presentation/controllers/explore_controller.dart';
 import '../../../home/data/empty_section_source.dart';
+import '../../../wishlist/data/wishlist_repository_impl.dart';
+import '../../../wishlist/domain/wishlist.dart';
+import '../../../wishlist/presentation/controllers/wishlist_controller.dart';
 import '../../../home/presentation/controllers/home_controller.dart';
 
 import '../controllers/shell_controller.dart';
@@ -76,6 +81,25 @@ class ShellBinding extends Bindings {
         Get.find<DiscoveryRepository>(),
         Get.find<EventsRepository>(),
         Get.find<SessionService>(),
+      ),
+      fenix: true,
+    );
+    // Saved vendors and event vendors / enquiries (M14).
+    Get.lazyPut<WishlistRepository>(
+      () => WishlistRepositoryImpl(Get.find<ApiClient>()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => WishlistController(
+        Get.find<WishlistRepository>(),
+        Get.find<SessionService>(),
+      ),
+      fenix: true,
+    );
+    Get.lazyPut<EventVendorsRepository>(
+      () => EventVendorsRepositoryImpl(
+        Get.find<ApiClient>(),
+        Get.find<EventsRepository>().notifyChanged,
       ),
       fenix: true,
     );

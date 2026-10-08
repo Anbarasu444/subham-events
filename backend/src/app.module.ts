@@ -10,6 +10,8 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BudgetModule } from './modules/budget/budget.module';
 import { ListingsModule } from './modules/listings/listings.module';
+import { EventVendorsModule } from './modules/event-vendors/event-vendors.module';
+import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
@@ -30,6 +32,8 @@ import { UsersModule } from './modules/users/users.module';
     CategoriesModule,
     BudgetModule,
     ListingsModule,
+    WishlistModule,
+    EventVendorsModule,
   ],
   providers: [
     { provide: APP_PIPE, useFactory: createValidationPipe },

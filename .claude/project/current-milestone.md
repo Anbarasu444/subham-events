@@ -4,58 +4,71 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M13** |
-| Milestone name | Vendor Details |
+| Milestone ID | **M14** |
+| Milestone name | Wishlist / Contact / Enquiry |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M13-vendor-details.md` (status: CONFIRMED 2026-10-08) |
+| Spec | `.claude/project/milestones/M14-wishlist-contact-enquiry.md` (status: CONFIRMED 2026-10-08) |
 | Started date | 2026-10-08 |
 | Completed date | — |
-| Approval status | Awaiting `APPROVE MILESTONE M13` (set IN_REVIEW 2026-10-08) |
+| Approval status | Awaiting `APPROVE MILESTONE M14` (set IN_REVIEW 2026-10-08) |
 
 ## Objective
-Tapping a vendor card opens a details page: listing, vendor (contact for signed-in users, A10), more from the vendor and similar vendors; guests allowed.
+Save listings (wishlist), add vendors to an event (event vendors), send and close enquiries (vendor replies come with the Vendor App); N9 in-app record for vendors (A9 fields only).
 
 ## Completed work / In-progress work / Blocked work
-- **Backend:** `@OptionalAuth()` guard mode (guest without a token; signed-in user identified; unregistered token → guest; bad token → 401); `GET /listings/{id}` (visible only, else 404; vendor profile; contact only for signed-in users; no private fields) and `GET /listings/{id}/related` (same vendor / similar by category + city or service area, 6 each). No schema change.
-- **User App:** listing details page (category-icon header, title, vendor, "Starting from" with "final price is agreed with the vendor" note, place and service areas, description, About the vendor, tap-to-call / tap-to-email for signed-in users, "Sign in to see contact details" for guests, Share as text, More from this vendor, Similar vendors, refresh, stale/error/retry and "no longer listed" states); every vendor card (Explore, Home, related lists) opens it; the M12 "coming soon" note is gone. `ExternalActions` gains `call`/`email`; Android `tel`/`mailto` queries.
+- **Database:** migration `1792000000000-WishlistEventVendorsEnquiries` (`wishlist_items`, `event_vendors`, `enquiries` with composite FK and partial unique indexes) — **the user runs `npm run migration:run` on the dev DB**.
+- **Backend:** `wishlist` module (list/ids/save/remove, 500 max) and `listings?saved=true`; `event-vendors` module (list/add/notes/remove; enquiries send with Idempotency-Key, close); A12 own-listing block; N9 in-app notification with A9 fields only (`NotificationsService` gained optional `data`); event cancel/delete closes live enquiries; audit without private text.
+- **User App:** heart on every vendor card and the details page (guests asked to sign in), Menu → Saved vendors, Explore "Saved" filter chip, "Add to event" on the details page (single event direct, chooser, Undo), event Vendors tab (status, private note, remove, send/close enquiry with honest copy), enquiry sheet (editable starter text, preferred date).
 - Nothing blocked.
 
 ## Tests completed
-- Backend: unit 72/72 (incl. `@OptionalAuth` guard cases), e2e 82/82 (incl. 4 details tests: guest vs signed-in vs unregistered vs expired-token contact, no private fields, 404 for draft/suspended/unknown/malformed/archived-category, related same-vendor and similar by city/service area); lint and typecheck clean.
-- User App: `flutter analyze` clean; `flutter test` 228/228 (detail JSON with/without contact, share text; screens: signed-in call/email hand-off, guest sign-in prompt → sign-in route, related lists open details, share, no-longer-listed, failed load keeps preview + retry, 200 % text; Explore card tap opens details).
-- Not verified: real dialer/mail app on a device (only fakes in tests); signed-in run on the simulator/device.
+- Backend: unit 72/72, e2e 95/95 (incl. 13 M14 tests: wishlist idempotency/order/ownership/paging/hidden/guest, saved filter; event vendors add-once/notes/412/remove/re-add, owner-only/visibility/read-only, A12, audit without notes; enquiries one-live/N9 content with A9 fields only/idempotent replay/428/validation/close and re-enquire/closing on remove and cancel/hidden listing); lint, typecheck and build clean.
+- User App: `flutter analyze` clean; `flutter test` 242/242 (wishlist controller guest/optimistic/rollback, enquiry form starter text/validation/key reuse, vendor JSON; screens: heart save, guest prompts (heart, Saved chip, Add to event), Saved filter, Add to event, Vendors tab send/close/note/remove, read-only event, Menu → Saved vendors, 200 % text).
+- Not verified: signed-in run on a simulator/device; vendor-side receipt (no Vendor App until M24+).
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security / privacy review | Done — contact only with a verified registered user; invalid tokens rejected (no silent downgrade); same visibility rule as discovery; malformed ids 404; private vendor fields never selected; rate limited. Residual: signed-in users can still collect numbers (rate limit only) |
-| Performance review | Done — one query for details, one per related list (6 rows, partial indexes); the tapped card renders immediately; no images before M28 |
-| UI review | Done — clear hierarchy, honest price note, guest prompt, external-app failure message, states, 200 % text |
-| Code review | Done (self-review; fixes applied during testing) |
-| Notification review | Done — no notification (no state change) |
-| Documentation | Done (api-contracts incl. optional auth, domain-model A10, notification-matrix, flutter.md, spec, progress) |
+| Security / privacy review | Done — owner-only via the event, composite FKs for denormalised ids, A12 block, A9-only notification data (tested), private notes never audited or sent, enquiry spam limit 20/min + one live per vendor, Idempotency-Key on enquiries, saved filter requires sign-in |
+| Performance review | Done — indexed lists (wishlist by user, event vendors by event, enquiries by event vendor); cards fetched in one query per page; heart state from one ids call per session |
+| UI review | Done — optimistic hearts with rollback, confirmations for remove/close, honest reply copy (GI-34), privacy note in the enquiry sheet, all states, 200 % text |
+| Code review | Done (self-review; a disposed-controller bug in the note dialog and an ids-load race were found by tests and fixed) |
+| Notification review | Done — N9 in-app (push at M36); other actions none |
+| Documentation | Done (api-contracts, database-schema, domain-model notes, notification-matrix, flutter.md §6g, known-issues GI-34, spec, progress) |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-33.
-- Business rules on hold: R3 (before M15), R6 (before M28/M29), R10 (before M26). R11 final policy by M21. A10 answered (signed-in users only).
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-34.
+- Business rules on hold: R3 (**must be resolved before M15**), R6 (before M28/M29), R10 (before M26). R11 final policy by M21. A9 confirmed.
 
 ## Files changed
-- backend: `src/modules/auth/{auth.decorators.ts,auth.guard.ts,auth.guard.spec.ts}`, `src/modules/listings/{listings.dto.ts,listings.repository.ts,listings.service.ts,listings.controller.ts}`, `test/listings.e2e-spec.ts`
-- user_app: `lib/features/explore/{domain/listing.dart,data/discovery_repository_impl.dart,presentation/controllers/listing_detail_controller.dart,presentation/views/listing_detail_view.dart,presentation/widgets/listing_card_tile.dart}`, `lib/core/platform/external_actions.dart`, `android/app/src/main/AndroidManifest.xml`; tests `test/features/explore/{listing_detail_test.dart,explore_test.dart}`, `test/helpers/{fake_discovery_repository.dart,fake_media.dart}`
-- docs: api-contracts, domain-model, notification-matrix, architecture/flutter.md, M13 spec, milestones.md, current-milestone, progress
+- database: `database/migrations/1792000000000-WishlistEventVendorsEnquiries.ts`
+- backend: `src/modules/wishlist/*`, `src/modules/event-vendors/*`, `src/modules/listings/{listings.dto.ts,listings.repository.ts,listings.service.ts,listings.controller.ts,listings.module.ts}`, `src/modules/notifications/notifications.service.ts`, `src/modules/events/events.service.ts` (close enquiries on cancel/delete), `src/app.module.ts`, `test/event-vendors.e2e-spec.ts`, TRUNCATE lists in `test/{db-harness,auth.e2e-spec,events.e2e-spec}.ts`
+- user_app: `lib/features/wishlist/**`, `lib/features/event_vendors/**`, `lib/features/explore/{domain/listing.dart,data/discovery_repository_impl.dart,presentation/controllers/explore_controller.dart,presentation/views/explore_tab_view.dart,presentation/views/listing_detail_view.dart,presentation/widgets/listing_card_tile.dart}`, `lib/features/events/presentation/views/event_detail_view.dart`, `lib/features/menu/presentation/views/menu_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/engagement/engagement_test.dart`, `test/helpers/fake_event_vendors.dart`, wiring in budget/checklist/events screen tests
+- docs: api-contracts, database-schema, domain-model, notification-matrix, known-issues, architecture/flutter.md, M14 spec, milestones.md, current-milestone, progress
 
 ## Files pending approval
-- M11, M12 and M13 files are uncommitted; the user commits personally.
+- M14 files (and the M13-approval doc updates / M14 spec) are uncommitted; the user commits personally.
 
 ## Next milestone
-- M14 — Wishlist / Contact / Enquiry (spec drafted at the M13 gate).
+- M15 — Quotations & Booking (spec drafted at the M14 gate; R3 must be resolved first).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M13 Vendor Details: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-08 |
+| Completed / approved | 2026-10-08 — `APPROVE MILESTONE M13` issued by the user |
+| Spec | `milestones/M13-vendor-details.md` (CONFIRMED) |
+
+Evidence at approval: `@OptionalAuth` guard mode; `GET /listings/{id}` (contact for signed-in users only, A10) and `/related`; listing details page with call/email/share, related lists and all states; backend 72 unit + 82 e2e, Flutter 228 tests; reviews done. Not verified: real dialer/mail hand-off and signed-in device run.
 
 ## Previous milestone — M12 Vendor Discovery: COMPLETED
 

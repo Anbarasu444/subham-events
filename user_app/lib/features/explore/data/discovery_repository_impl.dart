@@ -59,6 +59,7 @@ class DiscoveryRepositoryImpl implements DiscoveryRepository {
     final result = await _api.get(
       '/listings',
       query: {
+        if (query.saved) 'saved': 'true',
         'categoryId': ?query.categoryId,
         'city': ?query.city,
         'q': ?query.text,

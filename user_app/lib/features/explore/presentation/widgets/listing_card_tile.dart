@@ -1,17 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../../core/theme/tokens.dart';
 import '../../domain/listing.dart';
+import '../../../wishlist/presentation/controllers/wishlist_controller.dart';
+import '../../../wishlist/presentation/widgets/save_button.dart';
 import '../views/listing_detail_view.dart';
 import 'category_icon.dart';
 
 /// A listing in discovery: category icon (no photos before M28), title,
 /// vendor, city and the "Starting from" price (marketplace info only).
 class ListingCardTile extends StatelessWidget {
-  const ListingCardTile({super.key, required this.listing, this.onTap});
+  const ListingCardTile({
+    super.key,
+    required this.listing,
+    this.onTap,
+    this.showSave = true,
+  });
 
   final ListingCard listing;
   final VoidCallback? onTap;
+
+  /// The heart (M14); hidden where saving makes no sense.
+  final bool showSave;
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +104,8 @@ class ListingCardTile extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (showSave && Get.isRegistered<WishlistController>())
+                  SaveButton(listingId: listing.id, name: listing.title),
               ],
             ),
           ),

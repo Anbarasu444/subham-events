@@ -10,6 +10,7 @@ import {
   toCursorPage,
   type CursorPageMeta,
 } from '../../common/pagination/cursor';
+import { closeLiveEnquiries } from '../event-vendors/event-vendors.service';
 import { AuditService } from '../audit/audit.service';
 import { ChecklistSummaryService } from '../checklist/checklist-summary.service';
 import { CoverUrlService } from '../media/cover-url.service';
@@ -385,6 +386,10 @@ export class EventsService {
     event.status = target;
     event.statusChangedAt = now;
     const saved = await manager.getRepository(EventEntity).save(event);
+    // Cancelling closes open enquiries (domain-model.md §4.6, M14).
+    if (target === 'CANCELLED') {
+      await closeLiveEnquiries(manager, { eventId: id }, 'SYSTEM', now);
+    }
     await this.audit.record(manager, {
       actorType: 'USER',
       actorId: userId,
@@ -407,6 +412,8 @@ export class EventsService {
     now = new Date(),
   ): Promise<void> {
     const event = await this.lockOwned(manager, userId, id);
+    // A deleted event's open enquiries close too, so vendors never answer one.
+    await closeLiveEnquiries(manager, { eventId: id }, 'SYSTEM', now);
     event.deletedAt = now;
     await manager.getRepository(EventEntity).save(event);
     await this.audit.record(manager, {

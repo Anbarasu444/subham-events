@@ -43,8 +43,13 @@ export class ListingsService {
 
   async search(
     query: ListListingsQuery,
+    userId?: string,
   ): Promise<{ items: ListingCardDto[]; page: CursorPageMeta }> {
+    if (query.saved && !userId) {
+      throw new AppException(ErrorCode.AUTH_REQUIRED, HttpStatus.UNAUTHORIZED);
+    }
     const filters: ListingFilters = {
+      savedByUserId: query.saved ? userId : undefined,
       categoryId: query.categoryId,
       city: query.city,
       q: query.q,
@@ -183,6 +188,7 @@ function fingerprintOf(filters: ListingFilters, sort: ListingSort): string {
     .update(
       JSON.stringify([
         sort,
+        filters.savedByUserId ?? null,
         filters.categoryId ?? null,
         filters.city?.toLowerCase() ?? null,
         filters.q?.toLowerCase() ?? null,

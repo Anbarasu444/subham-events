@@ -13,6 +13,7 @@ import '../../../budget/presentation/views/budget_view.dart';
 import '../../../checklist/presentation/checklist_navigation.dart';
 import '../../../checklist/presentation/widgets/checklist_progress.dart';
 import '../../../events/presentation/views/planning_event_picker_view.dart';
+import '../../../wishlist/presentation/views/saved_vendors_view.dart';
 import 'coming_soon_view.dart';
 
 /// One Menu entry (M6 user decision). [guestVisible] entries are shown to
@@ -56,6 +57,8 @@ Widget _budgetPage(BuildContext _) => PlanningEventPickerView(
       Text('Total budget: ${event.totalBudget?.format() ?? 'not set'}'),
 );
 
+Widget _savedVendorsPage(BuildContext _) => const SavedVendorsView();
+
 const menuSections = [
   MenuSection('Planning', [
     MenuEntry('Schedule', Icons.schedule_outlined),
@@ -65,6 +68,7 @@ const menuSections = [
       Icons.account_balance_wallet_outlined,
       page: _budgetPage,
     ),
+    MenuEntry('Saved vendors', Icons.favorite_border, page: _savedVendorsPage),
     MenuEntry('Messages', Icons.chat_bubble_outline),
   ]),
   MenuSection('Account', [

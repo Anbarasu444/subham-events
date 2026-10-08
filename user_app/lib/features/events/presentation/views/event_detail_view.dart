@@ -11,6 +11,9 @@ import '../../../../core/theme/tokens.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/async_state_view.dart';
+import '../../../event_vendors/domain/event_vendor.dart';
+import '../../../event_vendors/presentation/controllers/event_vendors_controller.dart';
+import '../../../event_vendors/presentation/widgets/event_vendor_slivers.dart';
 import '../../../budget/domain/budget.dart';
 import '../../../budget/presentation/controllers/budget_controller.dart';
 import '../../../budget/presentation/widgets/budget_slivers.dart';
@@ -21,8 +24,6 @@ import '../../../checklist/presentation/views/checklist_view.dart';
 import '../../../checklist/presentation/widgets/checklist_item_sheet.dart';
 import '../../../checklist/presentation/widgets/checklist_progress.dart';
 import '../../../media/domain/media_repository.dart';
-import '../../../shell/presentation/controllers/shell_controller.dart';
-import '../../../shell/presentation/controllers/shell_tab.dart';
 import '../../domain/entities/planner_event.dart';
 import '../../domain/repositories/events_repository.dart';
 import '../controllers/event_detail_controller.dart';
@@ -204,11 +205,7 @@ class _EventScreen extends StatelessWidget {
                 onRefresh: _refresh,
               ),
               _BudgetTab(eventId: event.id),
-              _TabScroll(
-                storageKey: 'vendors',
-                onRefresh: _refresh,
-                slivers: const [_VendorsTab()],
-              ),
+              _VendorsTab(event: event),
             ],
           ),
         ),
@@ -1047,33 +1044,69 @@ class _BudgetTab extends StatelessWidget {
 }
 
 class _VendorsTab extends StatelessWidget {
-  const _VendorsTab();
+  const _VendorsTab({required this.event});
+
+  final PlannerEvent event;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SliverPadding(
-      padding: const EdgeInsets.all(AppSpacing.page),
-      sliver: SliverList.list(
-        children: [
-          Text('Vendors are coming', style: theme.textTheme.titleMedium),
-          const SizedBox(height: AppSpacing.xs),
-          const Text(
-            'Soon you can find vendors, send enquiries and keep bookings for '
-            'this event here.',
-          ),
-          const SizedBox(height: AppSpacing.md),
-          AppButton(
-            label: 'Explore vendors',
-            icon: Icons.explore_outlined,
-            variant: AppButtonVariant.secondary,
-            onPressed: () =>
-                Get.find<ShellController>().select(ShellTab.explore),
+  Widget build(BuildContext context) => GetBuilder<EventVendorsController>(
+    init: EventVendorsController(
+      Get.find<EventVendorsRepository>(),
+      Get.find<EventsRepository>(),
+      event.id,
+    ),
+    global: false,
+    builder: (vendors) => Obx(() {
+      final state = vendors.state.value;
+      final List<Widget> slivers = switch (state) {
+        Content(:final data, :final isStale) => [
+          if (isStale) const SliverToBoxAdapter(child: StaleBanner()),
+          ...eventVendorSlivers(context, data, vendors, event),
+        ],
+        Failed(:final failure) => [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.page),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    failureTitle(failure),
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(failureMessage(failure)),
+                  if (failure.isRetryable) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    AppButton(
+                      label: 'Try again',
+                      icon: Icons.refresh,
+                      onPressed: vendors.load,
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ],
-      ),
-    );
-  }
+        _ => const [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: CircularProgressIndicator(
+                semanticsLabel: 'Loading vendors',
+              ),
+            ),
+          ),
+        ],
+      };
+      return _TabScroll(
+        storageKey: 'vendors',
+        onRefresh: vendors.load,
+        slivers: slivers,
+      );
+    }),
+  );
 }
 
 enum _MenuAction { cover, complete, reopen, cancel, delete }
