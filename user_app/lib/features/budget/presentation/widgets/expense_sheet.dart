@@ -17,6 +17,7 @@ Future<Expense?> showExpenseSheet(
   BuildContext context, {
   required String eventId,
   required List<ExpenseCategory> categories,
+  Set<String> bookedCategoryIds = const {},
   Expense? existing,
 }) => showModalBottomSheet<Expense>(
   context: context,
@@ -26,6 +27,7 @@ Future<Expense?> showExpenseSheet(
   builder: (_) => ExpenseSheet(
     eventId: eventId,
     categories: categories,
+    bookedCategoryIds: bookedCategoryIds,
     existing: existing,
   ),
 );
@@ -35,11 +37,16 @@ class ExpenseSheet extends StatelessWidget {
     super.key,
     required this.eventId,
     required this.categories,
+    this.bookedCategoryIds = const {},
     this.existing,
   });
 
   final String eventId;
   final List<ExpenseCategory> categories;
+
+  /// Categories with a booked vendor: payments to them belong under the
+  /// booking's Payments instead (GI-32).
+  final Set<String> bookedCategoryIds;
   final Expense? existing;
 
   @override
@@ -147,6 +154,25 @@ class ExpenseSheet extends StatelessWidget {
                 ],
                 onChanged: (value) => c.categoryId.value = value,
               ),
+            ),
+            Obx(
+              () => bookedCategoryIds.contains(c.categoryId.value)
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.xs),
+                      child: Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          'Paying a booked vendor? Add it under that '
+                          'booking’s Payments instead, so it isn’t counted '
+                          'twice.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.tertiary,
+                              ),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
             const SizedBox(height: AppSpacing.md),
             Obx(

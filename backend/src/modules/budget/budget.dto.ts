@@ -39,6 +39,10 @@ export interface BudgetDto {
   isOverPlanned: boolean;
   committed: MoneyJson;
   paid: MoneyJson;
+  /** Paid to vendors whose booking was later cancelled (part of `paid`, A11). */
+  paidToCancelled: MoneyJson;
+  /** What is still to pay on active bookings (Σ positive balances). */
+  outstanding: MoneyJson;
   /** Sum of the user's own expenses (with or without a category). */
   expenses: MoneyJson;
   /** Paid + expenses. */

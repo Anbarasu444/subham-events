@@ -575,6 +575,11 @@ void main() {
       expect(find.text('Vendor 1 is booked.'), findsOneWidget);
       expect(find.text('Booking confirmed'), findsOneWidget);
       expect(find.text('Agreed ₹1,80,000'), findsOneWidget);
+      expect(
+        find.text('Paid ₹0 of ₹1,80,000 · balance ₹1,80,000'),
+        findsOneWidget,
+      );
+      expect(find.text('Payments'), findsOneWidget);
       expect(find.text('Accept & book'), findsNothing);
     });
 

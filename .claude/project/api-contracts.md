@@ -341,6 +341,14 @@ Owner-only through the event (another user's/deleted event → 404); writes need
 - `POST …/enquiries/{enquiryId}/close` → 200 `{ data: EventVendorDto }`: CLOSED (USER); the event vendor returns to ADDED so a new enquiry can be sent. Already closed → 409.
 - Cancelling or deleting an event closes its live enquiries (SYSTEM).
 
+### Payments (M16; R5, A2, A3, A11)
+The user's **private payment notes** per booking — records only, no money moves, nothing is verified, no notifications (A2). Owner-only through the event (another user's/deleted event or unknown booking → 404). Allowed for CONFIRMED, COMPLETED and CANCELLED bookings (A11) while the event is PLANNING, COMPLETED or CANCELLED. Rate limited (`payments-write`, 120/min); audited (`PAYMENT_NOTE_CREATED/UPDATED/DELETED`, ids and field names only — no amounts or notes).
+- `PaymentDto`: `{ id, amount: Money, paidOn: "YYYY-MM-DD", method: CASH|UPI|BANK_TRANSFER|CARD|CHEQUE|OTHER, kind: ADVANCE|INSTALMENT|FINAL|OTHER, note, version, createdAt }`.
+- `GET /api/v1/events/{id}/bookings/{bookingId}/payments` → `{ data: { bookingId, bookingStatus, agreedAmount, paid, balance: Money | null, overpaidBy: Money | null, payments: PaymentDto[] } }` (newest first; exact decimals).
+- `POST …/payments` — **Idempotency-Key required** — `{ amount (> 0, exact two decimals, booking currency), paidOn (not in the future, event time zone), method, kind, note? (≤ 1000; blank → null) }` → 201 `{ data: PaymentDto }`; at most 100 per booking (409 `LIMIT_REACHED`).
+- `PATCH …/payments/{paymentId}` (any create field + `version`; stale → 412) → 200; `DELETE …/payments/{paymentId}` → 204 (soft delete).
+- `BookingDto` gains `paid: Money`. Budget gains `paid` (all notes, A11), `paidToCancelled`, `outstanding` (Σ positive balances of active bookings), per-category `paid`; `spent` = paid + own expenses.
+
 ### Quotations and bookings (M15, R3 + A7)
 Event vendors (`EventVendorDto`) also carry `quotations: QuotationDto[]` (newest first, all revisions) and `booking: BookingDto | null` (the active booking, else the latest cancelled one).
 - `QuotationDto`: `{ id, enquiryId, status: SENT|EXPIRED|ACCEPTED|REJECTED|SUPERSEDED|WITHDRAWN, amount: Money, description, validUntil (the event date when the vendor set none), revisionNo, createdAt, respondedAt }`. EXPIRED is derived: a SENT quote whose `validUntil` is before today in the event's time zone.

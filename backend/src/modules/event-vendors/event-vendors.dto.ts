@@ -100,6 +100,8 @@ export interface BookingDto {
   status: BookingStatus;
   /** Copied from the accepted quote; never changes. */
   agreedAmount: MoneyJson;
+  /** Sum of the user's payment notes on this booking (M16). */
+  paid: MoneyJson;
   serviceDate: string;
   cancelledBy: BookingCancelledBy | null;
   cancelReason: string | null;

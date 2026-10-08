@@ -103,6 +103,11 @@ List<Widget> budgetSlivers(
   ];
 }
 
+Set<String> _bookedCategories(Budget budget) => {
+  for (final line in budget.lines)
+    if (line.committed.minorUnits > BigInt.zero) line.categoryId,
+};
+
 List<ExpenseCategory> _categoriesFor(Budget budget, Expense? existing) => [
   for (final line in budget.offeredLines)
     (id: line.categoryId, name: line.name),
@@ -121,6 +126,7 @@ Future<void> _addExpense(
     context,
     eventId: budget.eventId,
     categories: _categoriesFor(budget, null),
+    bookedCategoryIds: _bookedCategories(budget),
   );
   if (saved == null || !context.mounted) return;
   ScaffoldMessenger.of(
@@ -229,6 +235,7 @@ class _ExpenseTile extends StatelessWidget {
       context,
       eventId: budget.eventId,
       categories: _categoriesFor(budget, expense),
+      bookedCategoryIds: _bookedCategories(budget),
       existing: expense,
     );
     if (saved == null || !context.mounted) return;
@@ -514,6 +521,17 @@ class _Summary extends StatelessWidget {
             const Divider(height: AppSpacing.lg),
             _Figure(label: 'Booked (committed)', value: budget.committed),
             _Figure(label: 'Paid', value: budget.paid),
+            if ((budget.paidToCancelled?.minorUnits ?? BigInt.zero) >
+                BigInt.zero)
+              _Figure(
+                label: '  of which to cancelled vendors',
+                value: budget.paidToCancelled!,
+              ),
+            if ((budget.outstanding?.minorUnits ?? BigInt.zero) > BigInt.zero)
+              _Figure(
+                label: 'Still to pay vendors',
+                value: budget.outstanding!,
+              ),
             _Figure(label: 'My expenses', value: budget.expenses),
             if (budget.overspentBy != null)
               Semantics(
@@ -533,8 +551,8 @@ class _Summary extends StatelessWidget {
             else if (budget.remaining != null)
               _Figure(label: 'Left to spend', value: budget.remaining!),
             Text(
-              'Booked and paid amounts appear once you book vendors and '
-              'record payments.',
+              'Booked amounts come from accepted quotes; Paid is what you '
+              'noted under each booking’s Payments.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),

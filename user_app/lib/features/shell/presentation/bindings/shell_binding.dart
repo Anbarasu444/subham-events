@@ -19,7 +19,9 @@ import '../../../events/data/repositories/events_repository_impl.dart';
 import '../../../events/domain/repositories/events_repository.dart';
 import '../../../events/presentation/controllers/my_events_controller.dart';
 import '../../../event_vendors/data/event_vendors_repository_impl.dart';
+import '../../../event_vendors/data/payments_repository_impl.dart';
 import '../../../event_vendors/domain/event_vendor.dart';
+import '../../../event_vendors/domain/payment.dart';
 import '../../../explore/data/discovery_repository_impl.dart';
 import '../../../explore/domain/listing.dart';
 import '../../../explore/presentation/controllers/explore_controller.dart';
@@ -98,6 +100,14 @@ class ShellBinding extends Bindings {
     );
     Get.lazyPut<EventVendorsRepository>(
       () => EventVendorsRepositoryImpl(
+        Get.find<ApiClient>(),
+        Get.find<EventsRepository>().notifyChanged,
+      ),
+      fenix: true,
+    );
+    // Payment notes (M16): changes refresh budgets and event screens.
+    Get.lazyPut<PaymentsRepository>(
+      () => PaymentsRepositoryImpl(
         Get.find<ApiClient>(),
         Get.find<EventsRepository>().notifyChanged,
       ),

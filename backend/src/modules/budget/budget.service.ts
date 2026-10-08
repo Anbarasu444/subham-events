@@ -17,8 +17,8 @@ import type { BudgetDto } from './budget.dto';
  * Per-event budget (M11, domain-model.md §7). Owner-only through the event
  * (another user's or a deleted event → 404). Changes need a PLANNING event
  * (read-only otherwise, like the checklist) and lock the event row.
- * Committed sums confirmed/completed bookings (M15); Paid is zero until
- * payment notes exist (M16); the user's own expenses (answer 5) count as spent.
+ * Committed sums confirmed/completed bookings (M15); Paid sums the user's
+ * payment notes on all bookings (M16, A11); the user's own expenses (answer 5) count as spent.
  */
 @Injectable()
 export class BudgetService {
@@ -143,23 +143,49 @@ export class BudgetService {
         deletedAt: IsNull(),
       });
     // Committed (M15): agreed amounts of confirmed and completed bookings.
+    // Paid (M16): the user's payment notes on all bookings (A11).
     const bookingRows = await manager.query<
-      { category_id: string; agreed_amount: string; currency: string }[]
+      {
+        category_id: string;
+        status: string;
+        agreed_amount: string;
+        paid: string;
+        currency: string;
+      }[]
     >(
-      `SELECT ev.category_id, b.agreed_amount::text AS agreed_amount, b.currency
+      `SELECT ev.category_id, b.status, b.agreed_amount::text AS agreed_amount,
+              COALESCE((SELECT sum(p.amount) FROM event_payment_notes p
+                         WHERE p.booking_id = b.id AND p.deleted_at IS NULL), 0)::text AS paid,
+              b.currency
          FROM bookings b JOIN event_vendors ev ON ev.id = b.event_vendor_id
-        WHERE b.event_id = $1 AND b.status IN ('CONFIRMED', 'COMPLETED')`,
+        WHERE b.event_id = $1`,
       [event.id],
     );
     const committedBy = new Map<string, Money>();
+    const paidBy = new Map<string, Money>();
     let committed = Money.zero();
+    let paid = Money.zero();
+    let paidToCancelled = Money.zero();
+    let outstanding = Money.zero();
     for (const b of bookingRows) {
       const amount = Money.fromDb(b.agreed_amount, b.currency);
+      const paidHere = Money.fromDb(b.paid, b.currency);
+      paid = paid.add(paidHere);
+      paidBy.set(
+        b.category_id,
+        (paidBy.get(b.category_id) ?? Money.zero()).add(paidHere),
+      );
+      if (b.status === 'CANCELLED') {
+        paidToCancelled = paidToCancelled.add(paidHere);
+        continue;
+      }
       committed = committed.add(amount);
       committedBy.set(
         b.category_id,
         (committedBy.get(b.category_id) ?? Money.zero()).add(amount),
       );
+      const balance = amount.subtract(paidHere);
+      if (!balance.isNegative()) outstanding = outstanding.add(balance);
     }
     const expenseRows = await manager
       .getRepository(EventExpenseEntity)
@@ -189,6 +215,7 @@ export class BudgetService {
         ...allocations.map((a) => a.categoryId),
         ...expensesBy.keys(),
         ...committedBy.keys(),
+        ...paidBy.keys(),
       ]),
     ].filter((id) => !published.has(id));
     const archived = archivedIds.length
@@ -215,9 +242,11 @@ export class BudgetService {
       unplanned: unplanned ? unplanned.toJSON() : null,
       isOverPlanned: unplanned ? unplanned.isNegative() : false,
       committed: committed.toJSON(),
-      paid: zero.toJSON(),
+      paid: paid.toJSON(),
+      paidToCancelled: paidToCancelled.toJSON(),
+      outstanding: outstanding.toJSON(),
       expenses: expenses.toJSON(),
-      spent: zero.add(expenses).toJSON(),
+      spent: paid.add(expenses).toJSON(),
       remaining: total
         ? total.subtract(committed).subtract(expenses).toJSON()
         : null,
@@ -227,7 +256,7 @@ export class BudgetService {
         isArchived: !published.has(c.id),
         planned: byCategory.get(c.id)?.toJSON() ?? null,
         committed: (committedBy.get(c.id) ?? zero).toJSON(),
-        paid: zero.toJSON(),
+        paid: (paidBy.get(c.id) ?? zero).toJSON(),
         expenses: (expensesBy.get(c.id) ?? zero).toJSON(),
       })),
     };

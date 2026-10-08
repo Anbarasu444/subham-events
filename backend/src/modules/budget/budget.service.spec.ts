@@ -21,13 +21,25 @@ function serviceWith(
   event: Partial<EventEntity>,
   allocations: { categoryId: string; plannedAmount: string }[],
   expenses: { categoryId: string | null; amount: string }[] = [],
-  bookings: { category_id: string; agreed_amount: string }[] = [],
+  bookings: {
+    category_id: string;
+    agreed_amount: string;
+    status?: string;
+    paid?: string;
+  }[] = [],
 ): BudgetService {
   const rows = allocations.map((a) => ({ ...a, currency: 'INR' }));
   const expenseRows = expenses.map((e) => ({ ...e, currency: 'INR' }));
   const manager = {
     query: () =>
-      Promise.resolve(bookings.map((b) => ({ ...b, currency: 'INR' }))),
+      Promise.resolve(
+        bookings.map((b) => ({
+          status: 'CONFIRMED',
+          paid: '0.00',
+          ...b,
+          currency: 'INR',
+        })),
+      ),
     getRepository: (entity: unknown) =>
       entity === VendorCategoryEntity
         ? {
@@ -55,6 +67,33 @@ function serviceWith(
 }
 
 describe('BudgetService figures', () => {
+  it('adds payments to paid and spent, separates cancelled ones (A11)', async () => {
+    const budget = await serviceWith(
+      { totalBudgetAmount: '100000.00' },
+      [],
+      [{ categoryId: null, amount: '100.00' }],
+      [
+        { category_id: 'c1', agreed_amount: '40000.00', paid: '15000.50' },
+        { category_id: 'c1', agreed_amount: '5000.00', paid: '6000.00' },
+        {
+          category_id: 'c2',
+          agreed_amount: '9000.00',
+          paid: '2000.00',
+          status: 'CANCELLED',
+        },
+      ],
+    ).get('u1', 'e1');
+    expect(budget.paid.amount).toBe('23000.50');
+    expect(budget.paidToCancelled.amount).toBe('2000.00');
+    expect(budget.spent.amount).toBe('23100.50');
+    expect(budget.committed.amount).toBe('45000.00');
+    // Overpaid bookings do not reduce what is owed elsewhere.
+    expect(budget.outstanding.amount).toBe('24999.50');
+    expect(
+      budget.categories.find((c) => c.categoryId === 'c2')!.paid.amount,
+    ).toBe('2000.00');
+  });
+
   it('commits confirmed bookings and leaves the rest as remaining', async () => {
     const budget = await serviceWith(
       { totalBudgetAmount: '100000.00' },

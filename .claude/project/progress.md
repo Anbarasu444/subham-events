@@ -66,10 +66,13 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-08 | M14 Wishlist / Contact / Enquiry | APPROVE MILESTONE M14 | Status → **COMPLETED**. M15 Quotations & Booking set to NOT_STARTED; spec DRAFT created (open questions: approach A/B/C, R3 multiplicity/expiry/withdrawal/after-accept, A7) | See M14 IN_REVIEW entry | Dev DB migration to be run by the user | `APPROVE MILESTONE M14` issued by user |
 | 2026-10-08 | M15 Quotations & Booking | START MILESTONE M15 | Validation passed (M14 COMPLETED and approved; spec exists; R3 resolved and A7 confirmed by the user in the same message; Option A). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M15` issued by user |
 | 2026-10-08 | M15 Quotations & Booking | Set IN_REVIEW | Quotations (R3: one live, revisions supersede, derived expiry, withdrawal), accept → booking with server-copied agreed amount, reject, cancel with reason, complete + daily job (A7), N10–N14 in-app, budget Committed; dev/test-only sample quote script | Backend 73 unit + 106 e2e; Flutter 250; analyze/lint/typecheck/build clean; reviews done | Dev DB migration to be run by the user; real quotes only from M33 | Awaiting `APPROVE MILESTONE M15` |
+| 2026-10-08 | M15 Quotations & Booking | APPROVE MILESTONE M15 | Status → **COMPLETED**. M16 Event Payments set to NOT_STARTED; spec DRAFT created (open questions: naming, A2, A3, A11, after-event edits, GI-32 hint) | See M15 IN_REVIEW entry | Dev DB migration to be run by the user | `APPROVE MILESTONE M15` issued by user |
+| 2026-10-08 | M16 Event Payments | START MILESTONE M16 | Validation passed (M15 COMPLETED and approved; spec exists; open questions answered: "Payments" naming, A2 private, A3 booking-only, A11 cancelled count, after-event payments, GI-32 hint). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M16` issued by user |
+| 2026-10-08 | M16 Event Payments | Set IN_REVIEW | Private payment notes per booking (add/edit/delete, exact paid/balance/overpaid), budget Paid/Spent/Outstanding/paid-to-cancelled, GI-32 hint; no notifications (A2) | Backend 74 unit + 113 e2e; Flutter 258; analyze/lint/typecheck/build clean; reviews done | Dev DB migration to be run by the user; signed-in device run not verified | Awaiting `APPROVE MILESTONE M16` |
 
 ## Status summary
 - Governance initialization: **complete**.
 - M1–M10: **COMPLETED** (committed and pushed to GitHub).
 - M11, M12, M13: **COMPLETED** 2026-10-08 (committed by the user and pushed to `origin/stg`: 49b685d, 221cfba, 241e1ef).
-- M14: **COMPLETED** 2026-10-08 (the user commits).
-- Active milestone: **M15 — Quotations & Booking** (IN_REVIEW since 2026-10-08; awaiting `APPROVE MILESTONE M15`).
+- M14, M15: **COMPLETED** 2026-10-08 (the user commits).
+- Active milestone: **M16 — Event Payments** (IN_REVIEW since 2026-10-08; awaiting `APPROVE MILESTONE M16`).

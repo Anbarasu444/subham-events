@@ -51,6 +51,8 @@ class Budget {
     required this.paid,
     required this.expenses,
     required this.spent,
+    this.paidToCancelled,
+    this.outstanding,
     required this.remaining,
     required this.overspentBy,
     required this.lines,
@@ -70,6 +72,12 @@ class Budget {
 
   /// Paid + own expenses.
   final Money spent;
+
+  /// Part of [paid] to vendors whose booking was cancelled (A11).
+  final Money? paidToCancelled;
+
+  /// Still to pay on active bookings (M16).
+  final Money? outstanding;
 
   /// Total − committed − own expenses.
   final Money? remaining;

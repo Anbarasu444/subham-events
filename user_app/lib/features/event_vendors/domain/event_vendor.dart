@@ -88,6 +88,7 @@ class Booking {
     required this.id,
     required this.status,
     required this.agreedAmount,
+    this.paid,
     required this.serviceDate,
     required this.cancelledBy,
     required this.cancelReason,
@@ -98,6 +99,9 @@ class Booking {
   final String id;
   final BookingStatus status;
   final Money agreedAmount;
+
+  /// Sum of the user's payment notes (M16); null in older responses.
+  final Money? paid;
   final DateTime serviceDate;
   final String? cancelledBy;
   final String? cancelReason;

@@ -22,6 +22,8 @@ abstract final class BudgetModel {
       paid: _money(map['paid']),
       expenses: _money(map['expenses']),
       spent: _money(map['spent']),
+      paidToCancelled: _maybe(map['paidToCancelled']),
+      outstanding: _maybe(map['outstanding']),
       remaining: remaining,
       overspentBy: overspentBy,
       lines: (map['categories'] as List<dynamic>)

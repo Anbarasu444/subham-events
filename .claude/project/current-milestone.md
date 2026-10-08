@@ -4,61 +4,72 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M15** |
-| Milestone name | Quotations & Booking |
+| Milestone ID | **M16** |
+| Milestone name | Event Payments |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M15-quotations-booking.md` (status: CONFIRMED 2026-10-08) |
+| Spec | `.claude/project/milestones/M16-event-payments.md` (status: CONFIRMED 2026-10-08) |
 | Started date | 2026-10-08 |
 | Completed date | — |
-| Approval status | Awaiting `APPROVE MILESTONE M15` (set IN_REVIEW 2026-10-08) |
+| Approval status | Awaiting `APPROVE MILESTONE M16` (set IN_REVIEW 2026-10-08) |
 
 ## Objective
-Users view, accept and reject vendor quotations; accepting creates a confirmed booking whose agreed amount comes from the quote; bookings can be cancelled or completed; the budget's Committed figure counts them.
+Private payment notes per booking (R5: no money moves): add/edit/delete, paid and balance per booking, budget Paid/Spent/Outstanding, GI-32 hint.
 
 ## Completed work / In-progress work / Blocked work
-- **Database:** migration `1792100000000-QuotationsAndBookings` — **the user runs `npm run migration:run`**; dev/test-only `database/seeds/dev-sample-quotes.sql` (`npm run seed:dev-quotes`) plays the vendor until M33.
-- **Backend:** accept (Idempotency-Key, row locks, one transaction: quote ACCEPTED → booking CONFIRMED with the server-copied amount → event vendor BOOKED → enquiry CLOSED), reject (enquiry reopens), cancel with reason (planning or cancelled events), complete (from the service date), hourly `BookingAutoCompleteJob` (day after the service date), derived EXPIRED, R3 supersede rule (one SENT per enquiry, enforced by index), N10–N14 in-app records, audit without reasons; budget Committed/Remaining from bookings.
-- **User App:** quote panel (Accept & book with exact-amount confirmation, Decline, expired state, revisions), booking panel (agreed amount, service date, Mark completed, Cancel booking with reason), budget Committed shows real amounts.
+- **Database:** migration `1792200000000-EventPaymentNotes` — **the user runs `npm run migration:run`**.
+- **Backend:** payments module under event vendors (list with exact paid/balance/overpaid, create with Idempotency-Key, edit with version, soft delete; booking-keyed so cancelled bookings stay reachable, A11; allowed after the event; paid date not in the future; 100 per booking; audit without amounts or notes; no notifications, A2); `BookingDto.paid`; budget Paid / paidToCancelled / Outstanding / per-category Paid / Spent.
+- **User App:** "Paid ₹X of ₹Y · balance" and a Payments button on every booking (also cancelled); Payments page (totals, list, add/edit sheet, delete confirmation, "for your records — no money is sent" copy); budget lines "of which to cancelled vendors" and "Still to pay vendors"; GI-32 hint in the own-expense sheet.
 - Nothing blocked.
 
 ## Tests completed
-- Backend: unit 73/73 (incl. Committed/Remaining), e2e 106/106 (incl. 11 M15 tests: sample quote + N10, revision supersedes and stale accept refused, accept once with replay/new-key refusal/428 and N11/N12 without user contact or budget, budget committed, reject reopens and new quote, expired and withdrawn refused, cancel with reason (validation, N13, audit without reason, re-enquire), completion before/after date and job idempotency with N14, user completes on the date, owner-only and planning-only accept, script guard); lint, typecheck and build clean.
-- User App: `flutter analyze` clean; `flutter test` 250/250 (quote/booking JSON, accept key reuse on retry; screens: accept → booked with exact amount, decline, expired, cancel needs a reason, mark completed, 200 % text).
-- Not verified: signed-in device run; real vendor quotes (M33).
+- Backend: unit 74/74 (incl. paid/cancelled/outstanding figures), e2e 113/113 (incl. 7 M16 tests: exact totals and budget, overpaid, edit/412/soft delete with audit free of amounts and notes, privacy (no notifications, 404 for others), validation incl. future date and 428, A11 cancelled bookings, after completion / deleted event); lint, typecheck and build clean.
+- User App: `flutter analyze` clean; `flutter test` 258/258 (payments JSON, budget fields, form key reuse and zero amount; Payments page add/edit/overpaid/delete, retry, 200 % text; GI-32 hint; booking panel paid line).
+- Not verified: signed-in device run.
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security / privacy review | Done — owner-only, row locks against double accept, Idempotency-Key, server-copied amount, A9-only vendor notification data (tested), reasons not audited |
-| Payment / money review | Done — exact decimals, agreed amount immutable (ORM `update: false` + no update path), Committed separate from payments (payment-architecture §2.2) |
-| Performance review | Done — quotes/bookings fetched per event-vendor list in two indexed queries; job batched with SKIP LOCKED |
-| UI review | Done — confirmation with the exact amount, honest expiry, reason dialog, states, 200 % text |
+| Security / privacy review | Done — owner-only, composite FK to the booking/event, no notifications, audit without amounts or notes, Idempotency-Key on create |
+| Payment / money review | Done — exact decimals, no money movement, separate from platform fees (payment-architecture §2.3), A11 figures tested |
+| Performance review | Done — paid sums per booking in one grouped query; budget in one query with indexed sub-sums |
+| UI review | Done — clear "no money is sent" copy, balance/overpaid, confirmations, 200 % text |
 | Code review | Done (self-review) |
-| Notification review | Done — N10–N14 in-app; pushes at M18/M36 |
-| Documentation | Done (api-contracts, database-schema incl. sample quotes, domain-model R3/A7, notification-matrix, payment-architecture §2.2, flutter.md §6h, spec, progress) |
+| Notification review | Done — none by design (A2) |
+| Documentation | Done (api-contracts, database-schema, notification-matrix, payment-architecture §2.3, flutter.md §6i, known-issues GI-32 mitigated, spec, progress) |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-34 (GI-34: vendors cannot send real quotes until M33).
-- Business rules on hold: R6 (before M28/M29), R10 (before M26). R11 final policy by M21. R3 resolved, A7 confirmed.
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-34 (GI-32 mitigated).
+- Business rules on hold: R6 (before M28/M29), R10 (before M26). R11 final policy by M21. A2, A3, A11 confirmed.
 
 ## Files changed
-- database: `database/migrations/1792100000000-QuotationsAndBookings.ts`, `database/seeds/dev-sample-quotes.sql`
-- backend: `src/modules/event-vendors/{quotation.entity.ts,booking.entity.ts,booking-auto-complete.job.ts,event-vendors.service.ts,event-vendors.controller.ts,event-vendors.dto.ts,event-vendors.module.ts}`, `src/modules/budget/{budget.service.ts,budget.service.spec.ts}`, `src/database/seed-dev-samples.ts`, `package.json` (`seed:dev-quotes`), `test/quotations-bookings.e2e-spec.ts`, TRUNCATE lists in `test/{db-harness,auth.e2e-spec,events.e2e-spec}.ts`
-- user_app: `lib/features/event_vendors/{domain/event_vendor.dart,data/event_vendors_repository_impl.dart,presentation/controllers/event_vendors_controller.dart,presentation/widgets/event_vendor_slivers.dart}`; tests `test/features/engagement/engagement_test.dart`, `test/helpers/fake_event_vendors.dart`
-- docs: api-contracts, database-schema, domain-model, notification-matrix, payment-architecture, architecture/flutter.md, M15 spec, milestones.md, current-milestone, progress
+- database: `database/migrations/1792200000000-EventPaymentNotes.ts`
+- backend: `src/modules/event-vendors/{payment-note.entity.ts,payments.dto.ts,payments.service.ts,payments.controller.ts,event-vendors.module.ts,event-vendors.service.ts,event-vendors.dto.ts}`, `src/modules/budget/{budget.service.ts,budget.dto.ts,budget.service.spec.ts}`, `test/payments.e2e-spec.ts`, TRUNCATE lists in `test/{db-harness,auth.e2e-spec,events.e2e-spec}.ts`
+- user_app: `lib/features/event_vendors/{domain/payment.dart,domain/event_vendor.dart,data/payments_repository_impl.dart,data/event_vendors_repository_impl.dart,presentation/controllers/payments_controller.dart,presentation/controllers/payment_form_controller.dart,presentation/widgets/payment_sheet.dart,presentation/views/payments_view.dart,presentation/widgets/event_vendor_slivers.dart}`, `lib/features/budget/{domain/budget.dart,data/budget_model.dart,presentation/widgets/budget_slivers.dart,presentation/widgets/expense_sheet.dart}`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/payments/payments_test.dart`, `test/helpers/{fake_payments.dart,fake_event_vendors.dart}`, `test/features/engagement/engagement_test.dart`
+- docs: api-contracts, database-schema, notification-matrix, payment-architecture, known-issues, architecture/flutter.md, M16 spec, milestones.md, current-milestone, progress
 
 ## Files pending approval
-- M14 and M15 files are uncommitted unless the user has committed them.
+- M14–M16 files are uncommitted unless the user has committed them.
 
 ## Next milestone
-- M16 — Event Payments (spec drafted at the M15 gate).
+- M17 — Reminders (spec drafted at the M16 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M15 Quotations & Booking: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-08 |
+| Completed / approved | 2026-10-08 — `APPROVE MILESTONE M15` issued by the user |
+| Spec | `milestones/M15-quotations-booking.md` (CONFIRMED; R3 resolved, A7 confirmed) |
+
+Evidence at approval: quotations (one live, revisions supersede, derived expiry), accept → booking with server-copied agreed amount (idempotent, row-locked), reject, cancel with reason, complete + hourly job, N10–N14 in-app, budget Committed; dev/test-only sample quote script; backend 73 unit + 106 e2e, Flutter 250 tests; reviews done. Not verified: signed-in device run; real vendor quotes (M33). Dev DB migration `1792100000000-QuotationsAndBookings` to be run by the user.
 
 ## Previous milestone — M14 Wishlist / Contact / Enquiry: COMPLETED
 

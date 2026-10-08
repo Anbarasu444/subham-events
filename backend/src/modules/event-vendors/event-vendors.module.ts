@@ -6,6 +6,9 @@ import { ListingsModule } from '../listings/listings.module';
 import { BookingAutoCompleteJob } from './booking-auto-complete.job';
 import { BookingEntity } from './booking.entity';
 import { EnquiryEntity } from './enquiry.entity';
+import { PaymentNoteEntity } from './payment-note.entity';
+import { PaymentsController } from './payments.controller';
+import { PaymentsService } from './payments.service';
 import { QuotationEntity } from './quotation.entity';
 import { EventVendorEntity } from './event-vendor.entity';
 import { EventVendorsController } from './event-vendors.controller';
@@ -18,12 +21,13 @@ import { EventVendorsService } from './event-vendors.service';
       EnquiryEntity,
       QuotationEntity,
       BookingEntity,
+      PaymentNoteEntity,
       EventEntity,
     ]),
     IdempotencyModule,
     ListingsModule,
   ],
-  controllers: [EventVendorsController],
-  providers: [EventVendorsService, BookingAutoCompleteJob],
+  controllers: [EventVendorsController, PaymentsController],
+  providers: [EventVendorsService, PaymentsService, BookingAutoCompleteJob],
 })
 export class EventVendorsModule {}

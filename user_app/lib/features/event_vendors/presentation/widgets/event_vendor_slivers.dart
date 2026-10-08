@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/money/money.dart';
 import '../../../../core/theme/tokens.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/app_button.dart';
@@ -13,6 +14,7 @@ import '../../../shell/presentation/controllers/shell_controller.dart';
 import '../../../shell/presentation/controllers/shell_tab.dart';
 import '../../domain/event_vendor.dart';
 import '../controllers/event_vendors_controller.dart';
+import '../views/payments_view.dart';
 import 'enquiry_sheet.dart';
 
 /// The event screen's Vendors tab content (M14).
@@ -621,17 +623,37 @@ class _BookingPanel extends StatelessWidget {
             style: theme.textTheme.titleMedium,
           ),
           Text('Service on ${formatLongDate(booking.serviceDate)}'),
+          if (booking.paid != null) ...[
+            const SizedBox(height: AppSpacing.xxs),
+            Text(
+              _paidLine(booking),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           if (cancelled && booking.cancelReason != null)
             Text(
               'Reason: ${booking.cancelReason}',
               style: theme.textTheme.bodySmall,
             ),
-          if (!busy && (booking.canCancel || booking.canComplete)) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xs,
-              children: [
+          const SizedBox(height: AppSpacing.xs),
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: [
+              // Payments stay open after cancellation (A11) and the event.
+              OutlinedButton.icon(
+                onPressed: () => PaymentsView.open(
+                  context,
+                  eventId: controller.eventId,
+                  bookingId: booking.id,
+                  vendorName: vendor.listing.vendorName,
+                ),
+                icon: const Icon(Icons.receipt_long_outlined),
+                label: const Text('Payments'),
+              ),
+              if (!busy) ...[
                 if (booking.canComplete)
                   FilledButton.tonal(
                     onPressed: () =>
@@ -647,12 +669,29 @@ class _BookingPanel extends StatelessWidget {
                     child: const Text('Cancel booking'),
                   ),
               ],
-            ),
-          ],
+            ],
+          ),
         ],
       ),
     );
   }
+}
+
+/// "Paid ₹X of ₹Y · Balance ₹Z" (or overpaid) for the booking panel.
+String _paidLine(Booking booking) {
+  final paid = booking.paid!;
+  final agreed = booking.agreedAmount;
+  final diff = agreed.minorUnits - paid.minorUnits;
+  final tail = diff.isNegative
+      ? 'overpaid ${Money.parse(_amount(-diff), agreed.currency).format()}'
+      : 'balance ${Money.parse(_amount(diff), agreed.currency).format()}';
+  return 'Paid ${paid.format()} of ${agreed.format()} · $tail';
+}
+
+String _amount(BigInt paise) {
+  final digits = paise.toString().padLeft(3, '0');
+  return '${digits.substring(0, digits.length - 2)}.'
+      '${digits.substring(digits.length - 2)}';
 }
 
 /// Asks for the reason the vendor will see (3–500 characters, A7).

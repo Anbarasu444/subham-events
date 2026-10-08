@@ -171,6 +171,10 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 
 - `EventVendor` carries `quotations` and `booking`; `openQuote` is the latest SENT/EXPIRED quote. `EventVendorsController.acceptQuotation` keeps one Idempotency-Key per quote (a retried accept never books twice); reject, cancel (reason dialog, 3–500) and complete reload the list. The vendor card shows a quote panel (amount, valid until or expired, Accept & book with an exact-amount confirmation, Decline) or a booking panel (agreed amount, service date, Mark completed, Cancel booking).
 
+## 6i. Payments (M16)
+
+- `features/event_vendors`: `PaymentsRepository` (changes call `EventsRepository.notifyChanged`), `PaymentsController` + `PaymentsView` (totals with balance/overpaid, list, delete confirmation), `PaymentFormController` + `showPaymentSheet` (exact amount > 0, date not in the future, method, kind, note; same-input retries reuse the Idempotency-Key). The booking panel shows "Paid ₹X of ₹Y · balance/overpaid" and a Payments button (also for cancelled bookings, A11). Budget summary adds "of which to cancelled vendors" and "Still to pay vendors"; the expense sheet hints when its category has a booked vendor (GI-32).
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

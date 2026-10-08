@@ -201,6 +201,9 @@ class EventVendorsRepositoryImpl implements EventVendorsRepository {
           agreedAmount: Money.fromJson(
             b['agreedAmount'] as Map<String, dynamic>,
           ),
+          paid: b['paid'] == null
+              ? null
+              : Money.fromJson(b['paid'] as Map<String, dynamic>),
           serviceDate: parseApiDate(b['serviceDate'] as String),
           cancelledBy: b['cancelledBy'] as String?,
           cancelReason: b['cancelReason'] as String?,

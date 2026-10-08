@@ -87,6 +87,9 @@ The platform **does not collect any user-to-vendor money** (user decision 2026-1
 - Not idempotency-critical (no money moves), but creation uses the standard `Idempotency-Key` support to avoid duplicate notes on retries.
 - No Razorpay, no reconciliation, no refunds.
 
+### 2.3 Payment notes (M16)
+`event_payment_notes` are the user's **private records** of what they paid a booked vendor (R5, A2, A3): no money moves, nothing is verified, the vendor never sees them, and they create no notifications. They are unrelated to the vendor platform fee (Razorpay, M29) and stored separately from it. Budget: Paid = Σ notes on all bookings (A11, cancelled ones also shown separately), Spent = Paid + own expenses, Outstanding = Σ positive (agreed − paid) on active bookings. To avoid double counting (GI-32), the own-expense sheet hints when its category has a booked vendor.
+
 ### 2.2 Agreed amount (M15)
 `bookings.agreed_amount` is copied server-side from the accepted quotation and never changes; it feeds the budget's **Committed**. It records what was agreed, not money paid: no payment moves through the platform for event vendors. Payments the user makes are their own notes (M16).
 

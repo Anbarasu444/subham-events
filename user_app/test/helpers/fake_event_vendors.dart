@@ -100,6 +100,7 @@ class FakeEventVendorsRepository implements EventVendorsRepository {
     id: from?.id ?? 'b-${++_seq}',
     status: status,
     agreedAmount: amount ?? from!.agreedAmount,
+    paid: Money.parse('0.00', 'INR'),
     serviceDate: from?.serviceDate ?? DateTime(2026, 11, 7),
     cancelledBy: reason == null ? null : 'USER',
     cancelReason: reason,

@@ -759,6 +759,20 @@ export class EventVendorsService {
       where: { eventVendorId: In(ids) },
       order: { createdAt: 'DESC', id: 'DESC' },
     });
+    const paidRows = bookings.length
+      ? await manager.query<
+          { booking_id: string; paid: string; currency: string }[]
+        >(
+          `SELECT booking_id, sum(amount)::text AS paid, min(currency) AS currency
+             FROM event_payment_notes
+            WHERE booking_id = ANY($1::uuid[]) AND deleted_at IS NULL
+            GROUP BY booking_id`,
+          [bookings.map((b) => b.id)],
+        )
+      : [];
+    const paidBy = new Map(
+      paidRows.map((p) => [p.booking_id, Money.fromDb(p.paid, p.currency)]),
+    );
     const today = localDate(event.timeZone, new Date());
     return rows.map((r) => {
       const card = cards.get(r.listingId)!;
@@ -782,7 +796,9 @@ export class EventVendorsService {
         quotations: quotations
           .filter((q) => q.eventVendorId === r.id)
           .map((q) => toQuotationDto(q, event, today)),
-        booking: booking ? toBookingDto(booking, event, today) : null,
+        booking: booking
+          ? toBookingDto(booking, event, today, paidBy.get(booking.id))
+          : null,
         version: r.version,
         createdAt: r.createdAt.toISOString(),
       };
@@ -968,11 +984,13 @@ export function toBookingDto(
   b: BookingEntity,
   event: EventEntity,
   today: string,
+  paid: Money = Money.zero(),
 ): BookingDto {
   return {
     id: b.id,
     status: b.status,
     agreedAmount: Money.fromDb(b.agreedAmount, b.currency).toJSON(),
+    paid: paid.toJSON(),
     serviceDate: b.serviceDate,
     cancelledBy: b.cancelledByType,
     cancelReason: b.cancelReason,

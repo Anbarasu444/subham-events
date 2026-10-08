@@ -20,8 +20,8 @@ Each milestone has (or must have, before START) a spec in `milestones/` with sco
 | M12 | Vendor Discovery | User App | [M12](milestones/M12-vendor-discovery.md) (COMPLETED 2026-10-08) |
 | M13 | Vendor Details | User App | [M13](milestones/M13-vendor-details.md) (COMPLETED 2026-10-08) |
 | M14 | Wishlist / Contact / Enquiry | User App | [M14](milestones/M14-wishlist-contact-enquiry.md) (COMPLETED 2026-10-08) |
-| M15 | Quotations & Booking | User App | [M15](milestones/M15-quotations-booking.md) (IN_REVIEW) |
-| M16 | Event Payments | User App | — |
+| M15 | Quotations & Booking | User App | [M15](milestones/M15-quotations-booking.md) (COMPLETED 2026-10-08) |
+| M16 | Event Payments | User App | [M16](milestones/M16-event-payments.md) (IN_REVIEW) |
 | M17 | Reminders | User App | — |
 | M18 | Notification Center + FCM | User App | — |
 | M19 | Digital Invitations | User App | — |
