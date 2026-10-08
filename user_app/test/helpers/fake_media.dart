@@ -56,6 +56,21 @@ class FakeExternalActions implements ExternalActions {
   Future<void> shareText(String text, {String? subject, Rect? origin}) async {
     shared.add(text);
   }
+
+  final List<String> calls = [];
+  final List<String> emails = [];
+
+  @override
+  Future<bool> call(String phone) async {
+    calls.add(phone);
+    return true;
+  }
+
+  @override
+  Future<bool> email(String address, {String? subject}) async {
+    emails.add(address);
+    return true;
+  }
 }
 
 const photo = PickedPhoto(

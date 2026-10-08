@@ -15,6 +15,7 @@ import {
   ALLOW_UNREGISTERED_KEY,
   CHECK_REVOKED_KEY,
   IS_PUBLIC_KEY,
+  OPTIONAL_AUTH_KEY,
 } from './auth.decorators';
 import type { AuthenticatedRequest } from './current-user.decorator';
 import {
@@ -63,6 +64,8 @@ export class FirebaseAuthGuard implements CanActivate {
       .switchToHttp()
       .getRequest<Request & AuthenticatedRequest>();
     const token = bearerToken(req.headers.authorization);
+    const optional = flag(OPTIONAL_AUTH_KEY);
+    if (!token && optional) return true; // guest
     if (!token) {
       throw new AppException(ErrorCode.AUTH_REQUIRED, HttpStatus.UNAUTHORIZED);
     }
@@ -78,7 +81,8 @@ export class FirebaseAuthGuard implements CanActivate {
 
     const access = await this.users.findAccessByFirebaseUid(req.identity.uid);
     if (!access) {
-      if (flag(ALLOW_UNREGISTERED_KEY)) return true;
+      // Not registered yet (no /auth/session): browse as a guest.
+      if (flag(ALLOW_UNREGISTERED_KEY) || optional) return true;
       throw new AppException(ErrorCode.AUTH_REQUIRED, HttpStatus.UNAUTHORIZED);
     }
     if (access.status === 'SUSPENDED') {

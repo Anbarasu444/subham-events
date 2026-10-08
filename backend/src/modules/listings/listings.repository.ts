@@ -17,6 +17,16 @@ export type ListingCursor =
   | { sort: '-publishedAt'; publishedAt: string; id: string }
   | { sort: 'startingPrice' | '-startingPrice'; price: string; id: string };
 
+/** A listing with its vendor's public profile and contact (M13). */
+export interface ListingDetailRow extends ListingRow {
+  description: string | null;
+  vendor_description: string | null;
+  vendor_city: string;
+  vendor_service_areas: string[];
+  vendor_phone: string | null;
+  vendor_email: string | null;
+}
+
 export interface ListingRow {
   id: string;
   title: string;
@@ -39,6 +49,17 @@ export interface ListingRow {
 // Visible in the marketplace (domain-model.md): APPROVED listing, ACTIVE
 // vendor, PUBLISHED category.
 const VISIBLE = `l.status = 'APPROVED' AND v.status = 'ACTIVE' AND c.status = 'PUBLISHED'`;
+
+const CARD_COLUMNS = `l.id, l.title, c.id AS category_id, c.name AS category_name,
+  c.slug AS category_slug, v.id AS vendor_id, v.business_name,
+  l.city, l.service_areas, l.starting_price_amount::text AS starting_price_amount,
+  l.currency, l.rating_count, l.rating_sum,
+  to_char(l.approved_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS published_at`;
+
+const FROM_VISIBLE = `FROM vendor_listings l
+  JOIN vendors v ON v.id = l.vendor_id
+  JOIN vendor_categories c ON c.id = l.category_id
+ WHERE ${VISIBLE}`;
 
 /** Escapes LIKE wildcards in user text. */
 function likeEscape(text: string): string {
@@ -122,12 +143,7 @@ export class ListingsRepository {
     }
 
     return this.dataSource.query<ListingRow[]>(
-      `SELECT l.id, l.title, c.id AS category_id, c.name AS category_name,
-              c.slug AS category_slug, v.id AS vendor_id, v.business_name,
-              l.city, l.service_areas, l.starting_price_amount::text AS starting_price_amount,
-              l.currency, l.rating_count, l.rating_sum,
-              to_char(l.approved_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS published_at,
-              (${rank})::int AS rank
+      `SELECT ${CARD_COLUMNS}, (${rank})::int AS rank
          FROM vendor_listings l
          JOIN vendors v ON v.id = l.vendor_id
          JOIN vendor_categories c ON c.id = l.category_id
@@ -135,6 +151,50 @@ export class ListingsRepository {
         ORDER BY ${order}
         LIMIT ${p(limit)}::int`,
       params,
+    );
+  }
+
+  /** A visible listing, or null (hidden, unknown). */
+  async findVisible(id: string): Promise<ListingDetailRow | null> {
+    const rows = await this.dataSource.query<ListingDetailRow[]>(
+      `SELECT ${CARD_COLUMNS}, 0 AS rank, l.description,
+              v.description AS vendor_description, v.city AS vendor_city,
+              v.service_areas AS vendor_service_areas,
+              v.phone AS vendor_phone, v.email AS vendor_email
+         ${FROM_VISIBLE}
+          AND l.id = $1::uuid`,
+      [id],
+    );
+    return rows[0] ?? null;
+  }
+
+  /** Other visible listings of the vendor, newest first. */
+  sameVendor(listingId: string, vendorId: string, limit: number) {
+    return this.dataSource.query<ListingRow[]>(
+      `SELECT ${CARD_COLUMNS}, 0 AS rank
+         ${FROM_VISIBLE}
+          AND l.vendor_id = $1::uuid AND l.id <> $2::uuid
+        ORDER BY l.approved_at DESC, l.id DESC
+        LIMIT $3`,
+      [vendorId, listingId, limit],
+    );
+  }
+
+  /**
+   * Visible listings of other vendors in the same category whose city or
+   * service areas include [city] (the listing's city), newest first.
+   */
+  similar(categoryId: string, city: string, vendorId: string, limit: number) {
+    return this.dataSource.query<ListingRow[]>(
+      `SELECT ${CARD_COLUMNS}, 0 AS rank
+         ${FROM_VISIBLE}
+          AND l.category_id = $1::uuid AND l.vendor_id <> $3::uuid
+          AND (lower(l.city) = lower($2) OR EXISTS (
+                SELECT 1 FROM unnest(l.service_areas) AS s(area)
+                 WHERE lower(s.area) = lower($2)))
+        ORDER BY l.approved_at DESC, l.id DESC
+        LIMIT $4`,
+      [categoryId, city, vendorId, limit],
     );
   }
 

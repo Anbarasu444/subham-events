@@ -228,4 +228,130 @@ describeDb('Vendor discovery (e2e)', () => {
       /only be loaded into a \*_dev or \*_test database/,
     );
   });
+
+  describe('details (M13)', () => {
+    const LOTUS = '5c000000-0000-4000-8000-000000000001';
+    const DRAFT = '5c000000-0000-4000-8000-000000000019';
+    const SUSPENDED = '5c000000-0000-4000-8000-000000000020';
+    const detail = (id: string, uid?: string) => {
+      const req = t.http().get(`/api/v1/listings/${id}`);
+      return uid ? req.set('Authorization', `Bearer ${uid}`) : req;
+    };
+
+    beforeEach(async () => {
+      await t.migrator.query(
+        `UPDATE vendors SET phone = '+919800000001', email = 'lotus@example.invalid'
+          WHERE id = '5b000000-0000-4000-8000-000000000001'`,
+      );
+    });
+
+    it('shows a visible listing; contact details only when signed in', async () => {
+      const guest = (await detail(LOTUS).expect(200)).body.data;
+      expect(guest).toMatchObject({
+        id: LOTUS,
+        title: 'Lotus Grand Mahal — AC wedding hall for 800',
+        description: expect.stringContaining('[Sample]'),
+        startingPrice: { amount: '150000.00', currency: 'INR' },
+        photos: [],
+        vendor: {
+          businessName: 'Lotus Grand Mahal',
+          city: 'Chennai',
+          serviceAreas: ['Tambaram', 'Velachery'],
+          contact: null,
+        },
+      });
+
+      await t
+        .http()
+        .post('/api/v1/auth/session')
+        .set('Authorization', 'Bearer uid-a')
+        .expect(200);
+      const member = (await detail(LOTUS, 'uid-a').expect(200)).body.data;
+      expect(member.vendor.contact).toEqual({
+        phone: '+919800000001',
+        email: 'lotus@example.invalid',
+      });
+      // A token of someone not registered yet: treated as a guest.
+      const unregistered = (await detail(LOTUS, 'uid-new').expect(200)).body
+        .data;
+      expect(unregistered.vendor.contact).toBeNull();
+      // A bad token is still rejected, so the app refreshes it.
+      await detail(LOTUS, 'fail:EXPIRED').expect(401);
+    });
+
+    it('never exposes private vendor fields', async () => {
+      const body = JSON.stringify((await detail(LOTUS).expect(200)).body);
+      for (const field of [
+        'user_id',
+        'userId',
+        'pending_revision',
+        'pendingRevision',
+        'rejection',
+        'approved_by',
+        '5a000000',
+      ]) {
+        expect(body).not.toContain(field);
+      }
+    });
+
+    it('returns 404 for hidden, unknown or malformed listings', async () => {
+      await detail(DRAFT).expect(404);
+      await detail(SUSPENDED).expect(404);
+      await detail('00000000-0000-4000-8000-000000000000').expect(404);
+      await detail('not-a-uuid').expect(404);
+      await t.migrator.query(
+        `UPDATE vendor_categories SET status = 'ARCHIVED' WHERE slug = 'venue'`,
+      );
+      try {
+        await detail(LOTUS).expect(404);
+        await t.http().get(`/api/v1/listings/${LOTUS}/related`).expect(404);
+      } finally {
+        await t.migrator.query(
+          `UPDATE vendor_categories SET status = 'PUBLISHED' WHERE slug = 'venue'`,
+        );
+      }
+    });
+
+    it('lists more from the vendor and similar vendors', async () => {
+      // Give Candid Frames a second, visible listing (videography).
+      await t.migrator.query(
+        `INSERT INTO vendor_listings (id, vendor_id, category_id, title, starting_price_amount, city, status, approved_at)
+         SELECT '5c000000-0000-4000-8000-000000000099', '5b000000-0000-4000-8000-000000000004', id,
+                'Candid films', 30000.00, 'Chennai', 'APPROVED', now()
+           FROM vendor_categories WHERE slug = 'videography'`,
+      );
+      const CANDID = '5c000000-0000-4000-8000-000000000004';
+      const related = (
+        await t.http().get(`/api/v1/listings/${CANDID}/related`).expect(200)
+      ).body.data as { sameVendor: Card[]; similar: Card[] };
+      expect(related.sameVendor.map((c) => c.title)).toEqual(['Candid films']);
+      // Photography elsewhere is excluded; the suspended vendor never shows.
+      expect(related.similar).toEqual([]);
+
+      // Hosur Lens Works (Bengaluru, also Hosur) is similar to a listing in
+      // Hosur's service area of the same category.
+      const HOSUR = '5c000000-0000-4000-8000-000000000018';
+      const fromHosur = (
+        await t.http().get(`/api/v1/listings/${HOSUR}/related`).expect(200)
+      ).body.data as { sameVendor: Card[]; similar: Card[] };
+      expect(fromHosur.similar).toEqual([]);
+
+      // Coimbatore photography vs. a new Coimbatore photographer.
+      await t.migrator.query(
+        `INSERT INTO users (id, firebase_uid) VALUES ('5a000000-0000-4000-8000-000000000099', 'sample-vendor-99');
+         INSERT INTO vendors (id, user_id, business_name, city, service_areas)
+           VALUES ('5b000000-0000-4000-8000-000000000099', '5a000000-0000-4000-8000-000000000099', 'Ooty Clicks', 'Ooty', ARRAY['Coimbatore']);
+         INSERT INTO vendor_listings (id, vendor_id, category_id, title, starting_price_amount, city, service_areas, status, approved_at)
+           SELECT '5c000000-0000-4000-8000-000000000098', '5b000000-0000-4000-8000-000000000099', id,
+                  'Hill weddings', 15000.00, 'Ooty', ARRAY['Coimbatore'], 'APPROVED', now()
+             FROM vendor_categories WHERE slug = 'photography';`,
+      );
+      const WESTERN = '5c000000-0000-4000-8000-000000000014';
+      const coimbatore = (
+        await t.http().get(`/api/v1/listings/${WESTERN}/related`).expect(200)
+      ).body.data as { sameVendor: Card[]; similar: Card[] };
+      expect(coimbatore.similar.map((c) => c.title)).toEqual(['Hill weddings']);
+      expect(coimbatore.sameVendor).toEqual([]);
+    });
+  });
 });

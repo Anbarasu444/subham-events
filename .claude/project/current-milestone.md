@@ -4,61 +4,69 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M12** |
-| Milestone name | Vendor Discovery |
+| Milestone ID | **M13** |
+| Milestone name | Vendor Details |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M12-vendor-discovery.md` (status: CONFIRMED 2026-10-08) |
+| Spec | `.claude/project/milestones/M13-vendor-details.md` (status: CONFIRMED 2026-10-08) |
 | Started date | 2026-10-08 |
 | Completed date | — |
-| Approval status | Awaiting `APPROVE MILESTONE M12` (set IN_REVIEW 2026-10-08) |
+| Approval status | Awaiting `APPROVE MILESTONE M13` (set IN_REVIEW 2026-10-08) |
 
 ## Objective
-Users (including guests) browse approved vendor listings by category, city, price and search text; Explore tab and Home "Explore vendors" section (Option A, answered by the user).
+Tapping a vendor card opens a details page: listing, vendor (contact for signed-in users, A10), more from the vendor and similar vendors; guests allowed.
 
 ## Completed work / In-progress work / Blocked work
-- **Database:** migration `1791900000000-VendorsAndListings` (`vendors`, `vendor_listings` per Part C with O2 city + service areas, status checks, partial APPROVED indexes) — **the user runs `npm run migration:run` on the dev DB**; dev/test-only sample data `database/seeds/dev-sample-vendors.sql` (20 fake vendors, 18 visible) via `npm run seed:dev-samples`, guarded to `*_dev` / `*_test` databases.
-- **Backend:** public `GET /listings` (visibility: APPROVED + ACTIVE vendor + PUBLISHED category; filters category, city/service area, exact price range, text; sorts relevance/newest/price; cursor bound to the search; 120/min) and `GET /listings/cities` (cached 5 min).
-- **User App:** Explore tab (search with debounce, category chips, filter sheet with city/exact prices/sort, removable filter chips, infinite scroll, pull to refresh, skeleton/empty/error/stale states, guest browsing, "details coming soon" on tap), Home "Explore vendors" section (categories + listings near the next event's city, fallback to all; "See all vendors" opens Explore with the city).
+- **Backend:** `@OptionalAuth()` guard mode (guest without a token; signed-in user identified; unregistered token → guest; bad token → 401); `GET /listings/{id}` (visible only, else 404; vendor profile; contact only for signed-in users; no private fields) and `GET /listings/{id}/related` (same vendor / similar by category + city or service area, 6 each). No schema change.
+- **User App:** listing details page (category-icon header, title, vendor, "Starting from" with "final price is agreed with the vendor" note, place and service areas, description, About the vendor, tap-to-call / tap-to-email for signed-in users, "Sign in to see contact details" for guests, Share as text, More from this vendor, Similar vendors, refresh, stale/error/retry and "no longer listed" states); every vendor card (Explore, Home, related lists) opens it; the M12 "coming soon" note is gone. `ExternalActions` gains `call`/`email`; Android `tel`/`mailto` queries.
 - Nothing blocked.
 
 ## Tests completed
-- Backend: unit 71/71 (incl. listing card mapping), e2e 78/78 (incl. 10 discovery tests: visibility, archived category, category/city/service-area filters ignoring case, exact price range and validation, search ranking and wildcard escaping, sorts, paging without repeats for every sort, cursor binding and input validation, cities, seed idempotency and the dev/test guard); lint, typecheck and build clean.
-- User App: `flutter analyze` clean; `flutter test` 219/219 (explore model, controller: default city, guest, paging, debounce, stale refresh, load-more retry, Home preset; Home source fallback; screens: guest browse + coming-soon tap, category + search, filter sheet with price validation/city/sort and chip removal, empty → clear filters, error → retry, infinite scroll, Home → Explore with city, 200 % text on a small phone).
-- Not verified: the signed-in app on the simulator (Firebase sign-in is the user's step); query plans at real catalogue size (only sample data exists).
+- Backend: unit 72/72 (incl. `@OptionalAuth` guard cases), e2e 82/82 (incl. 4 details tests: guest vs signed-in vs unregistered vs expired-token contact, no private fields, 404 for draft/suspended/unknown/malformed/archived-category, related same-vendor and similar by city/service area); lint and typecheck clean.
+- User App: `flutter analyze` clean; `flutter test` 228/228 (detail JSON with/without contact, share text; screens: signed-in call/email hand-off, guest sign-in prompt → sign-in route, related lists open details, share, no-longer-listed, failed load keeps preview + retry, 200 % text; Explore card tap opens details).
+- Not verified: real dialer/mail app on a device (only fakes in tests); signed-in run on the simulator/device.
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security review | Done — public endpoints return no private vendor fields; inputs bounded (lengths, money pattern, limit ≤ 50, UUIDs), unknown params rejected, LIKE wildcards escaped, parameterised SQL, cursors validated and bound to the search, rate limited; sample data guarded to dev/test databases and unusable for sign-in |
-| Performance review | Done — partial indexes for category/city, newest and price; page size 20 (max 50); categories/cities cached in memory 5 min and `max-age=300`; static skeletons; lazy slivers. GI-33: `ILIKE` search and service-area matching not index-backed (M66) |
-| UI review | Done — loading/empty/error/stale/load-more states, removable filter chips, exact price input with validation, semantics merged per card, 200 % text checked |
+| Security / privacy review | Done — contact only with a verified registered user; invalid tokens rejected (no silent downgrade); same visibility rule as discovery; malformed ids 404; private vendor fields never selected; rate limited. Residual: signed-in users can still collect numbers (rate limit only) |
+| Performance review | Done — one query for details, one per related list (6 rows, partial indexes); the tapped card renders immediately; no images before M28 |
+| UI review | Done — clear hierarchy, honest price note, guest prompt, external-app failure message, states, 200 % text |
 | Code review | Done (self-review; fixes applied during testing) |
-| Notification review | Done — read-only browsing, no notification |
-| Documentation | Done (api-contracts, database-schema incl. seed, database README, domain-model visibility rule, notification-matrix, flutter.md §6f, known-issues GI-33, spec, progress) |
+| Notification review | Done — no notification (no state change) |
+| Documentation | Done (api-contracts incl. optional auth, domain-model A10, notification-matrix, flutter.md, spec, progress) |
 
 ## Known issues
 - See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-33.
-- Business rules on hold: R3 (before M15), R6 (before M28/M29), R10 (before M26). R11 final policy by M21. O2 answered (city + service areas).
-- Decision recorded: archiving a category hides its listings from discovery.
+- Business rules on hold: R3 (before M15), R6 (before M28/M29), R10 (before M26). R11 final policy by M21. A10 answered (signed-in users only).
 
 ## Files changed
-- database: `database/migrations/1791900000000-VendorsAndListings.ts`, `database/seeds/dev-sample-vendors.sql`, `database/README.md`
-- backend: `src/modules/listings/*` (dto, repository, service + spec, controller, module), `src/database/seed-dev-samples.ts`, `package.json` (`seed:dev-samples` script), `src/app.module.ts`, `test/listings.e2e-spec.ts`, TRUNCATE lists in `test/db-harness.ts`, `test/auth.e2e-spec.ts`, `test/events.e2e-spec.ts`
-- user_app: `lib/features/explore/**` (domain, data, controller, widgets, view), `lib/features/home/data/{explore_section_source.dart,empty_section_source.dart}`, `lib/features/home/presentation/views/home_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/explore/explore_test.dart`, `test/helpers/fake_discovery_repository.dart`, wiring in budget/checklist/events/home/shell screen tests
-- docs: api-contracts, database-schema, domain-model, notification-matrix, known-issues, architecture/flutter.md, M12 spec, milestones.md, current-milestone, progress
+- backend: `src/modules/auth/{auth.decorators.ts,auth.guard.ts,auth.guard.spec.ts}`, `src/modules/listings/{listings.dto.ts,listings.repository.ts,listings.service.ts,listings.controller.ts}`, `test/listings.e2e-spec.ts`
+- user_app: `lib/features/explore/{domain/listing.dart,data/discovery_repository_impl.dart,presentation/controllers/listing_detail_controller.dart,presentation/views/listing_detail_view.dart,presentation/widgets/listing_card_tile.dart}`, `lib/core/platform/external_actions.dart`, `android/app/src/main/AndroidManifest.xml`; tests `test/features/explore/{listing_detail_test.dart,explore_test.dart}`, `test/helpers/{fake_discovery_repository.dart,fake_media.dart}`
+- docs: api-contracts, domain-model, notification-matrix, architecture/flutter.md, M13 spec, milestones.md, current-milestone, progress
 
 ## Files pending approval
-- M11 and M12 files are uncommitted; the user commits personally.
+- M11, M12 and M13 files are uncommitted; the user commits personally.
 
 ## Next milestone
-- M13 — Vendor Details (spec drafted at the M12 gate).
+- M14 — Wishlist / Contact / Enquiry (spec drafted at the M13 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M12 Vendor Discovery: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-08 |
+| Completed / approved | 2026-10-08 — `APPROVE MILESTONE M12` issued by the user |
+| Spec | `milestones/M12-vendor-discovery.md` (CONFIRMED) |
+
+Evidence at approval: `vendors` / `vendor_listings` schema (O2 city + service areas), dev/test-only sample seed, public `GET /listings` (visibility rule, filters, sorts, bound cursors) and `GET /listings/cities`; Explore tab and Home "Explore vendors"; backend 71 unit + 78 e2e, Flutter 219 tests; reviews done. Not verified: signed-in simulator/device run; query plans at real catalogue size (GI-33). Dev DB migration `1791900000000-VendorsAndListings` (and optional sample seed) to be run by the user.
 
 ## Previous milestone — M11 Budget Management: COMPLETED
 

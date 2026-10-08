@@ -2,16 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/tokens.dart';
 import '../../domain/listing.dart';
+import '../views/listing_detail_view.dart';
 import 'category_icon.dart';
-
-/// Shown until the listing details page exists (M13, M12 answer 6).
-void showDetailsComingSoon(BuildContext context) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      const SnackBar(content: Text('Vendor details are coming soon.')),
-    );
-}
 
 /// A listing in discovery: category icon (no photos before M28), title,
 /// vendor, city and the "Starting from" price (marketplace info only).
@@ -32,7 +24,7 @@ class ListingCardTile extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: MergeSemantics(
         child: InkWell(
-          onTap: onTap ?? () => showDetailsComingSoon(context),
+          onTap: onTap ?? () => ListingNavigation.open(context, listing),
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.sm),
             child: Row(

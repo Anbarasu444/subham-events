@@ -159,6 +159,7 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 ## 6f. Vendor discovery (M12)
 
 - `features/explore`: `DiscoveryRepository` (public reads; categories and cities kept in memory for 5 minutes), `ExploreController` (registered for the session with `fenix`, so Home can call `openWith(categoryId, city)`; default city = next planning event's city when signed in; 400 ms search debounce; newest-request-wins generation guard; cursor paging with its own load-more error/retry; stale results kept on a failed refresh), `ExploreTabView` (search, category chips, removable filter chips, filter sheet with exact `Money` price bounds and sort, skeleton/empty/error states, infinite scroll), `ListingCardTile` (category icon until listing photos in M28; tap → "Vendor details are coming soon" until M13).
+- Listing details (M13): `ListingNavigation.open` pushes `ListingDetailView` in the current tab (cards everywhere use it). `ListingDetailController` shows the tapped card at once, loads details and related lists separately, reloads details on sign-in/out (contact appears only for signed-in users, A10), maps 404 to "no longer listed". Call/email/share go through `ExternalActions` (`call`, `email`, `shareText`); Android declares `tel`/`mailto` queries.
 - Home "Explore vendors" (`ExploreSectionSource`, guests too): categories plus three listings in the next event's city, falling back to all cities when none match.
 
 ## 7. Local storage responsibilities

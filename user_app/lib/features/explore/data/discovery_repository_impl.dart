@@ -87,6 +87,61 @@ class DiscoveryRepositoryImpl implements DiscoveryRepository {
     };
   }
 
+  @override
+  Future<Result<ListingDetail>> detail(String listingId) async {
+    final result = await _api.get(
+      '/listings/$listingId',
+      decode: (json) => detailFromJson(json as Map<String, dynamic>),
+    );
+    return switch (result) {
+      Ok(:final value) => Ok(value.data),
+      Err(:final failure) => Err(failure),
+    };
+  }
+
+  @override
+  Future<Result<RelatedListings>> related(String listingId) async {
+    List<ListingCard> cards(Object? list) => (list as List<dynamic>)
+        .map((raw) => listingFromJson(raw as Map<String, dynamic>))
+        .toList(growable: false);
+    final result = await _api.get(
+      '/listings/$listingId/related',
+      decode: (json) {
+        final map = json as Map<String, dynamic>;
+        return RelatedListings(
+          sameVendor: cards(map['sameVendor']),
+          similar: cards(map['similar']),
+        );
+      },
+    );
+    return switch (result) {
+      Ok(:final value) => Ok(value.data),
+      Err(:final failure) => Err(failure),
+    };
+  }
+
+  static ListingDetail detailFromJson(Map<String, dynamic> json) {
+    final vendor = json['vendor'] as Map<String, dynamic>;
+    final contact = vendor['contact'] as Map<String, dynamic>?;
+    return ListingDetail(
+      card: listingFromJson(json),
+      description: json['description'] as String?,
+      vendor: VendorProfile(
+        id: vendor['id'] as String,
+        businessName: vendor['businessName'] as String,
+        description: vendor['description'] as String?,
+        city: vendor['city'] as String,
+        serviceAreas: (vendor['serviceAreas'] as List<dynamic>).cast<String>(),
+        contact: contact == null
+            ? null
+            : VendorContact(
+                phone: contact['phone'] as String?,
+                email: contact['email'] as String?,
+              ),
+      ),
+    );
+  }
+
   static VendorCategory categoryFromJson(Map<String, dynamic> json) =>
       VendorCategory(
         id: json['id'] as String,

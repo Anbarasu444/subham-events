@@ -49,6 +49,14 @@ class FakeDiscoveryRepository implements DiscoveryRepository {
   final List<VendorCategory> categoryList;
   final List<String> cityList;
   final List<ListingQuery> queries = [];
+
+  /// Contact details returned by [detail] (null = guest view).
+  VendorContact? contact = const VendorContact(
+    phone: '+919800000001',
+    email: 'vendor@example.invalid',
+  );
+  Failure? failDetailNext;
+  final List<String> detailCalls = [];
   final List<String?> cursors = [];
   Failure? failNext;
   Failure? failCategoriesNext;
@@ -62,6 +70,54 @@ class FakeDiscoveryRepository implements DiscoveryRepository {
 
   @override
   Future<Result<List<String>>> cities() async => Ok(cityList);
+
+  @override
+  Future<Result<ListingDetail>> detail(String listingId) async {
+    detailCalls.add(listingId);
+    final failure = failDetailNext;
+    failDetailNext = null;
+    if (failure != null) return Err(failure);
+    final card = listings.where((l) => l.id == listingId).firstOrNull;
+    if (card == null) return const Err(NotFoundFailure());
+    return Ok(
+      ListingDetail(
+        card: card,
+        description: 'About ${card.title}',
+        vendor: VendorProfile(
+          id: 'v-${card.vendorName}',
+          businessName: card.vendorName,
+          description: null,
+          city: card.city,
+          serviceAreas: card.serviceAreas,
+          contact: contact,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Future<Result<RelatedListings>> related(String listingId) async {
+    final card = listings.where((l) => l.id == listingId).firstOrNull;
+    if (card == null) return const Err(NotFoundFailure());
+    final others = listings.where((l) => l.id != listingId);
+    return Ok(
+      RelatedListings(
+        sameVendor: others
+            .where((l) => l.vendorName == card.vendorName)
+            .take(6)
+            .toList(),
+        similar: others
+            .where(
+              (l) =>
+                  l.vendorName != card.vendorName &&
+                  l.category.id == card.category.id &&
+                  l.city == card.city,
+            )
+            .take(6)
+            .toList(),
+      ),
+    );
+  }
 
   @override
   Future<Result<ListingPage>> search(

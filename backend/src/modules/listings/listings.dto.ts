@@ -97,3 +97,32 @@ export interface ListingCardDto {
   coverImageUrl: string | null;
   publishedAt: string;
 }
+
+/** Vendor phone/email (A10): sent to signed-in callers only. */
+export interface VendorContactDto {
+  phone: string | null;
+  email: string | null;
+}
+
+/** One visible listing with its vendor (M13). */
+export interface ListingDetailDto extends ListingCardDto {
+  description: string | null;
+  /** Listing photos arrive in M28. */
+  photos: never[];
+  vendor: {
+    id: string;
+    businessName: string;
+    description: string | null;
+    city: string;
+    serviceAreas: string[];
+    /** Null for guests (they are asked to sign in). */
+    contact: VendorContactDto | null;
+  };
+}
+
+export interface RelatedListingsDto {
+  /** Other listings of the same vendor (up to 6). */
+  sameVendor: ListingCardDto[];
+  /** Same category, same city or service area, other vendors (up to 6). */
+  similar: ListingCardDto[];
+}

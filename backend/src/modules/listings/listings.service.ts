@@ -10,8 +10,10 @@ import {
 } from '../../common/pagination/cursor';
 import type {
   ListingCardDto,
+  ListingDetailDto,
   ListingSort,
   ListListingsQuery,
+  RelatedListingsDto,
 } from './listings.dto';
 import {
   ListingsRepository,
@@ -24,6 +26,9 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
 const PRICE_PATTERN = /^\d{1,10}\.\d{2}$/;
+
+/** Most listings per related list. */
+export const MAX_RELATED = 6;
 
 /** Most cities returned for the city filter. */
 export const MAX_CITIES = 500;
@@ -84,6 +89,49 @@ export class ListingsService {
     return { items: items.map(toListingCardDto), page };
   }
 
+  /**
+   * One visible listing (else 404). Vendor phone/email only for signed-in
+   * callers (A10, M13 answer 1).
+   */
+  async detail(id: string, signedIn: boolean): Promise<ListingDetailDto> {
+    const row = await this.listings.findVisible(id);
+    if (!row) throw notFound();
+    return {
+      ...toListingCardDto(row),
+      description: row.description,
+      photos: [],
+      vendor: {
+        id: row.vendor_id,
+        businessName: row.business_name,
+        description: row.vendor_description,
+        city: row.vendor_city,
+        serviceAreas: row.vendor_service_areas,
+        contact: signedIn
+          ? { phone: row.vendor_phone, email: row.vendor_email }
+          : null,
+      },
+    };
+  }
+
+  /** More from the vendor and similar listings (M13 answer 4). */
+  async related(id: string): Promise<RelatedListingsDto> {
+    const row = await this.listings.findVisible(id);
+    if (!row) throw notFound();
+    const [sameVendor, similar] = await Promise.all([
+      this.listings.sameVendor(id, row.vendor_id, MAX_RELATED),
+      this.listings.similar(
+        row.category_id,
+        row.city,
+        row.vendor_id,
+        MAX_RELATED,
+      ),
+    ]);
+    return {
+      sameVendor: sameVendor.map(toListingCardDto),
+      similar: similar.map(toListingCardDto),
+    };
+  }
+
   cities(): Promise<string[]> {
     return this.listings.cities(MAX_CITIES);
   }
@@ -124,6 +172,10 @@ export class ListingsService {
       }
     }
   }
+}
+
+function notFound(): AppException {
+  return new AppException(ErrorCode.NOT_FOUND, HttpStatus.NOT_FOUND);
 }
 
 function fingerprintOf(filters: ListingFilters, sort: ListingSort): string {

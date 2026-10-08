@@ -116,6 +116,59 @@ class ListingQuery {
       Object.hash(categoryId, city, text, minPrice, maxPrice, sort);
 }
 
+/// Vendor phone/email (A10): only sent to signed-in users.
+class VendorContact {
+  const VendorContact({this.phone, this.email});
+
+  final String? phone;
+  final String? email;
+
+  bool get isEmpty => phone == null && email == null;
+}
+
+/// The vendor behind a listing (public profile).
+class VendorProfile {
+  const VendorProfile({
+    required this.id,
+    required this.businessName,
+    required this.description,
+    required this.city,
+    required this.serviceAreas,
+    required this.contact,
+  });
+
+  final String id;
+  final String businessName;
+  final String? description;
+  final String city;
+  final List<String> serviceAreas;
+
+  /// Null for guests (they are asked to sign in).
+  final VendorContact? contact;
+}
+
+/// One listing with its vendor (M13 details page).
+class ListingDetail {
+  const ListingDetail({
+    required this.card,
+    required this.description,
+    required this.vendor,
+  });
+
+  final ListingCard card;
+  final String? description;
+  final VendorProfile vendor;
+}
+
+class RelatedListings {
+  const RelatedListings({required this.sameVendor, required this.similar});
+
+  final List<ListingCard> sameVendor;
+  final List<ListingCard> similar;
+
+  bool get isEmpty => sameVendor.isEmpty && similar.isEmpty;
+}
+
 class ListingPage {
   const ListingPage({required this.items, required this.nextCursor});
 
@@ -134,4 +187,8 @@ abstract class DiscoveryRepository {
     int limit = 20,
   });
   Future<Result<List<String>>> cities();
+
+  /// One visible listing; `NotFoundFailure` when it is no longer listed.
+  Future<Result<ListingDetail>> detail(String listingId);
+  Future<Result<RelatedListings>> related(String listingId);
 }

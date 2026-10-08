@@ -259,8 +259,8 @@ void main() {
       expect(find.text('Starting from ₹25,000'), findsOneWidget);
       expect(find.text('Chennai · also Tambaram'), findsOneWidget);
       await tester.tap(find.text('Candid wedding photography'));
-      await tester.pump();
-      expect(find.text('Vendor details are coming soon.'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.text('About this service'), findsOneWidget);
     });
 
     testWidgets('filters by category and search text', (tester) async {

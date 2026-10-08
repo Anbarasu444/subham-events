@@ -7,6 +7,7 @@ import {
   ALLOW_UNREGISTERED_KEY,
   CHECK_REVOKED_KEY,
   IS_PUBLIC_KEY,
+  OPTIONAL_AUTH_KEY,
 } from './auth.decorators';
 import { FirebaseAuthGuard } from './auth.guard';
 import {
@@ -95,6 +96,39 @@ describe('FirebaseAuthGuard', () => {
   it('lets public routes through without a token', async () => {
     const { guard, ctx } = setup({ metadata: { [IS_PUBLIC_KEY]: true } });
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
+  });
+
+  it('@OptionalAuth: guests pass, signed-in callers are identified', async () => {
+    const guest = setup({ metadata: { [OPTIONAL_AUTH_KEY]: true } });
+    await expect(guest.guard.canActivate(guest.ctx)).resolves.toBe(true);
+    expect(guest.req.user).toBeUndefined();
+
+    const member = setup({
+      metadata: { [OPTIONAL_AUTH_KEY]: true },
+      header: 'Bearer t',
+      access: active,
+    });
+    await expect(member.guard.canActivate(member.ctx)).resolves.toBe(true);
+    expect(member.req.user).toMatchObject({ roles: ['USER'] });
+
+    const unregistered = setup({
+      metadata: { [OPTIONAL_AUTH_KEY]: true },
+      header: 'Bearer t',
+      access: null,
+    });
+    await expect(
+      unregistered.guard.canActivate(unregistered.ctx),
+    ).resolves.toBe(true);
+    expect(unregistered.req.user).toBeUndefined();
+
+    const expired = setup({
+      metadata: { [OPTIONAL_AUTH_KEY]: true },
+      header: 'Bearer t',
+      outcome: new TokenVerificationError('EXPIRED'),
+    });
+    expect((await errorOf(expired.guard.canActivate(expired.ctx))).code).toBe(
+      'AUTH_TOKEN_EXPIRED',
+    );
   });
 
   it('rejects a missing or non-Bearer token with AUTH_REQUIRED', async () => {

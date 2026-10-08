@@ -313,6 +313,14 @@ Public (guests allowed), read only, rate limited 120/min per IP (`listings-read`
 - Query (all optional; unknown parameters → 422): `categoryId` (uuid), `city` (1–80, trimmed; case-insensitive match on the listing city **or** any service area — O2), `q` (1–100, trimmed; listing title, vendor name or category name; `%`/`_` are plain text), `minStartingPrice` / `maxStartingPrice` (exact `"25000.00"` strings; max < min → 422 `RANGE_INVERTED`), `sort` (`-publishedAt` newest, `startingPrice`, `-startingPrice`; omitted = relevance: title starts with `q`, then title contains, vendor name, category name; then newest), `limit` (1–50, default 20), `cursor`.
 - Response 200 `{ data: ListingCardDto[], meta: { page: { type: "cursor", limit, nextCursor, hasMore } } }`. Every sort ends with `id`; a cursor only continues the exact search (filters + sort) it came from (else 422 `INVALID_CURSOR`).
 
+### GET /api/v1/listings/{id} (M13)
+- Auth: **optional** (`@OptionalAuth`): no token → guest; a valid token of a registered user → signed in; a token of a not-yet-registered Firebase user → guest; an invalid/expired token → 401 (the app refreshes it). Rate limited (`listings-read`).
+- Response 200 `{ data: ListingDetailDto }` = `ListingCardDto` + `{ description: string | null, photos: [] (until M28), vendor: { id, businessName, description, city, serviceAreas, contact: { phone, email } | null } }`. `contact` is **null for guests** (A10, M13 answer 1); either field may be null when the vendor has not added it.
+- 404 when the listing is not visible (draft, in review, rejected, suspended/archived, vendor not ACTIVE, category not PUBLISHED), unknown or malformed.
+
+### GET /api/v1/listings/{id}/related (M13)
+- Public, rate limited. Response 200 `{ data: { sameVendor: ListingCardDto[], similar: ListingCardDto[] } }`: up to 6 other visible listings of the same vendor, and up to 6 visible listings of **other** vendors in the same category whose city or service areas include the listing's city; both newest first. 404 as above.
+
 ### GET /api/v1/listings/cities
 - Response 200 `{ data: string[] }`: the cities and service areas of visible listings, case-insensitively unique, alphabetical, at most 500. `Cache-Control: public, max-age=300`.
 
