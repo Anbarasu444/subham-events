@@ -6,10 +6,12 @@ import 'package:user_app/core/money/money.dart';
 import 'package:user_app/features/event_vendors/domain/event_vendor.dart';
 import 'package:user_app/features/explore/domain/listing.dart';
 import 'package:user_app/features/invitations/domain/invitation.dart';
+import 'package:user_app/features/reviews/domain/review.dart';
 import 'package:user_app/features/reminders/domain/reminder.dart';
 import 'package:user_app/features/wishlist/domain/wishlist.dart';
 
 import 'fake_invitations.dart';
+import 'fake_reviews.dart';
 import 'fake_reminders.dart';
 import 'package:user_app/features/wishlist/presentation/controllers/wishlist_controller.dart';
 
@@ -101,6 +103,7 @@ class FakeEventVendorsRepository implements EventVendorsRepository {
     Money? amount,
     String? reason,
     bool canComplete = false,
+    BookingReview? review,
   }) => Booking(
     id: from?.id ?? 'b-${++_seq}',
     status: status,
@@ -111,7 +114,33 @@ class FakeEventVendorsRepository implements EventVendorsRepository {
     cancelReason: reason,
     canCancel: status == BookingStatus.confirmed,
     canComplete: canComplete && status == BookingStatus.confirmed,
+    review: review,
+    canReview: status == BookingStatus.completed && review == null,
   );
+
+  /// Shows a sent review on its booking (the server's `booking.review`).
+  void markReviewed(String bookingId, Review review) {
+    for (final entry in byEvent.entries) {
+      for (final v in entry.value) {
+        if (v.booking?.id != bookingId) continue;
+        _replace(
+          entry.key,
+          _with(
+            v,
+            booking: () => _booking(
+              v.booking,
+              status: v.booking!.status,
+              review: BookingReview(
+                rating: review.rating,
+                commentStatus: review.commentStatus,
+              ),
+            ),
+            editable: true,
+          ),
+        );
+      }
+    }
+  }
 
   /// Lets the booking be marked completed (its service date has come).
   void serviceDateReached(String eventId, String eventVendorId) {
@@ -443,6 +472,16 @@ registerEngagement({
   if (!Get.isRegistered<RemindersRepository>()) {
     Get.put<RemindersRepository>(
       FakeRemindersRepository(readOnlyEvents: readOnlyEvents),
+    );
+  }
+  if (Get.isRegistered<ReviewsRepository>()) {
+    final reviews = Get.find<ReviewsRepository>();
+    if (reviews is FakeReviewsRepository) {
+      reviews.onCreated ??= vendors.markReviewed;
+    }
+  } else {
+    Get.put<ReviewsRepository>(
+      FakeReviewsRepository(onCreated: vendors.markReviewed),
     );
   }
   if (!Get.isRegistered<InvitationsRepository>()) {

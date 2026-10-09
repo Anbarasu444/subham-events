@@ -91,3 +91,4 @@ Guests open the link in any browser, see the invitation and send or update their
 | 2026-10-08 | User answers: 1 guest page served by the backend (server address until a domain exists) — OK; 2 picture drawn on the phone and shared with the link — OK; 3 **the user will plan the designs later and wants many predefined templates** → M19 builds a data-driven template catalogue (code, name, colours, fonts, layout) so templates can be added without code changes to the screens, with a small starter set; the full template set is follow-up work (GI-36); 4 A6 form — OK; 5 N18 digest hourly, push under Other — OK; 6 "A" → **one invitation per event** (edit keeps the same link) | User |
 | 2026-10-09 | CONFIRMED by `START MILESTONE M19` | User |
 | 2026-10-09 | Implemented; starter catalogue of 6 designs (Classic, Floral, Minimal, Festive, Royal, Pastel); set IN_REVIEW | Claude |
+| 2026-10-09 | **COMPLETED** — `APPROVE MILESTONE M19` | User |

@@ -24,6 +24,8 @@ import 'package:user_app/features/home/presentation/controllers/home_controller.
 import 'package:user_app/features/shell/presentation/controllers/shell_controller.dart';
 import 'package:user_app/features/shell/presentation/controllers/shell_tab.dart';
 import 'package:user_app/features/shell/presentation/views/shell_view.dart';
+import 'package:user_app/features/reviews/domain/review.dart';
+import 'package:user_app/features/reviews/presentation/widgets/stars.dart';
 import 'package:user_app/features/wishlist/presentation/controllers/wishlist_controller.dart';
 
 import '../../helpers/fake_budget_repository.dart';
@@ -32,6 +34,7 @@ import '../../helpers/fake_discovery_repository.dart';
 import '../../helpers/fake_event_vendors.dart';
 import '../../helpers/fake_events_repository.dart';
 import '../../helpers/fake_media.dart';
+import '../../helpers/fake_reviews.dart';
 import '../../helpers/test_session.dart';
 import '../../helpers/viewport.dart';
 
@@ -652,6 +655,58 @@ void main() {
       await tester.tap(find.text('Mark completed'));
       await tester.pumpAndSettle();
       expect(find.text('Booking completed'), findsOneWidget);
+    });
+
+    testWidgets('a completed booking can be rated once (M20)', (tester) async {
+      final vendors = await pumpQuoted(tester);
+      final ev = vendors.byEvent['e1']!.single;
+      await vendors.acceptQuotation(
+        'e1',
+        ev.id,
+        ev.quotations.first.id,
+        idempotencyKey: 'k',
+      );
+      vendors.serviceDateReached('e1', ev.id);
+      (Get.find<EventsRepository>() as FakeEventsRepository).notifyChanged();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(find.text('Rate this vendor'), findsNothing);
+      await scrollTo(tester, find.text('Mark completed'));
+      await tester.tap(find.text('Mark completed'));
+      await tester.pumpAndSettle();
+
+      await scrollTo(tester, find.text('Rate this vendor'));
+      await tester.tap(find.text('Rate this vendor'));
+      await tester.pumpAndSettle();
+      // Stars are required.
+      await tester.tap(find.text('Send review'));
+      await tester.pumpAndSettle();
+      expect(find.text('Choose 1 to 5 stars.'), findsOneWidget);
+      await tester.tap(find.byTooltip('4 stars – Very good'));
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Comment (optional)'),
+        'Lovely photos',
+      );
+      await tester.tap(find.text('Send review'));
+      await tester.pumpAndSettle();
+      final reviews = Get.find<ReviewsRepository>() as FakeReviewsRepository;
+      expect(reviews.calls.single, contains(':4:Lovely photos'));
+      expect(
+        find.text(
+          'Thanks! Your rating is live; your comment is waiting for approval.',
+        ),
+        findsOneWidget,
+      );
+      await scrollTo(tester, find.text('Your rating'));
+      expect(
+        tester.widget<StarsDisplay>(find.byType(StarsDisplay)).rating,
+        4,
+      );
+      expect(
+        find.text('Your comment is waiting for approval.'),
+        findsOneWidget,
+      );
+      expect(find.text('Rate this vendor'), findsNothing);
     });
 
     testWidgets('quote and booking fit at 200 % text', (tester) async {

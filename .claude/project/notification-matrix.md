@@ -98,14 +98,14 @@ In-app = row created in `notifications`. Push = FCM to recipient devices (subjec
 | N11 | Quotation accepted / rejected by user ⏸R3 (withdraw/expiry rows added when R3 resolved) | BOOKING | Vendor | Yes | Yes | M15/M33 |
 | N12 | Booking confirmed | BOOKING | User and Vendor | Yes | Yes | M15/M34 |
 | N13 | Booking cancelled (by either party/admin) | BOOKING | Other party (and both if admin) | Yes | Yes | M15/M34/M48 |
-| N14 | Booking completed | BOOKING | User (review prompt) | Yes | Yes | M15/M20 |
+| N14 | Booking completed | BOOKING | User (review prompt: "How did it go? Rate the vendor." — M20) | Yes | Yes | M15/M20 |
 | N15 | ~~Event payment recorded~~ — **removed (M2):** payment notes are the user's private notes (R5, ❓A2); no notification | — | — | — | — | — |
 | N16 | Checklist item due today / overdue (only items with a due date) | CHECKLIST | User | Yes | Yes (once per item per state, 09:00 event time zone) | M9/M17 |
 | N17 | User reminder fires | CHECKLIST | User | Yes | Yes | M17 |
 | N18 | RSVP received on an invitation (R9) | INVITATION | Invitation owner | Yes, digested (M19): one row per invitation per hour ("3 new RSVPs"); the RSVP list always shows every reply | Yes, same row; push group OTHER | M19 |
-| N19 | Review received — rating immediately (❓A4); comment when approved | REVIEW | Vendor | Yes | Yes | M20/M37 |
+| N19 | Review received — rating immediately (A4); comment when approved | REVIEW | Vendor | Yes — M20: `REVIEW_RECEIVED` in-app (vendor audience) with name "Asha K." and stars, never the comment | Yes from M36 (vendor devices) | M20/M37 |
 | N20 | Approved review comment later hidden by admin | REVIEW | Review author | Yes | No | M51 |
-| N23 | Review comment submitted for moderation (R7) | REVIEW | Admins (MARKETPLACE_ADMIN, CONTENT_ADMIN) | Yes (CMS) | No | M20/M51 |
+| N23 | Review comment submitted for moderation (R7) | REVIEW | Admins (MARKETPLACE_ADMIN, CONTENT_ADMIN) | Yes (CMS) — **deferred to M51**: no admin accounts exist yet (M40+); until then the queue is `ix_reviews_comment_status_created_at` | No | M51 |
 | N24 | Review comment approved / rejected (R7) | REVIEW | Review author | Yes | No | M20/M51 |
 | N25 | Enquiry declined by vendor | BOOKING | User | Yes | Yes | M14/M32 |
 | N26 | Event's booked vendor account deleted/suspended | VENDOR | Event owner | Yes | Yes | M46 |

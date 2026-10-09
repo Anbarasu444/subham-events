@@ -14,6 +14,7 @@ import '../../../wishlist/presentation/controllers/wishlist_controller.dart';
 import '../../../wishlist/presentation/widgets/save_button.dart';
 import '../../domain/listing.dart';
 import '../controllers/listing_detail_controller.dart';
+import '../../../reviews/presentation/widgets/listing_reviews_section.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/listing_card_tile.dart';
 
@@ -118,6 +119,8 @@ class ListingDetailView extends StatelessWidget {
                         ],
                         const SizedBox(height: AppSpacing.md),
                         ..._details(context, c, state, data),
+                        const SizedBox(height: AppSpacing.lg),
+                        ListingReviewsSection(listingId: card.id),
                       ],
                     ),
                   ),

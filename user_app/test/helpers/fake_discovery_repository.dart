@@ -6,6 +6,9 @@ import 'package:user_app/core/money/money.dart';
 import 'package:user_app/features/events/domain/repositories/events_repository.dart';
 import 'package:user_app/features/explore/domain/listing.dart';
 import 'package:user_app/features/explore/presentation/controllers/explore_controller.dart';
+import 'package:user_app/features/reviews/domain/review.dart';
+
+import 'fake_reviews.dart';
 
 const sampleCategories = [
   VendorCategory(id: 'cat-venue', name: 'Venue', slug: 'venue'),
@@ -187,6 +190,9 @@ class FakeDiscoveryRepository implements DiscoveryRepository {
 FakeDiscoveryRepository registerExplore([FakeDiscoveryRepository? repo]) {
   final discovery = repo ?? FakeDiscoveryRepository();
   Get.put<DiscoveryRepository>(discovery);
+  if (!Get.isRegistered<ReviewsRepository>()) {
+    Get.put<ReviewsRepository>(FakeReviewsRepository());
+  }
   Get.put(
     ExploreController(
       discovery,

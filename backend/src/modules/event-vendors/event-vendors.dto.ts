@@ -109,6 +109,10 @@ export interface BookingDto {
   createdAt: string;
   canCancel: boolean;
   canComplete: boolean;
+  /** The user's review of this booking (M20), if any. */
+  review: { rating: number; commentStatus: string } | null;
+  /** Completed, from the service date, and not yet reviewed (A5, A12). */
+  canReview: boolean;
 }
 
 export interface EnquiryDto {

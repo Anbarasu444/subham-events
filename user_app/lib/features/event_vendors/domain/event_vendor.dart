@@ -1,3 +1,4 @@
+import '../../reviews/domain/review.dart';
 import '../../../core/error/result.dart';
 import '../../../core/money/money.dart';
 import '../../explore/domain/listing.dart';
@@ -94,6 +95,8 @@ class Booking {
     required this.cancelReason,
     required this.canCancel,
     required this.canComplete,
+    this.review,
+    this.canReview = false,
   });
 
   final String id;
@@ -107,6 +110,19 @@ class Booking {
   final String? cancelReason;
   final bool canCancel;
   final bool canComplete;
+
+  /// The user's review of this booking (M20), if sent.
+  final BookingReview? review;
+
+  /// Completed, from the service date, not yet reviewed (A5, A12).
+  final bool canReview;
+}
+
+class BookingReview {
+  const BookingReview({required this.rating, required this.commentStatus});
+
+  final int rating;
+  final CommentStatus commentStatus;
 }
 
 class Enquiry {

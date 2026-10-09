@@ -35,6 +35,8 @@ import '../../../notifications/presentation/controllers/push_service.dart';
 import '../../../invitations/data/invitations_repository_impl.dart';
 import '../../../invitations/domain/invitation.dart';
 import '../../../reminders/data/reminders_repository_impl.dart';
+import '../../../reviews/data/reviews_repository_impl.dart';
+import '../../../reviews/domain/review.dart';
 import '../../../reminders/domain/reminder.dart';
 import '../../../wishlist/data/wishlist_repository_impl.dart';
 import '../../../wishlist/domain/wishlist.dart';
@@ -142,6 +144,11 @@ class ShellBinding extends Bindings {
     // Reminders (M17).
     Get.lazyPut<RemindersRepository>(
       () => RemindersRepositoryImpl(Get.find<ApiClient>()),
+      fenix: true,
+    );
+    // Reviews (M20): rate completed bookings; listing ratings and comments.
+    Get.lazyPut<ReviewsRepository>(
+      () => ReviewsRepositoryImpl(Get.find<ApiClient>()),
       fenix: true,
     );
     // Digital invitations (M19): the share link is kept on this phone.

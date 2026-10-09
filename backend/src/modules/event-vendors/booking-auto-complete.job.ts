@@ -86,7 +86,7 @@ export class BookingAutoCompleteJob
             category: 'BOOKING',
             type: 'BOOKING_COMPLETED',
             title: 'Booking completed',
-            body: 'Your booking is complete. We hope it went well!',
+            body: 'Your booking is complete. How did it go? Rate the vendor.',
             entityType: 'BOOKING',
             entityId: row.id,
             data: { eventId: row.event_id, eventVendorId: row.event_vendor_id },

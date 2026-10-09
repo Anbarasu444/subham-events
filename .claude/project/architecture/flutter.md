@@ -187,6 +187,10 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 
 - `features/invitations`: `InvitationsRepository` (templates cached per session; the share link is returned once by the API and kept on this phone in `SecureStore` under `invitation_link_<id>`), `InvitationController` (load, save, publish, new link, close/reopen replies, revoke; conflicts reload), `InvitationSection` in the event Overview (create, preview, publish, share link, share picture, replies summary, menu with confirmations; read only when not planning; a phone without the link is offered "Create a new link"), `InvitationEditorView` (design chips from the catalogue, title/from/message, live preview), `InvitationCard` (draws any catalogue template: colours, heading font, ornament), `SharePictureView` (RepaintBoundary → PNG at 3× → `ExternalActions.shareImage` with the link in the text; nothing uploaded), `RsvpListView` (totals and every reply, pull to refresh).
 
+## 6m. Reviews (M20)
+
+- `features/reviews`: `ReviewsRepository` (create with Idempotency-Key, listing rating summary, approved reviews page), `ReviewFormController` + `showReviewSheet` (five 48 dp star buttons, optional comment ≤ 1000, "Asha K." note; same-input retries reuse the key), booking panel "Rate this vendor" when `booking.canReview` and "Your rating" + comment status afterwards, `ListingReviewsSection` on listing details (average, star bars, approved comments with "Show more", empty/failed/retry), `StarsDisplay`/`StarRatingInput`.
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

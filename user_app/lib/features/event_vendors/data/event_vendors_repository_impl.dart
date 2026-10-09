@@ -4,6 +4,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/utils/date_format.dart';
 import '../../explore/data/discovery_repository_impl.dart';
+import '../../reviews/domain/review.dart';
 import '../domain/event_vendor.dart';
 
 /// Network-only (server-owned state). Every change calls [_onChanged] so
@@ -209,6 +210,16 @@ class EventVendorsRepositoryImpl implements EventVendorsRepository {
           cancelReason: b['cancelReason'] as String?,
           canCancel: b['canCancel'] as bool,
           canComplete: b['canComplete'] as bool,
+          review: switch (b['review']) {
+            final Map<String, dynamic> r => BookingReview(
+              rating: r['rating'] as int,
+              commentStatus: CommentStatus.fromApi(
+                r['commentStatus'] as String,
+              ),
+            ),
+            _ => null,
+          },
+          canReview: b['canReview'] as bool? ?? false,
         ),
         _ => null,
       },

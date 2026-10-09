@@ -4,65 +4,76 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M19** |
-| Milestone name | Digital Invitations |
+| Milestone ID | **M20** |
+| Milestone name | Reviews |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M19-digital-invitations.md` (status: CONFIRMED 2026-10-09) |
+| Spec | `.claude/project/milestones/M20-reviews.md` (status: CONFIRMED 2026-10-09) |
 | Started date | 2026-10-09 |
 | Completed date | — |
-| Approval status | **Awaiting `APPROVE MILESTONE M19`** |
+| Approval status | **Awaiting `APPROVE MILESTONE M20`** |
 
 ## Objective
-E-invitation per event (design, details, publish, share as link or image), public guest page with anonymous RSVP (A6), RSVP list and totals, N18 digest.
+Star rating + moderated comment for completed bookings (R7, A4, A5, A12); ratings on listings; approved comments on listing details.
 
 ## Completed work
-- Answers applied: backend guest page; picture drawn on the phone; data-driven template catalogue with a starter set of 6 (Classic, Floral, Minimal, Festive, Royal, Pastel; full set planned by the user later, GI-36); A6 form; N18 hourly digest; one invitation per event.
-- **Database:** migration `1792500000000-Invitations` (`invitations`, `invitation_rsvps`; tokens stored only as SHA-256 hashes).
-- **Backend:** `invitations` module — template catalogue endpoint; owner get/save/publish/new-link/close-reopen replies/revoke/RSVP list (PLANNING-only writes, rate limited, audited); public guest page `GET /api/v1/i/{token}` + RSVP form post (no account, cookie-based update of one reply, caps, noindex/no-referrer/CSP/no-store, escaped HTML, rate limited); hourly-per-invitation N18 digest job (push group OTHER); `INVITATION_BASE_URL` config; urlencoded body parser (16 kB).
-- **User App:** event Overview "Invitation" card (create, preview, publish, share link, share picture, replies summary, menu: edit / close or reopen replies / new link / turn off link, with confirmations; read only when not planning; a phone without the link is offered a new one), editor with design chips and live preview, invitation card renderer, share-as-picture screen (PNG drawn on the phone), Replies screen with totals. Link kept in secure storage on this phone.
+- Answers applied: A4/A5/A12 confirmed; comments wait for moderation until M51 (3A); public name "Asha K." (4B); prompt on the completed booking and in N14; no later reminder (assumed).
+- **Database:** migration `1792600000000-Reviews`.
+- **Backend:** `reviews` module — write a review for a completed booking (owner only, from the service date, once, not your own listing; idempotent; rate limited; audited without text), atomic listing rating update, `GET /me/reviews`, public `GET /listings/{id}/rating` (star breakdown) and `GET /listings/{id}/reviews` (approved comments, "Asha K."); `BookingDto.review` + `canReview`; N19 vendor in-app; N14 text invites a rating.
+- **User App:** "Rate this vendor" on completed bookings → review sheet (stars, optional comment, idempotent retry); "Your rating" + comment status on the booking; "Ratings & reviews" section on listing details (average, star bars, approved comments, Show more, all states).
 
 ## In-progress work
 - None.
 
 ## Blocked work
-- None. (Guest links reach only phones on the same Wi-Fi until the backend is hosted / `INVITATION_BASE_URL` is set.)
+- None. Comments cannot become public until M51 (GI-37), by decision.
 
 ## Tests completed
-- Backend: unit 74/74; e2e 137/137 (8 new invitation tests: catalogue, owner flow with hash-only token, guest page headers + RSVP create/update via cookie, invalid replies, close/new link/revoke, cancelled-event and unknown links look the same, owner-only, N18 hourly digest); lint and typecheck clean.
-- User App: `flutter analyze` clean; `flutter test` 291/291 (12 new: JSON parsing, controller link/revoke/conflict/failure, create → publish → share link, share picture, replies list and totals, close replies + revoke with confirm/cancel, new link when the phone lacks it, cancelled event read only, editor at 200 % text).
+- Backend: unit 74/74; e2e 144/144 (7 new: public-name rule, eligibility once, A4 aggregates + approved-only public list, N19 + audit without text, A12 refusals, validation, hidden listings); lint and typecheck clean.
+- User App: analyze clean; 301/301 tests (10 new: JSON, form validation and idempotency keys, conflict message, listing section empty/summary/paging/retry/200 %, booking rate flow end to end).
 - Android staging debug build OK (then `flutter clean`).
-- Not verified: opening a real link from another phone, and a real N18 push on a device.
+- Not verified: a signed-in device run against sample data.
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security review | DONE — 256-bit random tokens, only hashes stored; link shown once and kept in the phone's secure storage; guest page escapes all text, no scripts (CSP), noindex/no-referrer/no-store, neutral page for unknown/revoked links (no existence leak); guest writes rate limited (10/min/IP), 20-guest and 1000-reply caps; responder cookie httpOnly/SameSite=Lax/Secure on HTTPS, path-scoped, only hashed; audit logs carry ids only. Residual: links are bearer secrets (anyone with the link can view and reply) — by design (A6). |
-| Performance review | DONE — one row per event; RSVP list capped at 1000 and indexed by invitation/updated time; totals by one grouped query; digest job locks with SKIP LOCKED every 5 min; templates cached per session in the app; picture rendered once on tap at 3× (~1080 px wide). |
-| Notification review | DONE — N18 digest: one in-app row + push per invitation per hour at most, push group OTHER, payload ids only; no notifications to guests (no contact details collected). Other state changes (publish, revoke, close) are owner actions → no notification. |
-| Documentation | DONE — api-contracts, database-schema, notification-matrix, architecture/flutter.md §6l, media-and-deep-links §5, spec ACs, progress. |
+| Security review | DONE — eligibility enforced server-side under a booking row lock (owner, COMPLETED, service date, one per booking, not own listing); rating 1–5 integer; comment length-limited and stored only; public list exposes only approved comments and "Asha K." (no ids of users, no full names); audit without text; idempotent create; write rate limit 20/min. |
+| Performance review | DONE — aggregates by atomic increment (no recount); breakdown via a partial index; public list keyset-paged on a partial index; booking DTO adds one batched query per event-vendor list. |
+| Notification review | DONE — N19 in-app to the vendor (pushes for vendors from M36), without the comment; N14 invites a rating; N23 deferred to M51 (no admin accounts; GI-37); no notification on the author's own action. |
+| Documentation | DONE — api-contracts, database-schema, notification-matrix, domain-model (A4/A5/A12), flutter.md §6m, known-issues GI-37, spec ACs, progress. |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-36.
-- Business rules on hold: R6 (before M28/M29), R10 (before M26). R11 final policy by M21. A6 confirmed.
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-37.
+- R6 (before M28/M29), R10 (before M26), R11 final policy by M21.
 
 ## Files changed
-- Database: `database/migrations/1792500000000-Invitations.ts`.
-- Backend: `src/modules/invitations/*` (new: templates, guest-page, entity, DTOs, service, controller, rsvp-digest job, module), `src/app.module.ts`, `src/app.setup.ts`, `src/config/env.validation.ts`, `src/config/app-config.service.ts`, `src/modules/notifications/push-policy.ts`, `.env.example`, `test/invitations.e2e-spec.ts` (new), `test/db-harness.ts`, `test/auth.e2e-spec.ts`, `test/events.e2e-spec.ts`.
-- User App: `lib/features/invitations/**` (new), `lib/core/platform/external_actions.dart` (`shareImage`), `lib/features/events/presentation/views/event_detail_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/invitations/invitations_test.dart`, `test/helpers/fake_invitations.dart` (new), `test/helpers/fake_media.dart`, `test/helpers/fake_event_vendors.dart`.
-- Docs: listed under Documentation above, plus `current-milestone.md`, `milestones.md`, `known-issues.md`.
+- Database: `database/migrations/1792600000000-Reviews.ts`.
+- Backend: `src/modules/reviews/*` (new), `src/app.module.ts`, `src/modules/event-vendors/event-vendors.dto.ts`, `src/modules/event-vendors/event-vendors.service.ts`, `src/modules/event-vendors/booking-auto-complete.job.ts`; tests `test/reviews.e2e-spec.ts` (new), `test/db-harness.ts`, `test/auth.e2e-spec.ts`, `test/events.e2e-spec.ts`.
+- User App: `lib/features/reviews/**` (new), `lib/features/event_vendors/domain/event_vendor.dart`, `lib/features/event_vendors/data/event_vendors_repository_impl.dart`, `lib/features/event_vendors/presentation/widgets/event_vendor_slivers.dart`, `lib/features/explore/presentation/views/listing_detail_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/reviews/reviews_test.dart` (new), `test/helpers/fake_reviews.dart` (new), `test/helpers/fake_event_vendors.dart`, `test/helpers/fake_discovery_repository.dart`, `test/features/engagement/engagement_test.dart`.
+- Docs: listed under Documentation, plus `current-milestone.md`, `milestones.md`.
 
 ## Files pending approval
-- All M19 files above (uncommitted; the user commits). M17/M18 files too unless already committed.
+- All M20 files above, and the M19 files, unless already committed (the user commits).
 
 ## Next milestone
-- M20 — Reviews (spec drafted at the M19 gate).
+- M21 — User Profile / Menu (spec drafted at the M20 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M19 Digital Invitations: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-09 |
+| Completed / approved | 2026-10-09 — `APPROVE MILESTONE M19` issued by the user |
+| Spec | `milestones/M19-digital-invitations.md` (CONFIRMED) |
+
+Evidence at approval: invitation per event (template catalogue of 6, editor with live preview, publish, share link or phone-drawn picture, close/reopen replies, new link, revoke), public guest page with anonymous RSVP (A6, hash-only tokens, noindex/no-referrer/CSP), replies list with totals, N18 hourly digest; backend 74 unit + 137 e2e, Flutter 291 tests; Android debug build OK; reviews done. Not verified: opening a link from another phone; a real N18 push. Dev DB migration `1792500000000-Invitations` to be run by the user.
 
 ## Previous milestone — M18 Notification Center + FCM: COMPLETED
 

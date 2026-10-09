@@ -770,6 +770,21 @@ export class EventVendorsService {
           [bookings.map((b) => b.id)],
         )
       : [];
+    const reviewRows = bookings.length
+      ? await manager.query<
+          { booking_id: string; rating: number; comment_status: string }[]
+        >(
+          `SELECT booking_id, rating, comment_status FROM reviews
+            WHERE booking_id = ANY($1::uuid[])`,
+          [bookings.map((b) => b.id)],
+        )
+      : [];
+    const reviewBy = new Map(
+      reviewRows.map((r) => [
+        r.booking_id,
+        { rating: Number(r.rating), commentStatus: r.comment_status },
+      ]),
+    );
     const paidBy = new Map(
       paidRows.map((p) => [p.booking_id, Money.fromDb(p.paid, p.currency)]),
     );
@@ -797,7 +812,13 @@ export class EventVendorsService {
           .filter((q) => q.eventVendorId === r.id)
           .map((q) => toQuotationDto(q, event, today)),
         booking: booking
-          ? toBookingDto(booking, event, today, paidBy.get(booking.id))
+          ? toBookingDto(
+              booking,
+              event,
+              today,
+              paidBy.get(booking.id),
+              reviewBy.get(booking.id) ?? null,
+            )
           : null,
         version: r.version,
         createdAt: r.createdAt.toISOString(),
@@ -985,6 +1006,7 @@ export function toBookingDto(
   event: EventEntity,
   today: string,
   paid: Money = Money.zero(),
+  review: { rating: number; commentStatus: string } | null = null,
 ): BookingDto {
   return {
     id: b.id,
@@ -998,5 +1020,8 @@ export function toBookingDto(
     createdAt: b.createdAt.toISOString(),
     canCancel: b.status === 'CONFIRMED' && event.status !== 'COMPLETED',
     canComplete: b.status === 'CONFIRMED' && b.serviceDate <= today,
+    review,
+    canReview:
+      b.status === 'COMPLETED' && b.serviceDate <= today && review === null,
   };
 }

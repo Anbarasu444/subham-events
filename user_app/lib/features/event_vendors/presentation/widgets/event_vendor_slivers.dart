@@ -16,6 +16,8 @@ import '../../domain/event_vendor.dart';
 import '../controllers/event_vendors_controller.dart';
 import '../../../reminders/presentation/widgets/reminders_section.dart';
 import '../views/payments_view.dart';
+import '../../../reviews/presentation/widgets/review_sheet.dart';
+import '../../../reviews/presentation/widgets/stars.dart';
 import 'enquiry_sheet.dart';
 
 /// The event screen's Vendors tab content (M14).
@@ -595,6 +597,28 @@ class _BookingPanel extends StatelessWidget {
     await _report(context, controller.cancelBooking(vendor, reason));
   }
 
+  Future<void> _rate(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final review = await showReviewSheet(
+      context,
+      eventId: controller.eventId,
+      bookingId: vendor.booking!.id,
+      vendorName: vendor.listing.vendorName,
+    );
+    if (review == null) return;
+    await controller.load();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          review.comment == null
+              ? 'Thanks! Your rating is live.'
+              : 'Thanks! Your rating is live; your comment is waiting for '
+                    'approval.',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -639,6 +663,19 @@ class _BookingPanel extends StatelessWidget {
               'Reason: ${booking.cancelReason}',
               style: theme.textTheme.bodySmall,
             ),
+          if (booking.review case final review?) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Wrap(
+              spacing: AppSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('Your rating', style: theme.textTheme.labelLarge),
+                StarsDisplay(rating: review.rating),
+              ],
+            ),
+            if (review.commentStatus.authorNote case final note?)
+              Text(note, style: theme.textTheme.bodySmall),
+          ],
           const SizedBox(height: AppSpacing.xs),
           Wrap(
             spacing: AppSpacing.xs,
@@ -656,6 +693,13 @@ class _BookingPanel extends StatelessWidget {
                 label: const Text('Payments'),
               ),
               if (!busy) ...[
+                if (booking.canReview)
+                  FilledButton.icon(
+                    key: ValueKey('rate-${booking.id}'),
+                    onPressed: () => _rate(context),
+                    icon: const Icon(Icons.star_outline_rounded),
+                    label: const Text('Rate this vendor'),
+                  ),
                 if (booking.canComplete)
                   FilledButton.tonal(
                     onPressed: () =>
