@@ -6,7 +6,9 @@ import { ErrorCode } from '../../common/errors/error-codes';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Role } from '../rbac/roles';
-import { toMeDto, type MeDto } from '../users/me.dto';
+import { UserEntity } from '../users/entities/user.entity';
+import type { MeDto } from '../users/me.dto';
+import { ProfileService } from '../users/profile.service';
 import { UsersService } from '../users/users.service';
 import {
   TokenVerificationError,
@@ -29,6 +31,7 @@ export class AuthService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly users: UsersService,
+    private readonly profile: ProfileService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
     private readonly verifier: TokenVerifier,
@@ -62,8 +65,23 @@ export class AuthService {
           HttpStatus.FORBIDDEN,
         );
       }
-      if (user.status === 'DELETED') {
-        throw new AppException(ErrorCode.ACCOUNT_DELETED, HttpStatus.FORBIDDEN);
+      // M21 (A8 as changed by the user): signing in again restores a
+      // deleted account with its data (cancelled things stay cancelled).
+      const restored = user.status === 'DELETED';
+      if (restored) {
+        user.status = 'ACTIVE';
+        user.deletedAt = null;
+        user.statusChangedAt = now;
+        await manager.getRepository(UserEntity).save(user);
+        await this.audit.record(manager, {
+          actorType: 'USER',
+          actorId: user.id,
+          action: 'ACCOUNT_RESTORED',
+          entityType: 'USER',
+          entityId: user.id,
+          requestId: ctx.requestId,
+          ip: ctx.ip,
+        });
       }
       await this.users.ensureRole(manager, user.id, Role.USER);
 
@@ -94,7 +112,10 @@ export class AuthService {
         role,
         grantedAt: now,
       }));
-      return { user: toMeDto(user), isNewUser: created };
+      return {
+        user: await this.profile.toDto(user, manager),
+        isNewUser: created,
+      };
     });
     this.users.invalidate(identity.uid);
     return result;

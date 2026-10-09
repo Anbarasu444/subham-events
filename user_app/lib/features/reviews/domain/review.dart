@@ -89,6 +89,13 @@ class PublicReviewPage {
   final String? nextCursor;
 }
 
+class MyReviewPage {
+  const MyReviewPage({required this.items, required this.nextCursor});
+
+  final List<Review> items;
+  final String? nextCursor;
+}
+
 class RatingSummary {
   const RatingSummary({
     required this.average,
@@ -113,6 +120,9 @@ abstract class ReviewsRepository {
     required String idempotencyKey,
   });
   Future<Result<RatingSummary>> summary(String listingId);
+
+  /// The caller's reviews, newest first (M21 "My reviews").
+  Future<Result<MyReviewPage>> mine({String? cursor});
   Future<Result<PublicReviewPage>> listingReviews(
     String listingId, {
     String? cursor,

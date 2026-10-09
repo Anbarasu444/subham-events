@@ -310,6 +310,7 @@ Listing starting prices appear only in marketplace screens, never in budget figu
 | R6 Platform fee | ⏸ HOLD — client confirmation | M29 (before M28/M29) |
 | R10 Vendor accounts | ⏸ HOLD — client confirmation | M26 (before vendor onboarding) |
 | R11 final deletion policy | Interim rule in force for development; final policy to be discussed | M21 (before account deletion is built); M72 at the latest |
+| A8 (changed, M21) | **User 2026-10-09:** deleting an account marks it DELETED and keeps the data (R11 interim kept, revisit before M72); the Firebase account is **not** disabled; **signing in again restores the same account** (status ACTIVE; cancelled events stay cancelled). Reviews of a deleted account show "Deleted user" while it is deleted | Data lifecycle |
 | A4, A5, A12 | **Confirmed by the user 2026-10-09 (M20)**; comments wait for moderation until the Admin CMS (M51); public reviewer name "Asha K." | §4.16 |
 | A1–A12 | ❓ **Not confirmed at M2 approval** — working assumptions; each must be confirmed (or changed) by the user before its owner milestone starts: A1, A11 → M11; A2, A3 → M16; A4, A5, A12 → M20; A6 → M19; A7 → M15; A8 → M21; A9 → M14 (and M32); A10 → M13 | As listed |
 | O1 | ✅ answered: free-text event type | M8 |

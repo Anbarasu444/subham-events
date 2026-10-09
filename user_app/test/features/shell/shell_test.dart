@@ -105,7 +105,7 @@ void main() {
     // Open a page inside the Menu tab, switch away and back.
     await tester.tap(find.text('Help'));
     await tester.pumpAndSettle();
-    expect(find.text('Coming soon'), findsOneWidget);
+    expect(find.text('Frequently asked questions'), findsOneWidget);
     expect(
       find.byType(NavigationBar),
       findsOneWidget,
@@ -116,7 +116,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Menu'));
     await tester.pumpAndSettle();
-    expect(find.text('Coming soon'), findsOneWidget, reason: 'state kept');
+    expect(
+      find.text('Frequently asked questions'),
+      findsOneWidget,
+      reason: 'state kept',
+    );
     expect(controller.isBuilt(ShellTab.explore), isFalse);
   });
 
@@ -126,13 +130,13 @@ void main() {
     await _pumpShell(tester, initial: ShellTab.menu);
     await tester.tap(find.text('Help'));
     await tester.pumpAndSettle();
-    expect(find.text('Coming soon'), findsOneWidget);
+    expect(find.text('Frequently asked questions'), findsOneWidget);
 
     await tester.tap(
       find.byType(NavigationDestination).at(ShellTab.menu.index),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Coming soon'), findsNothing);
+    expect(find.text('Frequently asked questions'), findsNothing);
     expect(find.text('Help'), findsOneWidget);
   });
 
@@ -210,8 +214,8 @@ void main() {
       'Schedule',
       'Checklist',
       'Budget',
-      'Messages',
       'My profile',
+      'My reviews',
       'Settings',
       'Help',
     ]) {
@@ -220,6 +224,8 @@ void main() {
     }
     await tester.scrollUntilVisible(find.text('Sign out'), 100);
     expect(find.text('Sign out'), findsOneWidget);
+    // Hidden until a chat milestone (M21 answer 6).
+    expect(find.text('Messages'), findsNothing);
   });
 
   testWidgets('Diagnostics appears in staging builds', (tester) async {
@@ -282,7 +288,7 @@ void main() {
     expect(find.text(reason), findsOneWidget);
   });
 
-  testWidgets('menu sections and signed-in entries open Coming soon', (
+  testWidgets('menu sections open real pages; no Coming soon left', (
     tester,
   ) async {
     await _pumpShell(
@@ -292,13 +298,11 @@ void main() {
     );
     expect(find.text('Planning'), findsOneWidget);
     expect(find.text('Account'), findsOneWidget);
-    await tester.tap(find.text('Messages'));
+    await tester.scrollUntilVisible(find.text('Help'), 100);
+    await tester.tap(find.text('Help'));
     await tester.pumpAndSettle();
-    expect(find.text('Coming soon'), findsOneWidget);
-    expect(
-      find.text('Messages will be available in a future update.'),
-      findsOneWidget,
-    );
+    expect(find.text('Frequently asked questions'), findsOneWidget);
+    expect(find.text('Coming soon'), findsNothing);
   });
 
   testWidgets('signing out returns every tab to its first page', (
@@ -309,13 +313,14 @@ void main() {
       initial: ShellTab.menu,
       state: const SignedInSession(_profile),
     );
-    await tester.tap(find.text('Messages'));
+    await tester.scrollUntilVisible(find.text('Help'), 100);
+    await tester.tap(find.text('Help'));
     await tester.pumpAndSettle();
-    expect(find.text('Coming soon'), findsOneWidget);
+    expect(find.text('Frequently asked questions'), findsOneWidget);
 
     Get.find<SessionService>().state.value = const GuestSession();
     await tester.pumpAndSettle();
-    expect(find.text('Coming soon'), findsNothing);
+    expect(find.text('Frequently asked questions'), findsNothing);
     expect(find.text('Sign in to plan your events'), findsOneWidget);
   });
 

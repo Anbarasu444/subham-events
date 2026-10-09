@@ -89,6 +89,9 @@ export class FirebaseAuthGuard implements CanActivate {
       throw new AppException(ErrorCode.ACCOUNT_SUSPENDED, HttpStatus.FORBIDDEN);
     }
     if (access.status === 'DELETED') {
+      // M21 (A8 as changed by the user): signing in again restores the
+      // account, so only `/auth/session` lets a deleted identity through.
+      if (flag(ALLOW_UNREGISTERED_KEY)) return true;
       throw new AppException(ErrorCode.ACCOUNT_DELETED, HttpStatus.FORBIDDEN);
     }
 

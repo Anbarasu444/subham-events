@@ -6,6 +6,10 @@ class MeProfile {
     this.displayName,
     this.phone,
     this.email,
+    this.photoMediaId,
+    this.photoUrl,
+    this.photoThumbnailUrl,
+    this.createdAt,
   });
 
   factory MeProfile.fromJson(Object? json) {
@@ -16,6 +20,22 @@ class MeProfile {
       phone: map['phone'] as String?,
       email: map['email'] as String?,
       roles: (map['roles'] as List<dynamic>).cast<String>(),
+      photoMediaId: switch (map['photo']) {
+        final Map<String, dynamic> p => p['mediaId'] as String,
+        _ => null,
+      },
+      photoUrl: switch (map['photo']) {
+        final Map<String, dynamic> p => p['url'] as String,
+        _ => null,
+      },
+      photoThumbnailUrl: switch (map['photo']) {
+        final Map<String, dynamic> p => p['thumbnailUrl'] as String,
+        _ => null,
+      },
+      createdAt: switch (map['createdAt']) {
+        final String s => DateTime.parse(s).toLocal(),
+        _ => null,
+      },
     );
   }
 
@@ -24,6 +44,12 @@ class MeProfile {
   final String? phone;
   final String? email;
   final List<String> roles;
+
+  /// Profile photo (M21): signed, short-lived URLs; null without a photo.
+  final String? photoMediaId;
+  final String? photoUrl;
+  final String? photoThumbnailUrl;
+  final DateTime? createdAt;
 
   /// Best available label for "signed in as".
   String get label => displayName ?? email ?? phone ?? 'Your account';

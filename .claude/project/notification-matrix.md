@@ -98,6 +98,7 @@ In-app = row created in `notifications`. Push = FCM to recipient devices (subjec
 | N11 | Quotation accepted / rejected by user ⏸R3 (withdraw/expiry rows added when R3 resolved) | BOOKING | Vendor | Yes | Yes | M15/M33 |
 | N12 | Booking confirmed | BOOKING | User and Vendor | Yes | Yes | M15/M34 |
 | N13 | Booking cancelled (by either party/admin) | BOOKING | Other party (and both if admin) | Yes | Yes | M15/M34/M48 |
+|  | ↳ M21: deleting an account cancels its confirmed bookings (reason "Account deleted") and sends N13 to each vendor (in-app; vendor push from M36). No other notification on profile changes (the user's own actions) | | | | | M21 |
 | N14 | Booking completed | BOOKING | User (review prompt: "How did it go? Rate the vendor." — M20) | Yes | Yes | M15/M20 |
 | N15 | ~~Event payment recorded~~ — **removed (M2):** payment notes are the user's private notes (R5, ❓A2); no notification | — | — | — | — | — |
 | N16 | Checklist item due today / overdue (only items with a due date) | CHECKLIST | User | Yes | Yes (once per item per state, 09:00 event time zone) | M9/M17 |
@@ -111,6 +112,7 @@ In-app = row created in `notifications`. Push = FCM to recipient devices (subjec
 | N26 | Event's booked vendor account deleted/suspended | VENDOR | Event owner | Yes | Yes | M46 |
 | N21 | System announcement by admin | SYSTEM | Targeted audience | Yes | Optional per announcement | M50 |
 | N22 | App update required / maintenance | SYSTEM | All users of an app | Yes | Yes | M50 |
+| N27 | Rate-the-vendor reminder: 3 days after a booking is completed, once, only if not yet reviewed and completed within the last 30 days (M20 change, user 2026-10-09) | REVIEW | User | Yes (`REVIEW_REMINDER`) | Yes, group OTHER | M20 |
 
 Rows are confirmed (and amended through the spec change log) by the milestone that implements them; each milestone's notification review checks every row it touches.
 

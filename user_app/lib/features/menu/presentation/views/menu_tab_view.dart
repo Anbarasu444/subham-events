@@ -17,6 +17,9 @@ import '../../../reminders/presentation/views/schedule_view.dart';
 import 'settings_view.dart';
 import '../../../wishlist/presentation/views/saved_vendors_view.dart';
 import 'coming_soon_view.dart';
+import '../../../profile/presentation/views/help_view.dart';
+import '../../../profile/presentation/views/my_reviews_view.dart';
+import '../../../profile/presentation/views/profile_view.dart';
 
 /// One Menu entry (M6 user decision). [guestVisible] entries are shown to
 /// guests; the rest need a signed-in user. Entries without a [page] open a
@@ -65,6 +68,12 @@ Widget _schedulePage(BuildContext _) => const ScheduleView();
 
 Widget _settingsPage(BuildContext _) => const SettingsView();
 
+Widget _profilePage(BuildContext _) => const ProfileView();
+
+Widget _myReviewsPage(BuildContext _) => const MyReviewsView();
+
+Widget _helpPage(BuildContext _) => const HelpView();
+
 const menuSections = [
   MenuSection('Planning', [
     MenuEntry('Schedule', Icons.schedule_outlined, page: _schedulePage),
@@ -75,17 +84,18 @@ const menuSections = [
       page: _budgetPage,
     ),
     MenuEntry('Saved vendors', Icons.favorite_border, page: _savedVendorsPage),
-    MenuEntry('Messages', Icons.chat_bubble_outline),
+    // Messages is hidden until a chat milestone (M21 answer 6).
   ]),
   MenuSection('Account', [
-    MenuEntry('My profile', Icons.person_outline),
+    MenuEntry('My profile', Icons.person_outline, page: _profilePage),
+    MenuEntry('My reviews', Icons.star_outline_rounded, page: _myReviewsPage),
     MenuEntry(
       'Settings',
       Icons.settings_outlined,
       guestVisible: true,
       page: _settingsPage,
     ),
-    MenuEntry('Help', Icons.help_outline, guestVisible: true),
+    MenuEntry('Help', Icons.help_outline, guestVisible: true, page: _helpPage),
   ]),
 ];
 

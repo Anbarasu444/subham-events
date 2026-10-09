@@ -6,8 +6,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-export type MediaOwnerType = 'EVENT';
-export type MediaKind = 'EVENT_COVER';
+export type MediaOwnerType = 'EVENT' | 'USER';
+export type MediaKind = 'EVENT_COVER' | 'USER_PHOTO';
 export type MediaStatus = 'PENDING_UPLOAD' | 'READY' | 'REJECTED';
 
 /** Metadata of one ImageKit file (bytes live in ImageKit — ADR-0007). */

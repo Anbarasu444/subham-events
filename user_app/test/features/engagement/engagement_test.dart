@@ -698,10 +698,7 @@ void main() {
         findsOneWidget,
       );
       await scrollTo(tester, find.text('Your rating'));
-      expect(
-        tester.widget<StarsDisplay>(find.byType(StarsDisplay)).rating,
-        4,
-      );
+      expect(tester.widget<StarsDisplay>(find.byType(StarsDisplay)).rating, 4);
       expect(
         find.text('Your comment is waiting for approval.'),
         findsOneWidget,

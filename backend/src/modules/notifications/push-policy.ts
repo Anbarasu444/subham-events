@@ -19,6 +19,8 @@ export const USER_PUSH_TYPES: ReadonlySet<string> = new Set([
   'CHECKLIST_OVERDUE',
   // M19: the hourly RSVP digest (OTHER group).
   'RSVP_RECEIVED',
+  // M20: one "rate the vendor" reminder 3 days after completion (OTHER).
+  'REVIEW_REMINDER',
 ]);
 
 export function pushGroupOf(category: NotificationCategory): PushGroup {

@@ -14,9 +14,24 @@ class MediaRepositoryImpl implements MediaRepository {
     String eventId,
     PickedPhoto photo, {
     void Function(double progress)? onProgress,
-  }) async {
+  }) => _upload('EVENT_COVER', eventId, photo, onProgress);
+
+  @override
+  Future<Result<String>> uploadProfilePhoto(
+    String userId,
+    PickedPhoto photo, {
+    void Function(double progress)? onProgress,
+  }) => _upload('USER_PHOTO', userId, photo, onProgress);
+
+  Future<Result<String>> _upload(
+    String kind,
+    String ownerId,
+    PickedPhoto photo,
+    void Function(double progress)? onProgress,
+  ) async {
     final intent = await _remote.createUpload(
-      eventId: eventId,
+      kind: kind,
+      ownerId: ownerId,
       contentType: photo.contentType,
       sizeBytes: photo.sizeBytes,
     );

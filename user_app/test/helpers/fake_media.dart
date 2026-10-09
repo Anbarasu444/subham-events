@@ -39,6 +39,13 @@ class FakeMediaRepository implements MediaRepository {
     onProgress?.call(1);
     return Ok('media-${++_seq}');
   }
+
+  @override
+  Future<Result<String>> uploadProfilePhoto(
+    String userId,
+    PickedPhoto photo, {
+    void Function(double progress)? onProgress,
+  }) => uploadEventCover('user:$userId', photo, onProgress: onProgress);
 }
 
 class FakeExternalActions implements ExternalActions {

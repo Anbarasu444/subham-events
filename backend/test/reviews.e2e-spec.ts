@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { localDate } from '../src/modules/events/event-rules';
+import { ReviewReminderJob } from '../src/modules/reviews/review-reminder.job';
 import { publicName } from '../src/modules/reviews/reviews.service';
 import { startDbTestApp, testUrls, type DbTestApp } from './db-harness';
 
@@ -271,5 +272,42 @@ describeDb('Reviews (e2e)', () => {
     );
     await t.http().get(`/api/v1/listings/${LOTUS}/rating`).expect(404);
     await t.http().get(`/api/v1/listings/${LOTUS}/reviews`).expect(404);
+  });
+  it('reminds once, 3 days after completion, only if not rated', async () => {
+    const job = t.app.get(ReviewReminderJob);
+    const completedAgo = (days: number) =>
+      t.migrator.query(
+        `UPDATE bookings SET status = 'COMPLETED', service_date = $2,
+                completed_at = now() - make_interval(days => $3)
+          WHERE id = $1`,
+        [bookingId, today(), days],
+      );
+    const reminders = () =>
+      t.migrator.query<{ delivery_status: string; body: string }[]>(
+        `SELECT delivery_status, body FROM notifications WHERE type = 'REVIEW_REMINDER'`,
+      );
+
+    await completedAgo(2);
+    expect(await job.run()).toBe(0);
+    await completedAgo(4);
+    expect(await job.run()).toBe(1);
+    expect(await job.run()).toBe(0); // only once
+    const [n] = await reminders();
+    expect(n.delivery_status).toBe('PENDING'); // pushed (group OTHER)
+    expect(n.body).toContain('Rate “');
+
+    // Already rated, or completed long ago: no reminder.
+    await t.migrator.query(
+      `UPDATE bookings SET review_reminded_at = NULL WHERE id = $1`,
+      [bookingId],
+    );
+    await t.migrator.query(
+      `DELETE FROM notifications WHERE type = 'REVIEW_REMINDER'`,
+    );
+    await a().post(path(), { rating: 5 }).expect(201);
+    expect(await job.run()).toBe(0);
+    await t.migrator.query(`DELETE FROM reviews`);
+    await completedAgo(40);
+    expect(await job.run()).toBe(0);
   });
 });

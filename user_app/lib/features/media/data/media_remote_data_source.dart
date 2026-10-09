@@ -37,14 +37,15 @@ class MediaRemoteDataSource {
   final ApiClient _api;
 
   Future<Result<ApiResponse<UploadIntent>>> createUpload({
-    required String eventId,
+    required String ownerId,
     required String contentType,
     required int sizeBytes,
+    String kind = 'EVENT_COVER',
   }) => _api.post(
     '/media/uploads',
     body: {
-      'kind': 'EVENT_COVER',
-      'ownerId': eventId,
+      'kind': kind,
+      'ownerId': ownerId,
       'contentType': contentType,
       'sizeBytes': sizeBytes,
     },

@@ -191,6 +191,10 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 
 - `features/reviews`: `ReviewsRepository` (create with Idempotency-Key, listing rating summary, approved reviews page), `ReviewFormController` + `showReviewSheet` (five 48 dp star buttons, optional comment ≤ 1000, "Asha K." note; same-input retries reuse the key), booking panel "Rate this vendor" when `booking.canReview` and "Your rating" + comment status afterwards, `ListingReviewsSection` on listing details (average, star bars, approved comments with "Show more", empty/failed/retry), `StarsDisplay`/`StarRatingInput`.
 
+## 6n. Profile, Help and account (M21)
+
+- `features/profile`: `ProfileRepository` (`/me`, name, photo, delete), `ProfileController` (name validation, photo pick → `MediaRepository.uploadProfilePhoto` → set, remove, delete → `SessionService.accountDeleted`), `ProfileView` (avatar with a cached signed thumbnail, hidden when `AppConfig.profilePhotoEnabled` is false; name; read-only phone/email; member since; My reviews; Delete account), `DeleteAccountView` (explains effects, type DELETE), `MyReviewsView`, `HelpView` (FAQs, contact from `AppConfig.supportEmail/supportPhone`, terms/privacy "coming soon", version). `MeProfile` gains photo fields and `createdAt`; `SessionService.updateProfile`. Menu: My profile, My reviews, Help are real pages; Messages hidden until a chat milestone. Config keys `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `PROFILE_PHOTO_ENABLED` in `config/<flavor>.json` (defaults in code).
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

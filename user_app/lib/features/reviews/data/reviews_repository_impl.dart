@@ -36,6 +36,29 @@ class ReviewsRepositoryImpl implements ReviewsRepository {
       };
 
   @override
+  Future<Result<MyReviewPage>> mine({String? cursor}) async {
+    final result = await _api.get(
+      '/me/reviews',
+      query: {'limit': 20, 'cursor': ?cursor},
+      decode: (json) =>
+          (json as List<dynamic>).map(reviewFromJson).toList(growable: false),
+    );
+    return switch (result) {
+      Ok(:final value) => Ok(
+        MyReviewPage(
+          items: value.data,
+          nextCursor: switch (value.page) {
+            CursorPageMeta(:final nextCursor, :final hasMore) =>
+              hasMore ? nextCursor : null,
+            _ => null,
+          },
+        ),
+      ),
+      Err(:final failure) => Err(failure),
+    };
+  }
+
+  @override
   Future<Result<PublicReviewPage>> listingReviews(
     String listingId, {
     String? cursor,

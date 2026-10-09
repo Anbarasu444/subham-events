@@ -257,10 +257,11 @@ export class ReviewsService {
         rating: number;
         comment: string;
         display_name: string | null;
+        user_status: string;
         created_at: Date;
       }[]
     >(
-      `SELECT r.id, r.rating, r.comment, u.display_name, r.created_at
+      `SELECT r.id, r.rating, r.comment, u.display_name, u.status AS user_status, r.created_at
          FROM reviews r JOIN users u ON u.id = r.user_id
         WHERE r.listing_id = $1
           AND r.comment_status = 'APPROVED' AND r.rating_status = 'ACTIVE'
@@ -278,7 +279,11 @@ export class ReviewsService {
         id: r.id,
         rating: Number(r.rating),
         comment: r.comment,
-        reviewerName: publicName(r.display_name),
+        // A8: a deleted account's reviews stay, without the name.
+        reviewerName:
+          r.user_status === 'DELETED'
+            ? 'Deleted user'
+            : publicName(r.display_name),
         createdAt: r.created_at.toISOString(),
       })),
       page,

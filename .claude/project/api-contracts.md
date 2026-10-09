@@ -213,7 +213,14 @@ All responses carry `X-Request-Id` (incoming value echoed if it matches `[A-Za-z
 
 ### GET /api/v1/me
 - Milestone: M5 · Auth: Bearer (registered user)
-- Response 200: `{ "data": { "id", "displayName", "phone", "email", "status", "roles", "createdAt" } }`
+- Response 200: `{ "data": { "id", "displayName", "phone", "email", "photo": { mediaId, url, thumbnailUrl, expiresAt } | null, "status", "roles", "createdAt" } }` (`photo` from M21; `/auth/session` returns the same shape)
+
+### Profile and account (M21)
+- `PATCH /api/v1/me` `{ displayName (trimmed, spaces collapsed, 1–60) }` → MeDto. Phone and email come from sign-in: any other property → 422. Rate limit `profile-write` 30/min. Audit `PROFILE_UPDATED` (field names only).
+- `PUT /api/v1/me/photo` `{ mediaId }` (a READY `USER_PHOTO` uploaded by the caller; else 422 `MEDIA_INVALID`) → MeDto; the previous photo is soft-deleted. `DELETE /api/v1/me/photo` → MeDto. Audit `PROFILE_PHOTO_SET/REMOVED`.
+- `POST /api/v1/me/delete` `{ confirm: "DELETE" }` → 204 (revocation-checked token; 5/min). R11 interim policy: **nothing is removed**. In one transaction: confirmed bookings → CANCELLED with reason "Account deleted" (vendor N13, in-app), planning events → CANCELLED (open enquiries closed, reminders cancelled), published invitations → REVOKED, devices deactivated, user → DELETED (`deleted_at`). Then Firebase refresh tokens are revoked (best effort). Audit `ACCOUNT_DELETED` (counts only). Every other call then returns 403 `ACCOUNT_DELETED`.
+- Restore (A8 as changed, user answer A): `POST /auth/session` by a DELETED identity restores the account (ACTIVE, `deleted_at` cleared; audit `ACCOUNT_RESTORED`); cancelled things stay cancelled. The Firebase account is never disabled.
+- Reviews by a DELETED account show `reviewerName: "Deleted user"`.
 - Errors: 401 `AUTH_REQUIRED` (no token, or the identity has no platform user yet — the app then calls `/auth/session`), other auth errors as above.
 
 All non-public routes are protected by default (global guard); only `/health/*` is public.
@@ -281,7 +288,7 @@ Shared rules for `/events/{eventId}/checklist…`:
 Flow (media-and-deep-links.md §3): `POST /media/uploads` → app uploads the file **directly to ImageKit** with the returned parameters → `POST /media/uploads/{mediaId}/complete` → `PUT /events/{id}/cover`. All routes: Bearer (registered user); 10 requests/min per IP (`media-upload`); without ImageKit settings → `503 SERVICE_UNAVAILABLE`.
 
 ### POST /api/v1/media/uploads
-- Milestone: M10 · Request `{ kind: "EVENT_COVER", ownerId: <eventId>, contentType: image/jpeg|png|webp|heic|heif, sizeBytes ≤ 5242880 }`. The event must be the caller's and not deleted (else 404).
+- Milestone: M10 (M21 adds `USER_PHOTO`: `ownerId` must be the caller's own user id, folder `/{root}/user-photo/user/{userId}`, same 5 MB / type limits, at most 3 unfinished per user) · Request `{ kind: "EVENT_COVER", ownerId: <eventId>, contentType: image/jpeg|png|webp|heic|heif, sizeBytes ≤ 5242880 }`. The event must be the caller's and not deleted (else 404).
 - Response 201 `{ data: { mediaId, uploadUrl, token, fields, expire, maxBytes } }` — ImageKit **upload API v2**: `token` is a single-use JWT (HS256, private key, 10-minute expiry) that signs every entry of `fields` (`fileName`, `folder` = `/{root}/event-cover/event/{eventId}`, `isPrivateFile: "true"`, `useUniqueFileName: "false"`, `overwriteFile: "false"`, `checks`). The app posts `file` + `token` + `fields` unchanged; ImageKit rejects changed fields or a reused token. At most 3 unfinished uploads per event (`409 LIMIT_REACHED`).
 
 ### POST /api/v1/media/uploads/{mediaId}/complete
@@ -357,6 +364,7 @@ Signed-in only; rate limited (`notifications-write` 120/min) on writes. Only the
 - `GET /api/v1/me/reviews?limit&cursor` (≤ 50, newest first) → `{ data: ReviewDto[], meta.page }`.
 - `GET /api/v1/listings/{id}/rating` (public) → `{ data: { average: "4.5" | null, count, stars: [{ stars: 5..1, count }] } }` (ACTIVE ratings).
 - `GET /api/v1/listings/{id}/reviews?limit&cursor` (public, ≤ 50, newest first) → `{ data: [{ id, rating, comment, reviewerName ("Asha K."), createdAt }], meta.page }` — **APPROVED comments only**. Both 404 when the listing is not visible. Moderation endpoints (approve/reject/hide, remove rating) come with the Admin CMS (M51).
+- Server job (hourly): N27 `REVIEW_REMINDER` once per completed booking 3 days after completion if not reviewed (bookings completed in the last 30 days only); marks `bookings.review_reminded_at`.
 
 ### Invitations and RSVPs (M19, R9 + A6)
 Owner-only through the event (404 otherwise); writes need a PLANNING event (409), rate limited (`invitations-write` 60/min), audited (`INVITATION_CREATED/UPDATED/PUBLISHED/LINK_REPLACED/RSVP_OPENED/RSVP_CLOSED/REVOKED`, ids only). One invitation per event.

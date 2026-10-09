@@ -66,40 +66,39 @@ export class MediaService {
     now = new Date(),
   ): Promise<UploadIntentDto> {
     this.assertEnabled();
-    const event = await this.events.findOneBy({
-      id: dto.ownerId,
-      ownerUserId: userId,
-      deletedAt: IsNull(),
-    });
-    if (!event) {
-      throw new AppException(ErrorCode.NOT_FOUND, HttpStatus.NOT_FOUND);
-    }
+    const owner = await this.ownerOf(userId, dto);
     const id = uuidv7();
     // No user-provided names in paths (§2): /{root}/{kind}/{owner}/{id}.{ext}
-    const folder = `${this.imageKit.rootFolder}/event-cover/event/${event.id}`;
+    const folder =
+      owner.type === 'EVENT'
+        ? `${this.imageKit.rootFolder}/event-cover/event/${owner.id}`
+        : `${this.imageKit.rootFolder}/user-photo/user/${owner.id}`;
     const fileName = `${id}.${IMAGE_TYPES[dto.contentType]}`;
     await this.dataSource.transaction(async (manager) => {
-      // The event row lock makes count-then-insert atomic per event.
-      await manager.query(`SELECT 1 FROM events WHERE id = $1 FOR UPDATE`, [
-        event.id,
-      ]);
+      // The owner row lock makes count-then-insert atomic per owner.
+      await manager.query(
+        owner.type === 'EVENT'
+          ? `SELECT 1 FROM events WHERE id = $1 FOR UPDATE`
+          : `SELECT 1 FROM users WHERE id = $1 FOR UPDATE`,
+        [owner.id],
+      );
       const open = await manager.getRepository(MediaEntity).countBy({
-        ownerType: 'EVENT',
-        ownerId: event.id,
+        ownerType: owner.type,
+        ownerId: owner.id,
         status: 'PENDING_UPLOAD',
       });
       if (open >= MAX_PENDING_PER_EVENT) {
         throw new AppException(
           ErrorCode.LIMIT_REACHED,
           HttpStatus.CONFLICT,
-          'Too many unfinished uploads for this event. Try again later.',
+          'Too many unfinished uploads. Try again later.',
         );
       }
       await manager.insert(MediaEntity, {
         id,
-        ownerType: 'EVENT',
-        ownerId: event.id,
-        kind: 'EVENT_COVER',
+        ownerType: owner.type,
+        ownerId: owner.id,
+        kind: dto.kind,
         status: 'PENDING_UPLOAD',
         folder,
         fileName,
@@ -119,6 +118,28 @@ export class MediaService {
       expire: upload.expire,
       maxBytes: COVER_MAX_BYTES,
     };
+  }
+
+  /** Event covers belong to the caller's event; photos to the caller. */
+  private async ownerOf(
+    userId: string,
+    dto: CreateUploadDto,
+  ): Promise<{ type: 'EVENT' | 'USER'; id: string }> {
+    if (dto.kind === 'USER_PHOTO') {
+      if (dto.ownerId !== userId) {
+        throw new AppException(ErrorCode.NOT_FOUND, HttpStatus.NOT_FOUND);
+      }
+      return { type: 'USER', id: userId };
+    }
+    const event = await this.events.findOneBy({
+      id: dto.ownerId,
+      ownerUserId: userId,
+      deletedAt: IsNull(),
+    });
+    if (!event) {
+      throw new AppException(ErrorCode.NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return { type: 'EVENT', id: event.id };
   }
 
   /**

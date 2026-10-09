@@ -25,8 +25,8 @@ Each milestone has (or must have, before START) a spec in `milestones/` with sco
 | M17 | Reminders | User App | [M17](milestones/M17-reminders.md) (COMPLETED 2026-10-08) |
 | M18 | Notification Center + FCM | User App | [M18](milestones/M18-notification-center-fcm.md) (COMPLETED 2026-10-08) |
 | M19 | Digital Invitations | User App | [M19](milestones/M19-digital-invitations.md) (CONFIRMED) — **COMPLETED** 2026-10-09 |
-| M20 | Reviews | User App | [M20](milestones/M20-reviews.md) (CONFIRMED) — **IN_REVIEW** |
-| M21 | User Profile / Menu | User App | — |
+| M20 | Reviews | User App | [M20](milestones/M20-reviews.md) (CONFIRMED) — **COMPLETED** 2026-10-09 |
+| M21 | User Profile / Menu | User App | [M21](milestones/M21-user-profile-menu.md) (CONFIRMED) — **IN_REVIEW** |
 | M22 | User App Hardening | User App | — |
 | M23 | USER APP FREEZE | User App | — |
 | M24 | Vendor Foundation | Vendor App | — |

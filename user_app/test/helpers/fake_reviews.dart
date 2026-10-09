@@ -49,6 +49,16 @@ class FakeReviewsRepository implements ReviewsRepository {
     return Ok(review);
   }
 
+  final List<Review> mineList = [];
+
+  @override
+  Future<Result<MyReviewPage>> mine({String? cursor}) async {
+    calls.add('mine');
+    final f = _failure<MyReviewPage>();
+    if (f != null) return f;
+    return Ok(MyReviewPage(items: [...mineList], nextCursor: null));
+  }
+
   @override
   Future<Result<RatingSummary>> summary(String listingId) async {
     calls.add('summary:$listingId');

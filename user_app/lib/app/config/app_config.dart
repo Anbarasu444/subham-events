@@ -10,7 +10,14 @@ class AppConfig {
     required this.apiBaseUrl,
     required this.appVersion,
     required this.buildNumber,
+    this.supportEmail = defaultSupportEmail,
+    this.supportPhone = defaultSupportPhone,
+    this.profilePhotoEnabled = true,
   });
+
+  /// Placeholders until the real contacts are chosen (M21 answer 4).
+  static const defaultSupportEmail = 'test@gmail.com';
+  static const defaultSupportPhone = '1234554321';
 
   /// Reads the compile-time defines for [flavor].
   factory AppConfig.fromEnvironment(Flavor flavor) {
@@ -30,6 +37,18 @@ class AppConfig {
       // Replaced with the installed app's version during start-up (M4).
       appVersion: '0.0.0',
       buildNumber: '0',
+      supportEmail: const String.fromEnvironment(
+        'SUPPORT_EMAIL',
+        defaultValue: defaultSupportEmail,
+      ),
+      supportPhone: const String.fromEnvironment(
+        'SUPPORT_PHONE',
+        defaultValue: defaultSupportPhone,
+      ),
+      profilePhotoEnabled: const bool.fromEnvironment(
+        'PROFILE_PHOTO_ENABLED',
+        defaultValue: true,
+      ),
     );
   }
 
@@ -41,11 +60,21 @@ class AppConfig {
   final String appVersion;
   final String buildNumber;
 
+  /// Help → Contact us (M21); change in `config/<flavor>.json`.
+  final String supportEmail;
+  final String supportPhone;
+
+  /// Profile photo feature switch (M21 answer 3: can be hidden later).
+  final bool profilePhotoEnabled;
+
   AppConfig withVersion(String version, String build) => AppConfig(
     flavor: flavor,
     apiBaseUrl: apiBaseUrl,
     appVersion: version,
     buildNumber: build,
+    supportEmail: supportEmail,
+    supportPhone: supportPhone,
+    profilePhotoEnabled: profilePhotoEnabled,
   );
 
   bool get isProd => flavor == Flavor.prod;

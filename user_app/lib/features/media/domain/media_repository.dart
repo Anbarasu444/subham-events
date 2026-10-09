@@ -12,6 +12,13 @@ abstract class MediaRepository {
     PickedPhoto photo, {
     void Function(double progress)? onProgress,
   });
+
+  /// The caller's own profile photo (M21); same limits as covers.
+  Future<Result<String>> uploadProfilePhoto(
+    String userId,
+    PickedPhoto photo, {
+    void Function(double progress)? onProgress,
+  });
 }
 
 /// Cover photos are limited to 5 MB (M10 answer).

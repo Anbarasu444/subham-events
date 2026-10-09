@@ -35,6 +35,8 @@ import '../../../notifications/presentation/controllers/push_service.dart';
 import '../../../invitations/data/invitations_repository_impl.dart';
 import '../../../invitations/domain/invitation.dart';
 import '../../../reminders/data/reminders_repository_impl.dart';
+import '../../../profile/data/profile_repository_impl.dart';
+import '../../../profile/domain/profile_repository.dart';
 import '../../../reviews/data/reviews_repository_impl.dart';
 import '../../../reviews/domain/review.dart';
 import '../../../reminders/domain/reminder.dart';
@@ -144,6 +146,11 @@ class ShellBinding extends Bindings {
     // Reminders (M17).
     Get.lazyPut<RemindersRepository>(
       () => RemindersRepositoryImpl(Get.find<ApiClient>()),
+      fenix: true,
+    );
+    // My profile, photo and account deletion (M21).
+    Get.lazyPut<ProfileRepository>(
+      () => ProfileRepositoryImpl(Get.find<ApiClient>()),
       fenix: true,
     );
     // Reviews (M20): rate completed bookings; listing ratings and comments.

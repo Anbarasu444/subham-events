@@ -41,6 +41,10 @@ export class UserEntity {
   @Column({ name: 'deleted_at', type: 'timestamptz', nullable: true })
   deletedAt: Date | null;
 
+  /** Profile photo (M21; private media, kind USER_PHOTO). */
+  @Column({ name: 'photo_media_id', type: 'uuid', nullable: true })
+  photoMediaId: string | null;
+
   @Column({ name: 'last_sign_in_at', type: 'timestamptz', nullable: true })
   lastSignInAt: Date | null;
 

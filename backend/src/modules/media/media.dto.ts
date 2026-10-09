@@ -21,10 +21,10 @@ export const IMAGE_TYPES = {
 export type ImageType = keyof typeof IMAGE_TYPES;
 
 export class CreateUploadDto {
-  @IsIn(['EVENT_COVER'])
-  kind: 'EVENT_COVER';
+  @IsIn(['EVENT_COVER', 'USER_PHOTO'])
+  kind: 'EVENT_COVER' | 'USER_PHOTO';
 
-  /** The event the cover is for. */
+  /** The event the cover is for, or the caller's own user id (M21). */
   @IsUUID()
   ownerId: string;
 

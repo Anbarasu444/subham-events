@@ -4,65 +4,75 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M20** |
-| Milestone name | Reviews |
+| Milestone ID | **M21** |
+| Milestone name | User Profile / Menu |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M20-reviews.md` (status: CONFIRMED 2026-10-09) |
+| Spec | `.claude/project/milestones/M21-user-profile-menu.md` (status: CONFIRMED 2026-10-09) |
 | Started date | 2026-10-09 |
 | Completed date | — |
-| Approval status | **Awaiting `APPROVE MILESTONE M20`** |
+| Approval status | **Awaiting `APPROVE MILESTONE M21`** |
 
 ## Objective
-Star rating + moderated comment for completed bookings (R7, A4, A5, A12); ratings on listings; approved comments on listing details.
+Profile view/edit (name, photo), My reviews, Help, safe account deletion (R11 interim, A8 as changed), Menu without dead ends.
 
 ## Completed work
-- Answers applied: A4/A5/A12 confirmed; comments wait for moderation until M51 (3A); public name "Asha K." (4B); prompt on the completed booking and in N14; no later reminder (assumed).
-- **Database:** migration `1792600000000-Reviews`.
-- **Backend:** `reviews` module — write a review for a completed booking (owner only, from the service date, once, not your own listing; idempotent; rate limited; audited without text), atomic listing rating update, `GET /me/reviews`, public `GET /listings/{id}/rating` (star breakdown) and `GET /listings/{id}/reviews` (approved comments, "Asha K."); `BookingDto.review` + `canReview`; N19 vendor in-app; N14 text invites a rating.
-- **User App:** "Rate this vendor" on completed bookings → review sheet (stars, optional comment, idempotent retry); "Your rating" + comment status on the booking; "Ratings & reviews" section on listing details (average, star bars, approved comments, Show more, all states).
+- Answers applied: R11 interim kept (1A); deletion effects (2A); profile photo with a config switch (3); placeholder contacts in config (4); terms/privacy coming soon (5); Messages hidden (6); deleted users can sign in again and get the same account back (7A, confirmed).
+- **Database:** migration `1792800000000-ProfilePhoto` (media USER/USER_PHOTO; `users.photo_media_id`).
+- **Backend:** `PATCH /me` (name), `PUT/DELETE /me/photo` (photo via the existing upload flow, `USER_PHOTO`), `MeDto.photo` (also from `/auth/session`); `POST /me/delete` (typed DELETE; cancels confirmed bookings with N13 to vendors, cancels planning events, closes enquiries, cancels reminders, revokes invitation links, deactivates devices, marks DELETED, revokes tokens; data kept); restore on `/auth/session` (guard lets a DELETED identity reach only that route); reviews of a deleted account show "Deleted user".
+- **User App:** My profile (photo with progress, name, read-only phone/email, member since), Delete account screen (effects explained, type DELETE, signs out with a restore message), My reviews, Help (FAQs, contact, version, legal coming soon); Menu: My profile, My reviews, Help real pages, Messages hidden; config keys `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `PROFILE_PHOTO_ENABLED`.
 
 ## In-progress work
 - None.
 
 ## Blocked work
-- None. Comments cannot become public until M51 (GI-37), by decision.
+- Android APK build could not be re-run: the Mac's disk filled up during the build (122 MB free; 1.3 GB after `flutter clean`). Dart analysis and all tests pass; no new native plugins were added. Large caches: `~/.gradle/caches` (28 GB) and Xcode DerivedData (9.3 GB) — not deleted without the user's permission.
 
 ## Tests completed
-- Backend: unit 74/74; e2e 144/144 (7 new: public-name rule, eligibility once, A4 aggregates + approved-only public list, N19 + audit without text, A12 refusals, validation, hidden listings); lint and typecheck clean.
-- User App: analyze clean; 301/301 tests (10 new: JSON, form validation and idempotency keys, conflict message, listing section empty/summary/paging/retry/200 %, booking rate flow end to end).
-- Android staging debug build OK (then `flutter clean`).
-- Not verified: a signed-in device run against sample data.
+- Backend: unit 74/74; e2e 148/148 (3 new: name edit + validation + audit without the name; photo set/replace/remove + ownership; deletion effects end to end + 403 afterwards + restore on sign-in); lint and typecheck clean.
+- User App: analyze clean; 313/313 tests (12 new + shell tests updated): profile parsing, name/photo/delete controller, profile screen, photo switch, photo sheet, delete flow (typed DELETE), Help, My reviews (list/empty), 200 %.
+- Not verified: a real device run; the APK build (disk).
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security review | DONE — eligibility enforced server-side under a booking row lock (owner, COMPLETED, service date, one per booking, not own listing); rating 1–5 integer; comment length-limited and stored only; public list exposes only approved comments and "Asha K." (no ids of users, no full names); audit without text; idempotent create; write rate limit 20/min. |
-| Performance review | DONE — aggregates by atomic increment (no recount); breakdown via a partial index; public list keyset-paged on a partial index; booking DTO adds one batched query per event-vendor list. |
-| Notification review | DONE — N19 in-app to the vendor (pushes for vendors from M36), without the comment; N14 invites a rating; N23 deferred to M51 (no admin accounts; GI-37); no notification on the author's own action. |
-| Documentation | DONE — api-contracts, database-schema, notification-matrix, domain-model (A4/A5/A12), flutter.md §6m, known-issues GI-37, spec ACs, progress. |
+| Security review | DONE — name only editable (phone/email from verified sign-in; unknown fields 422); photo must be the caller's READY `USER_PHOTO` (ownership enforced at upload and set); deletion requires a revocation-checked token, typed confirmation, rate limit 5/min, runs in one transaction, revokes refresh tokens and deactivates devices; DELETED identities can reach only `/auth/session` (restore, audited); audit logs carry no names. Residual: anyone holding the user's Google/phone sign-in can restore the account — accepted by answer 7A. |
+| Performance review | DONE — deletion is set-based SQL per table plus one query per cancelled booking (bounded by the user's bookings); profile reads add one media lookup; avatar uses the cached signed thumbnail. |
+| Notification review | DONE — N13 to each vendor whose booking is cancelled by account deletion (in-app; vendor pushes from M36); no notification for profile edits (own actions); devices deactivated so no pushes reach a deleted account. |
+| Documentation | DONE — api-contracts (profile, account, media kind), database-schema, notification-matrix, identity-access, domain-model (A8), flutter.md §6n, known-issues GI-38, spec ACs, progress. |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-37.
-- R6 (before M28/M29), R10 (before M26), R11 final policy by M21.
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-38.
+- R11 final policy to revisit before M72 (GI-38). R6 (before M28/M29), R10 (before M26).
 
 ## Files changed
-- Database: `database/migrations/1792600000000-Reviews.ts`.
-- Backend: `src/modules/reviews/*` (new), `src/app.module.ts`, `src/modules/event-vendors/event-vendors.dto.ts`, `src/modules/event-vendors/event-vendors.service.ts`, `src/modules/event-vendors/booking-auto-complete.job.ts`; tests `test/reviews.e2e-spec.ts` (new), `test/db-harness.ts`, `test/auth.e2e-spec.ts`, `test/events.e2e-spec.ts`.
-- User App: `lib/features/reviews/**` (new), `lib/features/event_vendors/domain/event_vendor.dart`, `lib/features/event_vendors/data/event_vendors_repository_impl.dart`, `lib/features/event_vendors/presentation/widgets/event_vendor_slivers.dart`, `lib/features/explore/presentation/views/listing_detail_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/reviews/reviews_test.dart` (new), `test/helpers/fake_reviews.dart` (new), `test/helpers/fake_event_vendors.dart`, `test/helpers/fake_discovery_repository.dart`, `test/features/engagement/engagement_test.dart`.
+- Database: `database/migrations/1792800000000-ProfilePhoto.ts`.
+- Backend: `src/modules/users/{me.controller.ts, me.dto.ts, profile.service.ts (new), users.module.ts, entities/user.entity.ts}`, `src/modules/auth/{account.controller.ts (new), account-deletion.service.ts (new), auth.module.ts, auth.service.ts, auth.guard.ts}`, `src/modules/media/{media.dto.ts, media.entity.ts, media.service.ts}`, `src/modules/reviews/reviews.service.ts`; tests `test/profile.e2e-spec.ts` (new).
+- User App: `lib/features/profile/**` (new), `lib/app/config/app_config.dart`, `config/staging.json`, `config/prod.json`, `config/staging.local.json.example`, `lib/core/auth/session.dart`, `lib/core/auth/session_service.dart`, `lib/features/media/{domain/media_repository.dart, data/media_repository_impl.dart, data/media_remote_data_source.dart}`, `lib/features/reviews/{domain/review.dart, data/reviews_repository_impl.dart}`, `lib/features/menu/presentation/views/menu_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/profile/profile_test.dart` (new), `test/helpers/fake_profile.dart` (new), `test/helpers/fake_media.dart`, `test/helpers/fake_reviews.dart`, `test/features/shell/shell_test.dart`.
 - Docs: listed under Documentation, plus `current-milestone.md`, `milestones.md`.
 
 ## Files pending approval
-- All M20 files above, and the M19 files, unless already committed (the user commits).
+- All M21 files above, and M19/M20 files unless already committed (the user commits).
 
 ## Next milestone
-- M21 — User Profile / Menu (spec drafted at the M20 gate).
+- M22 — User App Hardening (spec drafted at the M21 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M20 Reviews: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-09 |
+| Completed / approved | 2026-10-09 — `APPROVE MILESTONE M20` issued by the user |
+| Spec | `milestones/M20-reviews.md` (CONFIRMED) |
+
+Evidence at approval: reviews for completed bookings (stars + optional comment, once, idempotent, A4/A5/A12), atomic listing ratings, public rating summary and approved comments ("Asha K."), booking prompt and status, N19 vendor in-app, N14 invites a rating, N27 reminder 3 days after completion if not rated; backend 74 unit + 145 e2e, Flutter 301 tests; Android debug build OK; reviews done. N23 deferred to M51 (GI-37). Dev DB migrations `1792600000000-Reviews` and `1792700000000-ReviewReminders` to be run by the user.
 
 ## Previous milestone — M19 Digital Invitations: COMPLETED
 

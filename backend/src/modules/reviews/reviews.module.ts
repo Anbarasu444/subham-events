@@ -5,6 +5,7 @@ import {
   ListingReviewsController,
   MyReviewsController,
 } from './reviews.controller';
+import { ReviewReminderJob } from './review-reminder.job';
 import { ReviewsService } from './reviews.service';
 
 @Module({
@@ -14,6 +15,6 @@ import { ReviewsService } from './reviews.service';
     MyReviewsController,
     ListingReviewsController,
   ],
-  providers: [ReviewsService],
+  providers: [ReviewsService, ReviewReminderJob],
 })
 export class ReviewsModule {}

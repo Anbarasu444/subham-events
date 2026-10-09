@@ -82,6 +82,20 @@ class SessionService extends GetxService {
     }
   }
 
+  /// Shows the edited profile (M21) without another request.
+  void updateProfile(MeProfile profile) {
+    if (state.value is SignedInSession) {
+      state.value = SignedInSession(profile);
+    }
+  }
+
+  /// The account was deleted (M21): the server already signed this user out
+  /// everywhere and unregistered the devices, so only sign out here.
+  Future<void> accountDeleted() => _signOutLocally(
+    message:
+        'Your account has been deleted. Sign in again any time to restore it.',
+  );
+
   /// User-initiated sign-out: revoke on the server (best effort), then local.
   Future<void> signOut() async {
     for (final hook in _beforeSignOut) {
