@@ -71,6 +71,19 @@ class FakeExternalActions implements ExternalActions {
     emails.add(address);
     return true;
   }
+
+  /// (fileName, text, byte count) of each shared picture.
+  final List<(String, String?, int)> images = [];
+
+  @override
+  Future<void> shareImage(
+    List<int> pngBytes, {
+    required String fileName,
+    String? text,
+    Rect? origin,
+  }) async {
+    images.add((fileName, text, pngBytes.length));
+  }
 }
 
 const photo = PickedPhoto(

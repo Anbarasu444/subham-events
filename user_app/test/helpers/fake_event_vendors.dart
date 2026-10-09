@@ -5,9 +5,11 @@ import 'package:user_app/core/error/result.dart';
 import 'package:user_app/core/money/money.dart';
 import 'package:user_app/features/event_vendors/domain/event_vendor.dart';
 import 'package:user_app/features/explore/domain/listing.dart';
+import 'package:user_app/features/invitations/domain/invitation.dart';
 import 'package:user_app/features/reminders/domain/reminder.dart';
 import 'package:user_app/features/wishlist/domain/wishlist.dart';
 
+import 'fake_invitations.dart';
 import 'fake_reminders.dart';
 import 'package:user_app/features/wishlist/presentation/controllers/wishlist_controller.dart';
 
@@ -442,6 +444,9 @@ registerEngagement({
     Get.put<RemindersRepository>(
       FakeRemindersRepository(readOnlyEvents: readOnlyEvents),
     );
+  }
+  if (!Get.isRegistered<InvitationsRepository>()) {
+    Get.put<InvitationsRepository>(FakeInvitationsRepository());
   }
   return (wishlist: wishlist, vendors: vendors);
 }

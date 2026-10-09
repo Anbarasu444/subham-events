@@ -88,3 +88,4 @@ Scheme (domain decided at deployment — placeholder `links.<domain>`):
 - Notification payloads carry `deepLink` (path form, e.g. `/u/bookings/0192b0b6-6c1e-7a6b-9d3a-3f1f5c2a9e10`) plus `entityType`/`entityId`; the app's `DeepLinkRouter` maps paths to routes. Unknown or unauthorized targets fall back to the notification center with a message.
 - Deep-link IDs never grant access; the API authorizes each fetch.
 - Invitation tokens are stored only as a SHA-256 hash; invitation pages send `Referrer-Policy: no-referrer` and are `noindex`.
+- **M19 (until a link domain exists):** the backend serves the guest page itself at `{INVITATION_BASE_URL or the API host}/api/v1/i/{token}`. In development that is the Mac's LAN address, so guests' phones must be on the same Wi-Fi. When the domain is chosen, set `INVITATION_BASE_URL` (the path stays `/api/v1/i/{token}` unless a proxy rewrites `/i/{token}`).

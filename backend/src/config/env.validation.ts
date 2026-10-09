@@ -87,6 +87,17 @@ export class EnvironmentVariables {
     message: 'MEDIA_ROOT_FOLDER must look like /local',
   })
   MEDIA_ROOT_FOLDER?: string;
+
+  /**
+   * Public base for invitation links (M19), e.g. https://links.example.com.
+   * Unset: links use the address the app called (fine for development).
+   */
+  @IsOptional()
+  @Matches(/^https?:\/\/[^/\s]+$/, {
+    message:
+      'INVITATION_BASE_URL must be an http(s) origin without a path, e.g. https://links.example.com',
+  })
+  INVITATION_BASE_URL?: string;
 }
 
 /**

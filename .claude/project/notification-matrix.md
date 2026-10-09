@@ -102,7 +102,7 @@ In-app = row created in `notifications`. Push = FCM to recipient devices (subjec
 | N15 | ~~Event payment recorded~~ — **removed (M2):** payment notes are the user's private notes (R5, ❓A2); no notification | — | — | — | — | — |
 | N16 | Checklist item due today / overdue (only items with a due date) | CHECKLIST | User | Yes | Yes (once per item per state, 09:00 event time zone) | M9/M17 |
 | N17 | User reminder fires | CHECKLIST | User | Yes | Yes | M17 |
-| N18 | RSVP received on an invitation (R9) | INVITATION | Invitation owner | Yes (one row per RSVP) | Yes, digested: at most one push per invitation per hour ("3 new RSVPs") | M19 |
+| N18 | RSVP received on an invitation (R9) | INVITATION | Invitation owner | Yes, digested (M19): one row per invitation per hour ("3 new RSVPs"); the RSVP list always shows every reply | Yes, same row; push group OTHER | M19 |
 | N19 | Review received — rating immediately (❓A4); comment when approved | REVIEW | Vendor | Yes | Yes | M20/M37 |
 | N20 | Approved review comment later hidden by admin | REVIEW | Review author | Yes | No | M51 |
 | N23 | Review comment submitted for moderation (R7) | REVIEW | Admins (MARKETPLACE_ADMIN, CONTENT_ADMIN) | Yes (CMS) | No | M20/M51 |

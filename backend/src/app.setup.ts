@@ -17,5 +17,7 @@ export function configureApp(app: INestApplication): void {
   express.disable('x-powered-by');
   express.setGlobalPrefix(API_PREFIX);
   express.useBodyParser('json', { limit: '1mb' });
+  // The invitation RSVP form (M19) posts a small urlencoded body.
+  express.useBodyParser('urlencoded', { extended: false, limit: '16kb' });
   express.enableShutdownHooks();
 }

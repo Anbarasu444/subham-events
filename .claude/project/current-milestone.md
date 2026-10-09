@@ -4,60 +4,76 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M18** |
-| Milestone name | Notification Center + FCM |
+| Milestone ID | **M19** |
+| Milestone name | Digital Invitations |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M18-notification-center-fcm.md` (status: CONFIRMED 2026-10-08) |
-| Started date | 2026-10-08 |
+| Spec | `.claude/project/milestones/M19-digital-invitations.md` (status: CONFIRMED 2026-10-09) |
+| Started date | 2026-10-09 |
 | Completed date | — |
-| Approval status | Awaiting `APPROVE MILESTONE M18` (set IN_REVIEW 2026-10-08) |
+| Approval status | **Awaiting `APPROVE MILESTONE M19`** |
 
 ## Objective
-In-app Notification Center (list, unread badge, read/read-all, routing) and FCM phone pushes (outbox worker, device registry, preferences, retries, token clean-up) for user-facing types.
+E-invitation per event (design, details, publish, share as link or image), public guest page with anonymous RSVP (A6), RSVP list and totals, N18 digest.
 
-## Completed work / In-progress work / Blocked work
-- **Database:** migration `1792400000000-NotificationDelivery` — **the user runs `npm run migration:run`**.
-- **Backend:** user push types queued in the creating transaction (notifications rows as the outbox); `PushWorker` (lease + SKIP LOCKED, preferences, devices, FCM send via Firebase Admin, invalid-token deactivation, backoff, FAILED after 5); endpoints for the center, devices and preferences; `FcmSender` abstraction (fake in tests).
-- **User App:** `firebase_messaging` added (approved); bell with unread badge on Home; Notification Center (paged, read, mark all read, tap opens the event); push registration after permission, token refresh, unregister before sign-out; in-context permission prompt (first reminder / enquiry) and Settings → Notifications (three groups, allow button); foreground banner with de-duplication; Android channels + POST_NOTIFICATIONS. Android debug build verified.
-- **Blocked on the user (iOS only):** APNs key + real bundle id (GI-35).
+## Completed work
+- Answers applied: backend guest page; picture drawn on the phone; data-driven template catalogue with a starter set of 6 (Classic, Floral, Minimal, Festive, Royal, Pastel; full set planned by the user later, GI-36); A6 form; N18 hourly digest; one invitation per event.
+- **Database:** migration `1792500000000-Invitations` (`invitations`, `invitation_rsvps`; tokens stored only as SHA-256 hashes).
+- **Backend:** `invitations` module — template catalogue endpoint; owner get/save/publish/new-link/close-reopen replies/revoke/RSVP list (PLANNING-only writes, rate limited, audited); public guest page `GET /api/v1/i/{token}` + RSVP form post (no account, cookie-based update of one reply, caps, noindex/no-referrer/CSP/no-store, escaped HTML, rate limited); hourly-per-invitation N18 digest job (push group OTHER); `INVITATION_BASE_URL` config; urlencoded body parser (16 kB).
+- **User App:** event Overview "Invitation" card (create, preview, publish, share link, share picture, replies summary, menu: edit / close or reopen replies / new link / turn off link, with confirmations; read only when not planning; a phone without the link is offered a new one), editor with design chips and live preview, invitation card renderer, share-as-picture screen (PNG drawn on the phone), Replies screen with totals. Link kept in secure storage on this phone.
+
+## In-progress work
+- None.
+
+## Blocked work
+- None. (Guest links reach only phones on the same Wi-Fi until the backend is hosted / `INVITATION_BASE_URL` is set.)
 
 ## Tests completed
-- Backend: unit 74/74, e2e 129/129 (incl. 9 M18 tests: list/count/read/read-all and ownership, paging, push with ids-only payload, skip on no device / group off with the in-app record kept, invalid token deactivation and retry with backoff then success, give up after 5, token moved to the new user and removed on sign-out, input validation and auth, vendor records never queued); lint, typecheck and build clean.
-- User App: `flutter analyze` clean; `flutter test` 279/279 (JSON; PushService: register only when granted, token refresh, unregister, guests, open marks read; in-context prompt once; center: badge, open marks read, mark all, empty/error, 200 % text; settings toggles and allow); `flutter build apk --debug --flavor staging` succeeded.
-- Not verified: a real push on a device (needs the user's phone with the backend running and Firebase credentials); iOS pushes (GI-35).
+- Backend: unit 74/74; e2e 137/137 (8 new invitation tests: catalogue, owner flow with hash-only token, guest page headers + RSVP create/update via cookie, invalid replies, close/new link/revoke, cancelled-event and unknown links look the same, owner-only, N18 hourly digest); lint and typecheck clean.
+- User App: `flutter analyze` clean; `flutter test` 291/291 (12 new: JSON parsing, controller link/revoke/conflict/failure, create → publish → share link, share picture, replies list and totals, close replies + revoke with confirm/cancel, new link when the phone lacks it, cancelled event read only, editor at 200 % text).
+- Android staging debug build OK (then `flutter clean`).
+- Not verified: opening a real link from another phone, and a real N18 push on a device.
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security / privacy review | Done — payload carries ids only, tokens owned per user and moved on re-registration, removed before sign-out, invalid tokens deactivated, preferences per user, no secrets in the app |
-| Performance review | Done — partial index for pending pushes, batched leases with SKIP LOCKED, one device + preference lookup per notification, unread count via index |
-| UI review | Done — badge, unread dot, mark all read as an icon (200 % text), honest permission explanations |
-| Code review | Done (self-review) |
-| Notification review | Done — push types/groups/channels per answers; at-least-once with client de-duplication |
-| Documentation | Done (api-contracts, database-schema, notification-matrix, flutter.md §6k, known-issues GI-35, spec, progress) |
+| Security review | DONE — 256-bit random tokens, only hashes stored; link shown once and kept in the phone's secure storage; guest page escapes all text, no scripts (CSP), noindex/no-referrer/no-store, neutral page for unknown/revoked links (no existence leak); guest writes rate limited (10/min/IP), 20-guest and 1000-reply caps; responder cookie httpOnly/SameSite=Lax/Secure on HTTPS, path-scoped, only hashed; audit logs carry ids only. Residual: links are bearer secrets (anyone with the link can view and reply) — by design (A6). |
+| Performance review | DONE — one row per event; RSVP list capped at 1000 and indexed by invitation/updated time; totals by one grouped query; digest job locks with SKIP LOCKED every 5 min; templates cached per session in the app; picture rendered once on tap at 3× (~1080 px wide). |
+| Notification review | DONE — N18 digest: one in-app row + push per invitation per hour at most, push group OTHER, payload ids only; no notifications to guests (no contact details collected). Other state changes (publish, revoke, close) are owner actions → no notification. |
+| Documentation | DONE — api-contracts, database-schema, notification-matrix, architecture/flutter.md §6l, media-and-deep-links §5, spec ACs, progress. |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-35.
-- Business rules on hold: R6 (before M28/M29), R10 (before M26). R11 final policy by M21.
+- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-36.
+- Business rules on hold: R6 (before M28/M29), R10 (before M26). R11 final policy by M21. A6 confirmed.
 
 ## Files changed
-- database: `database/migrations/1792400000000-NotificationDelivery.ts`
-- backend: `src/modules/notifications/{notification.entity.ts,notifications.service.ts,notifications.module.ts,push-policy.ts,fcm-sender.ts,push.worker.ts,me-notifications.ts}`, `test/{notifications.e2e-spec.ts,fakes.ts,db-harness.ts,auth.e2e-spec.ts,events.e2e-spec.ts}`
-- user_app: `pubspec.yaml`/`pubspec.lock` (`firebase_messaging`), `lib/features/notifications/**`, `lib/core/auth/session_service.dart` (before-sign-out hooks), `lib/features/events/presentation/events_navigation.dart` (`openEventById`), `lib/features/home/presentation/views/home_tab_view.dart` (bell), `lib/features/menu/presentation/views/{menu_tab_view.dart,settings_view.dart}`, `lib/features/reminders/presentation/widgets/reminders_section.dart`, `lib/features/checklist/presentation/views/checklist_view.dart`, `lib/features/event_vendors/presentation/widgets/event_vendor_slivers.dart` (permission prompts), `lib/features/shell/presentation/bindings/shell_binding.dart`, `android/app/src/main/{AndroidManifest.xml,kotlin/com/example/user_app/MainActivity.kt}`; tests `test/features/notifications/notifications_test.dart`, `test/helpers/fake_notifications.dart`, `test/features/shell/shell_test.dart`
-- docs: api-contracts, database-schema, notification-matrix, known-issues, architecture/flutter.md, M18 spec, milestones.md, current-milestone, progress
+- Database: `database/migrations/1792500000000-Invitations.ts`.
+- Backend: `src/modules/invitations/*` (new: templates, guest-page, entity, DTOs, service, controller, rsvp-digest job, module), `src/app.module.ts`, `src/app.setup.ts`, `src/config/env.validation.ts`, `src/config/app-config.service.ts`, `src/modules/notifications/push-policy.ts`, `.env.example`, `test/invitations.e2e-spec.ts` (new), `test/db-harness.ts`, `test/auth.e2e-spec.ts`, `test/events.e2e-spec.ts`.
+- User App: `lib/features/invitations/**` (new), `lib/core/platform/external_actions.dart` (`shareImage`), `lib/features/events/presentation/views/event_detail_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/invitations/invitations_test.dart`, `test/helpers/fake_invitations.dart` (new), `test/helpers/fake_media.dart`, `test/helpers/fake_event_vendors.dart`.
+- Docs: listed under Documentation above, plus `current-milestone.md`, `milestones.md`, `known-issues.md`.
 
 ## Files pending approval
-- M17 and M18 files are uncommitted unless the user has committed them.
+- All M19 files above (uncommitted; the user commits). M17/M18 files too unless already committed.
 
 ## Next milestone
-- M19 — Digital Invitations (spec drafted at the M18 gate).
+- M20 — Reviews (spec drafted at the M19 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M18 Notification Center + FCM: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-08 |
+| Completed / approved | 2026-10-08 — `APPROVE MILESTONE M18` issued by the user |
+| Spec | `milestones/M18-notification-center-fcm.md` (CONFIRMED) |
+
+Evidence at approval: Notification Center (bell, list, read/read-all, routing), FCM pushes (notifications-as-outbox worker, devices, preferences, retries, invalid-token clean-up), in-context permission, Settings → Notifications, Android channels; backend 74 unit + 129 e2e, Flutter 279 tests; Android debug build OK; reviews done. Not verified: a real push on a device (user's step); iOS pending GI-35. Dev DB migration `1792400000000-NotificationDelivery` to be run by the user.
 
 ## Previous milestone — M17 Reminders: COMPLETED
 

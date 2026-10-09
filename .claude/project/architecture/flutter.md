@@ -183,6 +183,10 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 
 - `features/notifications`: `NotificationsRepository` (list/unread/read/read-all, devices, preferences), `PushMessaging` (abstract; `FirebasePushMessaging` wraps `firebase_messaging`, resolved lazily), `PushService` (session-wide: unread badge, token registration only after permission is granted, token refresh, `SessionService.addBeforeSignOut` hook to unregister, foreground banner with de-duplication, tap → mark read and `EventsNavigation.openEventById`), `askInContext` (explains, asks the system once per install: first reminder or enquiry, and Settings), `NotificationCenterController`/`NotificationCenterView` (paged, optimistic read, mark all read), `NotificationBell` (Home app bar, signed in), `NotificationSettingsView` (Menu → Settings → Notifications: three groups, allow button). Android: `POST_NOTIFICATIONS` permission and channels `bookings`/`reminders`/`general` created in `MainActivity`. iOS capabilities follow the user's APNs step (GI-35).
 
+## 6l. Digital invitations (M19)
+
+- `features/invitations`: `InvitationsRepository` (templates cached per session; the share link is returned once by the API and kept on this phone in `SecureStore` under `invitation_link_<id>`), `InvitationController` (load, save, publish, new link, close/reopen replies, revoke; conflicts reload), `InvitationSection` in the event Overview (create, preview, publish, share link, share picture, replies summary, menu with confirmations; read only when not planning; a phone without the link is offered "Create a new link"), `InvitationEditorView` (design chips from the catalogue, title/from/message, live preview), `InvitationCard` (draws any catalogue template: colours, heading font, ornament), `SharePictureView` (RepaintBoundary → PNG at 3× → `ExternalActions.shareImage` with the link in the text; nothing uploaded), `RsvpListView` (totals and every reply, pull to refresh).
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |

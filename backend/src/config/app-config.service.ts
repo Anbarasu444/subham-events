@@ -38,6 +38,11 @@ export class AppConfigService {
   }
 
   /** Defaults to on; tests and one-off scripts set `false`. */
+  /** Public origin for invitation links, or undefined (M19). */
+  get invitationBaseUrl(): string | undefined {
+    return this.config.get('INVITATION_BASE_URL', { infer: true }) || undefined;
+  }
+
   get backgroundJobsEnabled(): boolean {
     return (
       this.config.get('BACKGROUND_JOBS_ENABLED', { infer: true }) !== 'false'

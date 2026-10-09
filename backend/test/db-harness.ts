@@ -102,7 +102,7 @@ export async function startDbTestApp(
       // only around the test clean-up.
       await migrator.query(`ALTER TABLE audit_logs DISABLE TRIGGER USER`);
       await migrator.query(
-        'TRUNCATE notification_devices, notification_preferences, checklist_alerts, reminders, event_payment_notes, bookings, quotations, enquiries, event_vendors, wishlist_items, vendor_listings, vendors, event_expenses, budget_allocations, checklist_items, idempotency_keys, events, media, notifications, audit_logs, user_roles, users, rate_limit_counters',
+        'TRUNCATE invitation_rsvps, invitations, notification_devices, notification_preferences, checklist_alerts, reminders, event_payment_notes, bookings, quotations, enquiries, event_vendors, wishlist_items, vendor_listings, vendors, event_expenses, budget_allocations, checklist_items, idempotency_keys, events, media, notifications, audit_logs, user_roles, users, rate_limit_counters',
       );
       await migrator.query(`ALTER TABLE audit_logs ENABLE TRIGGER USER`);
     },

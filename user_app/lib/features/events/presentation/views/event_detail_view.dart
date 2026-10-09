@@ -12,6 +12,7 @@ import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/async_state_view.dart';
 import '../../../event_vendors/domain/event_vendor.dart';
+import '../../../invitations/presentation/widgets/invitation_section.dart';
 import '../../../reminders/presentation/widgets/reminders_section.dart';
 import '../../../event_vendors/presentation/controllers/event_vendors_controller.dart';
 import '../../../event_vendors/presentation/widgets/event_vendor_slivers.dart';
@@ -741,6 +742,8 @@ class _OverviewTab extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: AppSpacing.md),
+          InvitationSection(event: event),
           if (!event.canReopen(today) && event.status != EventStatus.planning)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.md),

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' show Rect;
 
 import 'package:share_plus/share_plus.dart';
@@ -13,6 +14,14 @@ abstract class ExternalActions {
 
   /// [origin] anchors the share sheet on iPad (the button's rectangle).
   Future<void> shareText(String text, {String? subject, Rect? origin});
+
+  /// Shares a PNG (e.g. an invitation picture, M19) with an optional text.
+  Future<void> shareImage(
+    List<int> pngBytes, {
+    required String fileName,
+    String? text,
+    Rect? origin,
+  });
 
   /// Opens the phone's dialer with [phone]. False if nothing could open it.
   Future<bool> call(String phone);
@@ -37,6 +46,29 @@ class PlatformExternalActions implements ExternalActions {
     } on Exception {
       return false; // e.g. PlatformException when nothing can open it
     }
+  }
+
+  @override
+  Future<void> shareImage(
+    List<int> pngBytes, {
+    required String fileName,
+    String? text,
+    Rect? origin,
+  }) async {
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [
+          XFile.fromData(
+            Uint8List.fromList(pngBytes),
+            mimeType: 'image/png',
+            name: fileName,
+          ),
+        ],
+        fileNameOverrides: [fileName],
+        text: text,
+        sharePositionOrigin: origin,
+      ),
+    );
   }
 
   @override
