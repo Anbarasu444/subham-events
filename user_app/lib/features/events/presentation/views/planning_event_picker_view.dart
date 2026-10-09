@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/state/view_state.dart';
@@ -55,6 +56,7 @@ class PlanningEventPickerView extends StatelessWidget {
             if (state is Empty<List<PlannerEvent>>) {
               return EmptyStateView(
                 icon: icon,
+                illustration: AppIllustrations.emptyEvents,
                 title: 'No events being planned',
                 message: emptyMessage,
                 action: AppButton(

@@ -6,7 +6,12 @@ import '../../../../app/routes/app_routes.dart';
 import '../../../../core/auth/session.dart';
 import '../../../../core/auth/session_service.dart';
 import '../../../../core/theme/tokens.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
+import '../../../../core/assets/app_illustrations.dart';
+import '../../../../core/storage/app_cache_manager.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/festive.dart';
 import '../../../../core/widgets/session_message.dart';
 import '../../../shell/presentation/controllers/shell_tab.dart';
 import '../../../budget/presentation/views/budget_view.dart';
@@ -158,7 +163,9 @@ class _MenuTabViewState extends State<MenuTabView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Menu')),
+      appBar: AppBar(
+        title: const ScreenTitle(icon: Icons.grid_view_rounded, title: 'Menu'),
+      ),
       body: Obx(() {
         final state = _session.state.value;
         if (state is RestoringSession) {
@@ -171,14 +178,19 @@ class _MenuTabViewState extends State<MenuTabView> {
           children: [
             Padding(
               padding: const EdgeInsets.all(AppSpacing.page),
-              child: switch (state) {
-                SignedInSession(:final profile) => _SignedInHeader(profile),
-                ProfilePendingSession() => _PendingHeader(
-                  onRetry: _session.retry,
-                ),
-                GuestSession(:final message) => _GuestHeader(message: message),
-                RestoringSession() => const SizedBox.shrink(),
-              },
+              child: _Card(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: switch (state) {
+                  SignedInSession(:final profile) => _SignedInHeader(profile),
+                  ProfilePendingSession() => _PendingHeader(
+                    onRetry: _session.retry,
+                  ),
+                  GuestSession(:final message) => _GuestHeader(
+                    message: message,
+                  ),
+                  RestoringSession() => const SizedBox.shrink(),
+                },
+              ),
             ),
             for (final section in menuSections)
               ..._sectionTiles(context, section, signedIn: signedIn),
@@ -192,8 +204,16 @@ class _MenuTabViewState extends State<MenuTabView> {
                 onTap: () => Get.toNamed<void>(AppRoutes.diagnostics),
               ),
             ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.md,
+                AppSpacing.page,
+                0,
+              ),
+              child: _AboutCard(config: _config),
+            ),
             if (signedIn) ...[
-              const Divider(height: 1),
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.page),
                 child: AppButton(
@@ -222,11 +242,10 @@ class _MenuTabViewState extends State<MenuTabView> {
     ];
     if (visible.isEmpty) return const [];
     return [
-      const Divider(height: 1),
       Padding(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.page,
-          AppSpacing.md,
+          AppSpacing.page + AppSpacing.xxs,
+          AppSpacing.xs,
           AppSpacing.page,
           AppSpacing.xxs,
         ),
@@ -234,20 +253,97 @@ class _MenuTabViewState extends State<MenuTabView> {
           header: true,
           child: Text(
             section.title,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ),
       ),
-      for (final entry in visible)
-        ListTile(
-          leading: Icon(entry.icon),
-          title: Text(entry.title),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => _open(entry),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+        child: _Card(
+          child: Column(
+            children: [
+              for (final (i, entry) in visible.indexed) ...[
+                if (i > 0) const Divider(height: 1, indent: 56),
+                ListTile(
+                  leading: Icon(entry.icon),
+                  title: Text(
+                    entry.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _open(entry),
+                ),
+              ],
+            ],
+          ),
         ),
+      ),
     ];
+  }
+}
+
+/// White rounded card (Menu groups).
+class _Card extends StatelessWidget {
+  const _Card({required this.child, this.padding = EdgeInsets.zero});
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: const BoxDecoration(
+      borderRadius: BorderRadius.all(AppRadii.lg),
+      boxShadow: AppShadows.card,
+    ),
+    child: Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: const BorderRadius.all(AppRadii.lg),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(padding: padding, child: child),
+    ),
+  );
+}
+
+/// App name, version and Help — like the reference's about card.
+class _AboutCard extends StatelessWidget {
+  const _AboutCard({required this.config});
+  final AppConfig config;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _Card(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        children: [
+          const Illustration(
+            AppIllustrations.appLogo,
+            fallback: Icons.celebration_rounded,
+            size: 72,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Event Planner', style: theme.textTheme.titleLarge),
+                Text(
+                  'Made with ❤️ in India',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                Text(
+                  'Version ${config.appVersion}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -258,16 +354,37 @@ class _SignedInHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final thumb = profile.photoThumbnailUrl;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        CircleAvatar(
+          radius: 44,
+          backgroundColor: AppColors.gold.withValues(alpha: 0.35),
+          foregroundImage: thumb == null
+              ? null
+              : CachedNetworkImageProvider(
+                  thumb,
+                  cacheKey: AppCacheManager.mediaKey(
+                    profile.photoMediaId!,
+                    'avatar',
+                  ),
+                  cacheManager: AppCacheManager.instance,
+                ),
+          child: const Illustration(
+            AppIllustrations.avatarPlaceholder,
+            fallback: Icons.person_outline,
+            size: 88,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
         Text('Signed in as', style: theme.textTheme.bodySmall),
-        const SizedBox(height: AppSpacing.xxs),
-        Text(profile.label, style: theme.textTheme.titleLarge),
-        if (profile.phone != null && profile.label != profile.phone) ...[
-          const SizedBox(height: AppSpacing.xxs),
+        Text(
+          profile.label,
+          style: theme.textTheme.titleLarge,
+          textAlign: TextAlign.center,
+        ),
+        if (profile.phone != null && profile.label != profile.phone)
           Text(profile.phone!, style: theme.textTheme.bodyMedium),
-        ],
       ],
     );
   }

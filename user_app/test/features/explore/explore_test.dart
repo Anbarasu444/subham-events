@@ -371,13 +371,16 @@ void main() {
       tester,
     ) async {
       final discovery = await pump(tester, signedIn: true, tab: ShellTab.home);
+      await tester.scrollUntilVisible(find.text('In Chennai'), 200);
       expect(find.text('In Chennai'), findsOneWidget);
-      expect(find.text('Candid wedding photography'), findsOneWidget);
       expect(find.text('Kongu catering'), findsNothing); // Coimbatore
-      await tester.ensureVisible(find.text('See all vendors'));
-      await tester.drag(find.byType(ListView).first, const Offset(0, -200));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('See all vendors'));
+      await tester.scrollUntilVisible(
+        find.text('Candid wedding photography'),
+        200,
+      );
+      expect(find.text('Candid wedding photography'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('See all'), -200);
+      await tester.tap(find.text('See all'));
       await tester.pumpAndSettle();
       expect(Get.find<ShellController>().current.value, ShellTab.explore);
       expect(discovery.queries.last.city, 'Chennai');

@@ -246,14 +246,15 @@ void main() {
         ],
       },
     );
-    // Scroll the dashboard with a real drag gesture (see M7 tests).
-    await tester.drag(find.byType(ListView).first, const Offset(0, -300));
-    await tester.pumpAndSettle();
-    expect(find.text('1 of 3 done'), findsOneWidget);
-    expect(find.text('Deposit · overdue'), findsOneWidget);
-    expect(find.textContaining('Flowers · due'), findsOneWidget);
+    // M22 card: next tasks (overdue first), progress and "Summary ›".
+    await tester.scrollUntilVisible(find.text('1 out of 3'), 200);
+    expect(find.text('33% completed'), findsOneWidget);
+    expect(find.text('Deposit'), findsOneWidget);
+    expect(find.text('overdue'), findsOneWidget);
+    expect(find.text('Flowers'), findsOneWidget);
 
-    await tester.tap(find.text('Open checklist'));
+    await tester.scrollUntilVisible(find.text('Summary'), -100);
+    await tester.tap(find.text('Summary'));
     await tester.pumpAndSettle();
     expect(Get.find<ShellController>().current.value, ShellTab.events);
     expect(find.text('To do (2)'), findsOneWidget);

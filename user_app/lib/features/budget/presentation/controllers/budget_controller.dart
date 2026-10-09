@@ -30,6 +30,9 @@ class BudgetController extends GetxController {
   /// Category ids, `total` or expense ids with a request in flight.
   final RxSet<String> busy = <String>{}.obs;
 
+  /// Category filter pills (M22): all, planned, spending or over.
+  final RxString lineFilter = 'all'.obs;
+
   int _generation = 0;
   int _expenseGeneration = 0;
   StreamSubscription<void>? _changes;

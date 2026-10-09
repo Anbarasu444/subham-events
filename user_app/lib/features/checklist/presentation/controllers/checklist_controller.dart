@@ -29,6 +29,12 @@ class ChecklistController extends GetxController {
   /// Items with a request in flight (prevents double taps).
   final RxSet<String> busy = <String>{}.obs;
 
+  /// Month pill filter (M22): `all`, `none` (no due date) or `yyyy-mm`.
+  final RxString month = 'all'.obs;
+
+  static String monthKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}';
+
   /// A reorder request is in flight.
   bool _reordering = false;
 

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/festive.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/error/failure.dart';
@@ -220,6 +222,18 @@ class InvitationSection extends StatelessWidget {
                 _ when inv == null => Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const SizedBox(height: AppSpacing.xs),
+                    LayoutBuilder(
+                      builder: (context, box) => Illustration(
+                        AppIllustrations.invitationBanner,
+                        fallback: Icons.mail_outline,
+                        size: box.maxWidth,
+                        height: box.maxWidth * 0.4,
+                        fit: BoxFit.cover,
+                        radius: AppRadii.md,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       _editable
                           ? 'Design an e-invitation and share it as a link or '

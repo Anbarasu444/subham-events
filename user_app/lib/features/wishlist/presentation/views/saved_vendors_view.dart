@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/theme/tokens.dart';
@@ -34,6 +35,7 @@ class SavedVendorsView extends StatelessWidget {
         if (state is Empty<List<WishlistItem>>) {
           return EmptyStateView(
             icon: Icons.favorite_border,
+            illustration: AppIllustrations.emptyVendors,
             title: 'No saved vendors yet',
             message: 'Tap the heart on a vendor to keep it here for later.',
             action: AppButton(

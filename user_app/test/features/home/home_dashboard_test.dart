@@ -274,18 +274,15 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('shows greeting, call to action and the four sections', (
+    testWidgets('shows greeting, call to action and the sections', (
       tester,
     ) async {
       await pump(tester, const SignedInSession(_profile));
       expect(find.textContaining('Priya'), findsOneWidget);
       expect(find.text('Create your first event'), findsOneWidget);
-      for (final title in [
-        'Upcoming event',
-        'Checklist progress',
-        'Budget overview',
-        'Explore vendors',
-      ]) {
+      // M22 festive Home: quick actions and vendor suggestions; event
+      // sections appear once there is an event.
+      for (final title in ['MENU', 'EXPLORE VENDORS']) {
         await tester.scrollUntilVisible(find.text(title), 100);
         expect(find.text(title), findsOneWidget);
       }
@@ -295,7 +292,8 @@ void main() {
       tester,
     ) async {
       await pump(tester, const GuestSession());
-      expect(find.text('Sign in to see your upcoming events.'), findsOneWidget);
+      expect(find.text('SAVE YOUR PLANS'), findsOneWidget);
+      expect(find.text('Sign in'), findsOneWidget);
     });
 
     testWidgets('section titles are headings; signed-in empty copy', (
@@ -304,10 +302,10 @@ void main() {
       final semantics = tester.ensureSemantics();
       await pump(tester, const SignedInSession(_profile));
       expect(
-        tester.getSemantics(find.text('Upcoming event')),
+        tester.getSemantics(find.text('MENU')),
         isSemantics(isHeader: true),
       );
-      expect(find.text('You have no events yet.'), findsOneWidget);
+      expect(find.text('Let’s plan something wonderful'), findsOneWidget);
       semantics.dispose();
     });
 
@@ -357,11 +355,8 @@ void main() {
         // Scroll to the end of the dashboard with a real drag gesture.
         await tester.drag(find.byType(ListView), const Offset(0, -400));
         await tester.pumpAndSettle();
-        final cardButton = find.descendant(
-          of: find.byType(ListView),
-          matching: find.byWidgetPredicate((w) => w is OutlinedButton),
-        );
-        await tester.tap(cardButton);
+        await tester.scrollUntilVisible(find.text('See all'), 100);
+        await tester.tap(find.text('See all'));
         await tester.pumpAndSettle();
         expect(Get.find<ShellController>().current.value, ShellTab.explore);
       },
@@ -379,7 +374,7 @@ void main() {
           flaky,
         ],
       );
-      expect(find.text('Sign in to see your upcoming events.'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Try again'), 100);
       expect(find.text('Try again'), findsOneWidget);
 
       flaky.fail = false;
@@ -398,7 +393,7 @@ void main() {
       expect(tester.takeException(), isNull);
       // Lay out every card, not only the first screen.
       await tester.scrollUntilVisible(
-        find.text('Explore'),
+        find.text('EXPLORE VENDORS'),
         200,
         scrollable: find
             .descendant(

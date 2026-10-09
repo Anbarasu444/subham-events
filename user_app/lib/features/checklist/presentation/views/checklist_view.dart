@@ -2,6 +2,7 @@ import '../../../reminders/presentation/controllers/reminder_controllers.dart';
 import '../../../reminders/presentation/widgets/reminder_sheet.dart';
 import '../../../reminders/presentation/widgets/reminders_section.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:flutter/semantics.dart';
 import 'package:get/get.dart';
 
@@ -11,6 +12,7 @@ import '../../../../core/utils/date_format.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/async_state_view.dart';
 import '../../../../core/widgets/empty_state_view.dart';
+import '../../../../core/widgets/festive.dart';
 import '../../domain/entities/checklist_item.dart';
 import '../../domain/repositories/checklist_repository.dart';
 import '../controllers/checklist_controller.dart';
@@ -31,16 +33,20 @@ class ChecklistView extends StatelessWidget {
     global: false,
     builder: (c) => Scaffold(
       // One line only: a two-line title overflows the toolbar at 200 % text.
-      appBar: AppBar(title: const Text('Checklist')),
+      appBar: AppBar(
+        title: const ScreenTitle(
+          icon: Icons.checklist_rounded,
+          title: 'Checklist',
+        ),
+      ),
       floatingActionButton: Obx(() {
         final list = c.checklist;
         if (list == null || !list.isEditable || list.items.isEmpty) {
           return const SizedBox.shrink();
         }
-        return FloatingActionButton.extended(
+        return GradientFab(
+          tooltip: 'Add task',
           onPressed: () => _add(context, c),
-          icon: const Icon(Icons.add),
-          label: const Text('Add task'),
         );
       }),
       body: Obx(
@@ -52,6 +58,7 @@ class ChecklistView extends StatelessWidget {
             child: list.items.isEmpty
                 ? EmptyStateView(
                     icon: Icons.checklist_outlined,
+                    illustration: AppIllustrations.emptyChecklist,
                     title: 'No tasks yet',
                     message: list.isEditable
                         ? 'Write down everything you need to do for '
@@ -95,13 +102,16 @@ class _ChecklistBody extends StatelessWidget {
   final String? eventTitle;
 
   @override
-  Widget build(BuildContext context) => CustomScrollView(
-    physics: const AlwaysScrollableScrollPhysics(),
-    slivers: checklistContentSlivers(
-      context,
-      list,
-      controller,
-      eventTitle: eventTitle,
+  // Obx: the month pill filter rebuilds the list.
+  Widget build(BuildContext context) => Obx(
+    () => CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: checklistContentSlivers(
+        context,
+        list,
+        controller,
+        eventTitle: eventTitle,
+      ),
     ),
   );
 }
@@ -116,10 +126,36 @@ List<Widget> checklistContentSlivers(
   String? eventTitle,
   VoidCallback? onAdd,
 }) {
-  final pending = list.pending;
-  final done = list.done;
+  final key = controller.month.value;
+  bool inMonth(ChecklistItem i) => switch (key) {
+    'all' => true,
+    'none' => i.dueDate == null,
+    _ => i.dueDate != null && ChecklistController.monthKey(i.dueDate!) == key,
+  };
+  final pending = list.pending.where(inMonth).toList(growable: false);
+  final done = list.done.where(inMonth).toList(growable: false);
   final editable = list.isEditable;
+  // Reordering works on the whole list only.
+  final reorderable = editable && key == 'all';
+  final months = {
+    for (final i in list.items)
+      if (i.dueDate != null) DateTime(i.dueDate!.year, i.dueDate!.month),
+  }.toList()..sort();
+  final hasUndated = list.items.any((i) => i.dueDate == null);
   return [
+    if (months.isNotEmpty)
+      SliverToBoxAdapter(
+        child: PillTabs<String>(
+          items: [
+            ('all', 'All'),
+            for (final m in months)
+              (ChecklistController.monthKey(m), formatMonthYear(m)),
+            if (hasUndated) ('none', 'No date'),
+          ],
+          selected: key,
+          onSelected: (v) => controller.month.value = v,
+        ),
+      ),
     SliverPadding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.page,
@@ -153,7 +189,7 @@ List<Widget> checklistContentSlivers(
     _SectionHeader(
       'To do',
       count: pending.length,
-      hint: editable && pending.length > 1
+      hint: reorderable && pending.length > 1
           ? 'Drag the handle or use the menu to reorder'
           : null,
     ),
@@ -167,7 +203,7 @@ List<Widget> checklistContentSlivers(
           child: Text('All done — nice work!'),
         ),
       )
-    else if (editable)
+    else if (reorderable)
       SliverReorderableList(
         itemCount: pending.length,
         // The dragged row gets its own surface so rows below don't show
@@ -197,7 +233,8 @@ List<Widget> checklistContentSlivers(
           index: index,
           pendingCount: pending.length,
           controller: controller,
-          editable: false,
+          editable: editable,
+          reorderable: false,
         ),
       ),
     if (done.isNotEmpty) ...[
@@ -294,6 +331,7 @@ class _ItemTile extends StatelessWidget {
     required this.pendingCount,
     required this.controller,
     required this.editable,
+    this.reorderable = true,
   });
 
   final ChecklistItem item;
@@ -301,6 +339,9 @@ class _ItemTile extends StatelessWidget {
   final int pendingCount;
   final ChecklistController controller;
   final bool editable;
+
+  /// False while a month filter is on (positions are list-wide).
+  final bool reorderable;
 
   @override
   Widget build(BuildContext context) {
@@ -333,7 +374,7 @@ class _ItemTile extends StatelessWidget {
         ),
     ];
 
-    final canMove = editable && !item.isDone;
+    final canMove = editable && reorderable && !item.isDone;
     return Semantics(
       customSemanticsActions: {
         if (canMove && index > 0)
@@ -343,87 +384,95 @@ class _ItemTile extends StatelessWidget {
           const CustomSemanticsAction(label: 'Move down'): () =>
               _report(context, controller.movePending(index, index + 1)),
       },
-      child: Material(
-        color: Colors.transparent,
-        child: Obx(() {
-          final busy = controller.busy.contains(item.id);
-          return ListTile(
-            contentPadding: const EdgeInsets.only(
-              left: AppSpacing.xs,
-              right: AppSpacing.xs,
-            ),
-            leading: Checkbox(
-              value: item.isDone,
-              semanticLabel: item.isDone
-                  ? 'Mark "${item.title}" as not done'
-                  : 'Mark "${item.title}" as done',
-              onChanged: !editable || busy ? null : (_) => _toggle(context),
-            ),
-            title: Text(
-              item.title,
-              style: item.isDone
-                  ? theme.textTheme.bodyLarge?.copyWith(
-                      decoration: TextDecoration.lineThrough,
-                      color: scheme.onSurfaceVariant,
-                    )
-                  : theme.textTheme.bodyLarge,
-            ),
-            subtitle: details.isEmpty
-                ? null
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: details,
-                  ),
-            onTap: editable ? () => _edit(context) : null,
-            trailing: editable
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      PopupMenuButton<_ItemAction>(
-                        tooltip: 'More actions for "${item.title}"',
-                        onSelected: (action) => _onAction(context, action),
-                        itemBuilder: (_) => [
-                          const PopupMenuItem(
-                            value: _ItemAction.edit,
-                            child: Text('Edit'),
-                          ),
-                          if (!item.isDone)
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.page,
+          vertical: AppSpacing.xxs,
+        ),
+        child: Material(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.all(AppRadii.lg),
+          clipBehavior: Clip.antiAlias,
+          child: Obx(() {
+            final busy = controller.busy.contains(item.id);
+            return ListTile(
+              contentPadding: const EdgeInsets.only(
+                left: AppSpacing.xs,
+                right: AppSpacing.xs,
+              ),
+              leading: Checkbox(
+                value: item.isDone,
+                semanticLabel: item.isDone
+                    ? 'Mark "${item.title}" as not done'
+                    : 'Mark "${item.title}" as done',
+                onChanged: !editable || busy ? null : (_) => _toggle(context),
+              ),
+              title: Text(
+                item.title,
+                style: item.isDone
+                    ? theme.textTheme.bodyLarge?.copyWith(
+                        decoration: TextDecoration.lineThrough,
+                        color: scheme.onSurfaceVariant,
+                      )
+                    : theme.textTheme.bodyLarge,
+              ),
+              subtitle: details.isEmpty
+                  ? null
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: details,
+                    ),
+              onTap: editable ? () => _edit(context) : null,
+              trailing: editable
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PopupMenuButton<_ItemAction>(
+                          tooltip: 'More actions for "${item.title}"',
+                          onSelected: (action) => _onAction(context, action),
+                          itemBuilder: (_) => [
                             const PopupMenuItem(
-                              value: _ItemAction.remind,
-                              child: Text('Remind me'),
+                              value: _ItemAction.edit,
+                              child: Text('Edit'),
                             ),
-                          if (!item.isDone && index > 0)
+                            if (!item.isDone)
+                              const PopupMenuItem(
+                                value: _ItemAction.remind,
+                                child: Text('Remind me'),
+                              ),
+                            if (canMove && index > 0)
+                              const PopupMenuItem(
+                                value: _ItemAction.up,
+                                child: Text('Move up'),
+                              ),
+                            if (canMove && index < pendingCount - 1)
+                              const PopupMenuItem(
+                                value: _ItemAction.down,
+                                child: Text('Move down'),
+                              ),
                             const PopupMenuItem(
-                              value: _ItemAction.up,
-                              child: Text('Move up'),
+                              value: _ItemAction.delete,
+                              child: Text('Delete'),
                             ),
-                          if (!item.isDone && index < pendingCount - 1)
-                            const PopupMenuItem(
-                              value: _ItemAction.down,
-                              child: Text('Move down'),
-                            ),
-                          const PopupMenuItem(
-                            value: _ItemAction.delete,
-                            child: Text('Delete'),
-                          ),
-                        ],
-                      ),
-                      if (!item.isDone)
-                        // Screen readers use the Move up/down actions instead.
-                        ExcludeSemantics(
-                          child: ReorderableDragStartListener(
-                            index: index,
-                            child: const SizedBox.square(
-                              dimension: AppSizes.minTouchTarget,
-                              child: Icon(Icons.drag_handle),
-                            ),
-                          ),
+                          ],
                         ),
-                    ],
-                  )
-                : null,
-          );
-        }),
+                        if (canMove)
+                          // Screen readers use the Move up/down actions instead.
+                          ExcludeSemantics(
+                            child: ReorderableDragStartListener(
+                              index: index,
+                              child: const SizedBox.square(
+                                dimension: AppSizes.minTouchTarget,
+                                child: Icon(Icons.drag_handle),
+                              ),
+                            ),
+                          ),
+                      ],
+                    )
+                  : null,
+            );
+          }),
+        ),
       ),
     );
   }

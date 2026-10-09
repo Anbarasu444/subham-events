@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/error/result.dart';
@@ -45,6 +46,7 @@ class _MyReviewsViewState extends State<MyReviewsView> {
     body: _state is Empty<List<Review>>
         ? const EmptyStateView(
             icon: Icons.star_outline_rounded,
+            illustration: AppIllustrations.emptyReviews,
             title: 'No reviews yet',
             message:
                 'After a booking is completed, you can rate the vendor from '

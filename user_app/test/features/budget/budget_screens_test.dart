@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:user_app/core/widgets/festive.dart';
 import 'package:user_app/app/config/app_config.dart';
 import 'package:user_app/core/auth/session.dart';
 import 'package:user_app/core/auth/session_service.dart';
@@ -91,8 +92,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Scrolls the Budget tab (or page) until [text] is visible, then taps it.
+  /// M22: a category opens its details page; leave it to see the list.
+  Future<void> leaveDetails(WidgetTester tester) async {
+    if (find.text('DETAILS').evaluate().isNotEmpty) {
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
+  }
+
+  /// Scrolls the Budget tab (or page) until [text] is visible, taps it and
+  /// (M22) presses the details page's plan button.
   Future<void> tapLine(WidgetTester tester, String text) async {
+    await leaveDetails(tester);
     final tab = find.byKey(const PageStorageKey<String>('budget'));
     final scrollable = find
         .descendant(
@@ -110,12 +121,22 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(text));
     await tester.pumpAndSettle();
+    final plan = find.byType(GradientButton);
+    if (plan.evaluate().isNotEmpty) {
+      await tester.ensureVisible(plan.first);
+      await tester.tap(plan.first);
+      await tester.pumpAndSettle();
+    }
   }
 
   Future<void> enterAmount(WidgetTester tester, String amount) async {
     await tester.enterText(find.widgetWithText(TextField, 'Amount'), amount);
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await tester.pumpAndSettle();
+    // Saved: the sheet closed, so go back from the details page.
+    if (find.textContaining('Plan for').evaluate().isEmpty) {
+      await leaveDetails(tester);
+    }
   }
 
   testWidgets('plans a category and shows what is left', (tester) async {
@@ -202,6 +223,7 @@ void main() {
     await tester.tap(find.text('Keep'));
     await tester.pumpAndSettle();
     expect(budgets.calls.where((c) => c.startsWith('clear:')), isEmpty);
+    await leaveDetails(tester);
     await tapLine(tester, 'Venue');
     await tester.tap(find.text('Clear planned amount'));
     await tester.pumpAndSettle();
@@ -480,12 +502,12 @@ void main() {
     budgets.seedExpense('e1', 'Hall advance', _inr('2500.00'), _today);
     await Get.find<HomeController>().refreshAll();
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView).first, const Offset(0, -500));
-    await tester.pumpAndSettle();
-    expect(find.text('Planned ₹40,000 of ₹1,00,000'), findsOneWidget);
-    expect(find.text('Not yet planned: ₹60,000'), findsOneWidget);
-    expect(find.text('Spent so far: ₹2,500'), findsOneWidget);
-    await tester.tap(find.text('Open budget'));
+    // M22 card: budget, spent and to-pay with a donut; "Details ›".
+    await tester.scrollUntilVisible(find.text('₹1,00,000'), 200);
+    expect(find.text('₹2,500'), findsOneWidget);
+    expect(find.text('3%'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Details'), -100);
+    await tester.tap(find.text('Details'));
     await tester.pumpAndSettle();
     expect(Get.find<ShellController>().current.value, ShellTab.events);
     expect(find.text('By category'), findsOneWidget);
@@ -516,7 +538,11 @@ void main() {
       100,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('Budget'));
+    // The taller Menu header (M22): bring the row clear of the nav bar.
+    final row = find.widgetWithText(ListTile, 'Budget');
+    await tester.ensureVisible(row);
+    await tester.pumpAndSettle();
+    await tester.tap(row);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.scrollUntilVisible(

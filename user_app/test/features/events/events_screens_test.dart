@@ -372,10 +372,10 @@ void main() {
         testEvent('near', date: _inDays(2), title: 'Mehendi'),
       ],
     );
-    // Upcoming event card (and the Checklist card names the same event).
+    // M22: the countdown card shows the next event.
     expect(find.text('Mehendi'), findsWidgets);
     expect(find.text('Reception'), findsNothing);
-    expect(find.text('Create event'), findsOneWidget);
+    expect(find.text('Days'), findsOneWidget);
 
     await tester.tap(find.text('Mehendi').first);
     await tester.pumpAndSettle();
@@ -391,10 +391,7 @@ void main() {
       tab: ShellTab.home,
       events: [testEvent('x', date: _inDays(4), status: EventStatus.completed)],
     );
-    expect(
-      find.text('No upcoming events. Your past events are in My Events.'),
-      findsOneWidget,
-    );
+    expect(find.text('No upcoming events'), findsOneWidget);
     expect(find.text('Create event'), findsOneWidget);
   });
 

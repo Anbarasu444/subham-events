@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:user_app/features/event_vendors/domain/event_vendor.dart';
+import 'package:user_app/features/invitations/domain/invitation.dart';
+
+import '../../helpers/fake_event_vendors.dart';
+import '../../helpers/fake_invitations.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:user_app/app/config/app_config.dart';
 import 'package:user_app/core/auth/auth_service.dart';
@@ -297,8 +302,11 @@ void main() {
       state: const SignedInSession(_profile),
     );
     expect(find.text('Planning'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Account'), 100);
     expect(find.text('Account'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Help'), 100);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Help'));
     await tester.pumpAndSettle();
     expect(find.text('Frequently asked questions'), findsOneWidget);
@@ -314,6 +322,8 @@ void main() {
       state: const SignedInSession(_profile),
     );
     await tester.scrollUntilVisible(find.text('Help'), 100);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Help'));
     await tester.pumpAndSettle();
     expect(find.text('Frequently asked questions'), findsOneWidget);
@@ -358,6 +368,8 @@ void main() {
     Get.put<NotificationsRepository>(FakeNotificationsRepository());
     Get.put<PushMessaging>(FakePushMessaging());
     Get.put<SecureStore>(_Store());
+    Get.put<EventVendorsRepository>(FakeEventVendorsRepository());
+    Get.put<InvitationsRepository>(FakeInvitationsRepository());
     await tester.pumpWidget(
       GetMaterialApp(
         initialRoute: AppRoutes.home,

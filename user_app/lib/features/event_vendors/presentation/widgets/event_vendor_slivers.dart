@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/festive.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/error/failure.dart';
@@ -35,6 +37,14 @@ List<Widget> eventVendorSlivers(
         padding: const EdgeInsets.all(AppSpacing.page),
         sliver: SliverList.list(
           children: [
+            const Center(
+              child: Illustration(
+                AppIllustrations.emptyVendors,
+                fallback: Icons.storefront_outlined,
+                size: AppSizes.emptyIllustration,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
             Text('No vendors yet', style: theme.textTheme.titleMedium),
             const SizedBox(height: AppSpacing.xs),
             Text(

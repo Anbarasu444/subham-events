@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/error/result.dart';
@@ -48,6 +49,7 @@ class _RsvpListViewState extends State<RsvpListView> {
     body: _state is Empty<RsvpList>
         ? const EmptyStateView(
             icon: Icons.mark_email_unread_outlined,
+            illustration: AppIllustrations.emptyRsvps,
             title: 'No replies yet',
             message: 'Share your invitation. Replies from guests appear here.',
           )

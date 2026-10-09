@@ -195,6 +195,13 @@ Pagination helper understands both cursor (`meta.page.nextCursor`) and offset me
 
 - `features/profile`: `ProfileRepository` (`/me`, name, photo, delete), `ProfileController` (name validation, photo pick → `MediaRepository.uploadProfilePhoto` → set, remove, delete → `SessionService.accountDeleted`), `ProfileView` (avatar with a cached signed thumbnail, hidden when `AppConfig.profilePhotoEnabled` is false; name; read-only phone/email; member since; My reviews; Delete account), `DeleteAccountView` (explains effects, type DELETE), `MyReviewsView`, `HelpView` (FAQs, contact from `AppConfig.supportEmail/supportPhone`, terms/privacy "coming soon", version). `MeProfile` gains photo fields and `createdAt`; `SessionService.updateProfile`. Menu: My profile, My reviews, Help are real pages; Messages hidden until a chat milestone. Config keys `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `PROFILE_PHOTO_ENABLED` in `config/<flavor>.json` (defaults in code).
 
+## 6o. Festive redesign (M22)
+
+- Home: countdown hero to the next event (`countdownClock` injectable), quick-action grid (8 illustrations), sign-in card for guests, checklist card (next tasks, progress, "Summary ›"), Vendors and Replies donuts (`EventChartsSource`: vendor stages + RSVP totals), Budget card with donut, Explore card. Each part reacts to its own section state.
+- Checklist: month pill filter (`ChecklistController.month`; reordering only on "All"), card rows, gradient "+".
+- Budget: Balance card with donut, category filter pills (`BudgetController.lineFilter`: all / planned / with spending / over plan), category cards with spent-of-plan bars; tap → `BudgetCategoryView` (Details + plan button, Balance, Bookings with Payments, Expenses, "+" expense).
+- Menu: profile card (photo/avatar), grouped white cards, about card (logo, version).
+
 ## 7. Local storage responsibilities
 
 | Store | Use for | Never for |
@@ -238,7 +245,9 @@ Budget: cold start to first frame ≤ 2.5 s on a mid-range device (`quality.md`)
 
 ## 11. Theming / design tokens
 
-- `core/theme/tokens.dart`: brand colour `#FF7E7E` (seed only — fails text contrast on white; use `colorScheme.primary` for text/buttons), spacing scale (4-pt grid), radii, sizes (touch target 48, hero icon 64), motion durations (150/250/350 ms). Elevation/typography tokens are added when the first screens need them.
+- **M22: one style file — `core/theme/app_style.dart`** (user request): fonts (`AppFonts` — Kalam, SIL OFL, bundled in `assets/fonts/kalam/`), brand colours (`AppColors` — festive gold `#F5C842` → orange `#E8873A` → deep orange `#C0461E`, rose accent, warm background, AA-safe `primary` `#B0441C` for text), gradients (`AppGradients`), chart colours (`AppChartColors`), spacing, radii, shadows, durations, sizes. `tokens.dart` re-exports it. `app_theme.dart` builds the Material theme only from it (type scale from `Typography.material2021`, ×1.05 for Kalam). A test fails if any file outside `core/theme/` hard-codes `Color(0x…)` or a font family. To re-theme: edit `app_style.dart` (and `pubspec.yaml` `fonts:` for a new font).
+- Festive components (`core/widgets/festive.dart`): `GradientBox`, `GradientButton`, `GradientFab`, `SectionCard` (icon + uppercase title + "More ›"), `PillTabs`, `GradientProgressBar`, `DonutChart` (fl_chart, spoken summary), `LegendDot`, `Illustration` (path from **`core/assets/app_illustrations.dart` — the one file listing every picture**; decoded at display size; coloured-icon fallback), `ScreenTitle`. `AppButton` primary sits on the brand gradient.
+- Screenshot (golden) tests: `test/goldens/festive_screens_golden_test.dart` (Home top/charts, Checklist, Budget, Budget categories, Budget details, Menu) with the real fonts; update with `flutter test --update-goldens test/goldens`.
 - Native splash (`flutter_native_splash`, config in `pubspec.yaml`): colour-only `#FF7E7E` (light) / `#3A1F1F` (dark) until a logo exists.
 - `ThemeData` built from tokens with Material 3; widgets reference `Theme.of(context)` / token extensions, never hard-coded values.
 - Accessibility: minimum touch target 48×48 dp, text scaling up to 200% without clipping, contrast ≥ 4.5:1 for body text.

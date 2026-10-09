@@ -181,6 +181,8 @@ class ShellBinding extends Bindings {
           Get.find<ChecklistRepository>(),
           Get.find<BudgetRepository>(),
           Get.find<DiscoveryRepository>(),
+          vendors: Get.find<EventVendorsRepository>(),
+          invitations: Get.find<InvitationsRepository>(),
         ),
         reporter: Get.find<CrashReporter>(),
       ),

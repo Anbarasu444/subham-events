@@ -84,6 +84,9 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-09 | M20 Reviews | APPROVE MILESTONE M20 | Status → **COMPLETED**. M21 User Profile / Menu set to NOT_STARTED; spec DRAFT created (open questions: R11 final deletion policy, deletion side effects, profile photo, help contact, terms/privacy, Messages, A8) | See M20 IN_REVIEW entry | Dev DB migrations `1792600000000-Reviews`, `1792700000000-ReviewReminders` to be run by the user | `APPROVE MILESTONE M20` issued by user |
 | 2026-10-09 | M21 User Profile / Menu | START MILESTONE M21 | Validation passed (M20 COMPLETED and approved; spec exists; answers: R11 interim kept, deletion effects, profile photo with switch, placeholder contacts, terms coming soon, Messages hidden, deleted users may sign in again — restore assumed). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M21` issued by user |
 | 2026-10-09 | M21 User Profile / Menu | Set IN_REVIEW | My profile (name, photo with config switch), My reviews, Help (FAQs, placeholder contacts, version, legal coming soon), account deletion (R11 interim: data kept; bookings/events/reminders/invitations/devices handled; N13 to vendors) with restore on sign-in (7A); Messages hidden | Backend 74 unit + 148 e2e; Flutter 313; analyze/lint/typecheck clean; reviews done | APK build not re-run (disk full); dev DB migration `1792800000000-ProfilePhoto` to be run; GI-38 | Awaiting `APPROVE MILESTONE M21` |
+| 2026-10-09 | M21 User Profile / Menu | APPROVE MILESTONE M21 | Status → **COMPLETED**. M22 User App Hardening set to NOT_STARTED; spec DRAFT created including the user's festive redesign request (open questions: fonts, colours, bottom navigation, charts, pictures, scope) | See M21 IN_REVIEW entry | Dev DB migration `1792800000000-ProfilePhoto` to be run; APK build re-check pending disk space | `APPROVE MILESTONE M21` issued by user |
+| 2026-10-09 | M22 User App Hardening + festive refresh | START MILESTONE M22 | Validation passed (M21 COMPLETED and approved; spec exists; answers: Kalam, gradient colours, keep bottom bar, fl_chart, user illustrations, redesign focus). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M22` issued by user |
+| 2026-10-09 | M22 User App Hardening + festive refresh | Set IN_REVIEW | One style file (Kalam, festive gradient, chart colours), festive components, redesigned Home (countdown, quick actions, donuts), Checklist (month pills), Budget (+ category details page), Menu; screenshot tests | Flutter 326; analyze clean; reviews done | APK build blocked by disk (GI-40); illustrations pending (GI-39) | Awaiting `APPROVE MILESTONE M22` |
 
 ## Status summary
 - Governance initialization: **complete**.
@@ -93,4 +96,5 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 - M17, M18: **COMPLETED** 2026-10-08 (the user commits).
 - M19: **COMPLETED** 2026-10-09 (the user commits).
 - M20: **COMPLETED** 2026-10-09 (the user commits).
-- Active milestone: **M21 — User Profile / Menu** (IN_REVIEW since 2026-10-09; awaiting `APPROVE MILESTONE M21`).
+- M21: **COMPLETED** 2026-10-09 (the user commits).
+- Active milestone: **M22 — User App Hardening + festive visual refresh** (IN_REVIEW since 2026-10-09; awaiting `APPROVE MILESTONE M22`).

@@ -4,64 +4,75 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M21** |
-| Milestone name | User Profile / Menu |
+| Milestone ID | **M22** |
+| Milestone name | User App Hardening (+ festive visual refresh, proposed) |
 | Phase | User App (M3–M23) |
 | Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M21-user-profile-menu.md` (status: CONFIRMED 2026-10-09) |
+| Spec | `.claude/project/milestones/M22-user-app-hardening.md` (status: CONFIRMED 2026-10-09) |
 | Started date | 2026-10-09 |
 | Completed date | — |
-| Approval status | **Awaiting `APPROVE MILESTONE M21`** |
+| Approval status | **Awaiting `APPROVE MILESTONE M22`** |
 
 ## Objective
-Profile view/edit (name, photo), My reviews, Help, safe account deletion (R11 interim, A8 as changed), Menu without dead ends.
+Festive, consistent look driven by one style file; redesigned Home (charts), Checklist, Budget, Budget details and Menu; redesigned screens hardened (broader hardening at the M23 freeze, answer 6).
 
 ## Completed work
-- Answers applied: R11 interim kept (1A); deletion effects (2A); profile photo with a config switch (3); placeholder contacts in config (4); terms/privacy coming soon (5); Messages hidden (6); deleted users can sign in again and get the same account back (7A, confirmed).
-- **Database:** migration `1792800000000-ProfilePhoto` (media USER/USER_PHOTO; `users.photo_media_id`).
-- **Backend:** `PATCH /me` (name), `PUT/DELETE /me/photo` (photo via the existing upload flow, `USER_PHOTO`), `MeDto.photo` (also from `/auth/session`); `POST /me/delete` (typed DELETE; cancels confirmed bookings with N13 to vendors, cancels planning events, closes enquiries, cancels reminders, revokes invitation links, deactivates devices, marks DELETED, revokes tokens; data kept); restore on `/auth/session` (guard lets a DELETED identity reach only that route); reviews of a deleted account show "Deleted user".
-- **User App:** My profile (photo with progress, name, read-only phone/email, member since), Delete account screen (effects explained, type DELETE, signs out with a restore message), My reviews, Help (FAQs, contact, version, legal coming soon); Menu: My profile, My reviews, Help real pages, Messages hidden; config keys `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `PROFILE_PHOTO_ENABLED`.
+- **One style file** `lib/core/theme/app_style.dart` (font, colours, gradients, chart colours, radii, spacing, shadows); theme built only from it; guard test against hard-coded colours/fonts.
+- **Kalam** font (OFL) bundled; **fl_chart** added (approved).
+- **Festive components** (`core/widgets/festive.dart`) and gradient primary buttons app-wide.
+- **Home**: countdown hero, quick-action grid, checklist card, Vendors/Replies donuts (new `EventChartsSource`), Budget donut card, Explore card, guest sign-in card.
+- **Checklist**: month pills, card rows, gradient "+". **Budget**: Balance donut card, filter pills, category cards with progress, **new Budget details page** (details + plan, balance, bookings with payments, expenses, "+"). **Menu**: profile card, grouped cards, about card.
+- Illustrations from the user wired through **one file** `lib/core/assets/app_illustrations.dart` (Home grid, event pictures, empty screens, offline/error, invitation banner, avatar, logo); decoded at display size; guard test for missing files and raw paths. Source-file issues tracked in GI-39.
 
 ## In-progress work
 - None.
 
 ## Blocked work
-- Android APK build could not be re-run: the Mac's disk filled up during the build (122 MB free; 1.3 GB after `flutter clean`). Dart analysis and all tests pass; no new native plugins were added. Large caches: `~/.gradle/caches` (28 GB) and Xcode DerivedData (9.3 GB) — not deleted without the user's permission.
+- Android APK build: the disk fills up during Gradle (≈4.9 GB free now; GI-40). Not deleting Gradle/Xcode caches without the user's permission.
 
 ## Tests completed
-- Backend: unit 74/74; e2e 148/148 (3 new: name edit + validation + audit without the name; photo set/replace/remove + ownership; deletion effects end to end + 403 afterwards + restore on sign-in); lint and typecheck clean.
-- User App: analyze clean; 313/313 tests (12 new + shell tests updated): profile parsing, name/photo/delete controller, profile screen, photo switch, photo sheet, delete flow (typed DELETE), Help, My reviews (list/empty), 200 %.
-- Not verified: a real device run; the APK build (disk).
+- `flutter analyze` clean; `flutter test` 326/326 (13 new: style-file guard, theme source, pill tabs, donut semantics, illustration fallback, gradient button, charts source, checklist month filter, budget details, 4 screenshot tests); existing Home/Checklist/Budget/Menu/shell tests updated to the new design.
+- Screenshots: `user_app/test/goldens/goldens/*.png` (reviewed by Claude).
+- Backend unchanged (no cross-layer change needed).
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security review | DONE — name only editable (phone/email from verified sign-in; unknown fields 422); photo must be the caller's READY `USER_PHOTO` (ownership enforced at upload and set); deletion requires a revocation-checked token, typed confirmation, rate limit 5/min, runs in one transaction, revokes refresh tokens and deactivates devices; DELETED identities can reach only `/auth/session` (restore, audited); audit logs carry no names. Residual: anyone holding the user's Google/phone sign-in can restore the account — accepted by answer 7A. |
-| Performance review | DONE — deletion is set-based SQL per table plus one query per cancelled booking (bounded by the user's bookings); profile reads add one media lookup; avatar uses the cached signed thumbnail. |
-| Notification review | DONE — N13 to each vendor whose booking is cancelled by account deletion (in-app; vendor pushes from M36); no notification for profile edits (own actions); devices deactivated so no pushes reach a deleted account. |
-| Documentation | DONE — api-contracts (profile, account, media kind), database-schema, notification-matrix, identity-access, domain-model (A8), flutter.md §6n, known-issues GI-38, spec ACs, progress. |
+| Security review | DONE — UI only; no new data, endpoints or storage; fonts and chart package from trusted sources (Google Fonts OFL; fl_chart, pub.dev). |
+| Performance review | DONE — charts animate once (250 ms) and are static after; countdown is one 1-second timer, cancelled on dispose; Home sections rebuild independently; the charts source reuses the events list and adds 2 requests per refresh (vendors, invitation). |
+| Notification review | DONE — no notification changes. |
+| Documentation | DONE — flutter.md §11 + §6o, known-issues GI-39/GI-40, spec ACs, progress. |
 
 ## Known issues
-- See `known-issues.md`: GI-4, GI-5, GI-8, GI-10, GI-11, GI-12, GI-14, GI-16…GI-38.
-- R11 final policy to revisit before M72 (GI-38). R6 (before M28/M29), R10 (before M26).
+- See `known-issues.md`: GI-4…GI-40.
 
 ## Files changed
-- Database: `database/migrations/1792800000000-ProfilePhoto.ts`.
-- Backend: `src/modules/users/{me.controller.ts, me.dto.ts, profile.service.ts (new), users.module.ts, entities/user.entity.ts}`, `src/modules/auth/{account.controller.ts (new), account-deletion.service.ts (new), auth.module.ts, auth.service.ts, auth.guard.ts}`, `src/modules/media/{media.dto.ts, media.entity.ts, media.service.ts}`, `src/modules/reviews/reviews.service.ts`; tests `test/profile.e2e-spec.ts` (new).
-- User App: `lib/features/profile/**` (new), `lib/app/config/app_config.dart`, `config/staging.json`, `config/prod.json`, `config/staging.local.json.example`, `lib/core/auth/session.dart`, `lib/core/auth/session_service.dart`, `lib/features/media/{domain/media_repository.dart, data/media_repository_impl.dart, data/media_remote_data_source.dart}`, `lib/features/reviews/{domain/review.dart, data/reviews_repository_impl.dart}`, `lib/features/menu/presentation/views/menu_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/profile/profile_test.dart` (new), `test/helpers/fake_profile.dart` (new), `test/helpers/fake_media.dart`, `test/helpers/fake_reviews.dart`, `test/features/shell/shell_test.dart`.
+- User App (illustrations, added during review): `lib/core/assets/app_illustrations.dart` (new), `lib/core/widgets/{empty_state_view.dart, async_state_view.dart}`, empty states in my_reviews, my_events, planning picker, notification center, saved vendors, checklist, rsvp list, explore, event vendors, budget, invitation section; `assets/illustrations/*` (user-supplied).
+- User App: `pubspec.yaml` (fl_chart, Kalam fonts, illustrations assets), `assets/fonts/kalam/*` (new), `assets/illustrations/.gitkeep` (new), `lib/core/theme/{app_style.dart (new), tokens.dart, app_theme.dart}`, `lib/core/widgets/{festive.dart (new), app_button.dart}`, `lib/core/utils/date_format.dart`, `lib/features/home/{domain/dashboard_section.dart, data/event_charts_source.dart (new), data/empty_section_source.dart, presentation/views/home_tab_view.dart; removed presentation/widgets/dashboard_section_card.dart}`, `lib/features/checklist/presentation/{controllers/checklist_controller.dart, views/checklist_view.dart, widgets/checklist_progress.dart}`, `lib/features/budget/presentation/{controllers/budget_controller.dart, views/budget_view.dart, widgets/budget_slivers.dart}`, `lib/features/menu/presentation/views/menu_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/design/festive_test.dart` (new), `test/goldens/**` (new), updated `test/features/{home,shell,explore,events,checklist,budget}/…`.
 - Docs: listed under Documentation, plus `current-milestone.md`, `milestones.md`.
 
 ## Files pending approval
-- All M21 files above, and M19/M20 files unless already committed (the user commits).
+- All M22 files above, and M19–M21 files unless already committed (the user commits).
 
 ## Next milestone
-- M22 — User App Hardening (spec drafted at the M21 gate).
+- M23 — USER APP FREEZE (spec drafted at the M22 gate).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M21 User Profile / Menu: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-09 |
+| Completed / approved | 2026-10-09 — `APPROVE MILESTONE M21` issued by the user |
+| Spec | `milestones/M21-user-profile-menu.md` (CONFIRMED) |
+
+Evidence at approval: My profile (name, photo with config switch), My reviews, Help (FAQs, placeholder contacts, version, legal coming soon), account deletion (R11 interim, data kept; bookings/events/reminders/invitations/devices handled; N13 to vendors) with restore on sign-in (7A); Messages hidden; backend 74 unit + 148 e2e, Flutter 313 tests; reviews done. APK build not re-run (disk full). Dev DB migration `1792800000000-ProfilePhoto` to be run by the user.
 
 ## Previous milestone — M20 Reviews: COMPLETED
 

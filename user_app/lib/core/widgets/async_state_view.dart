@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../error/failure.dart';
 import '../state/view_state.dart';
 import '../theme/tokens.dart';
+import '../assets/app_illustrations.dart';
 import 'app_button.dart';
+import 'centered_scrollable.dart';
+import 'festive.dart';
 import 'skeleton.dart';
 
 /// Renders a [ViewState] consistently: skeleton, empty, error with retry, or
@@ -44,6 +47,8 @@ class AsyncStateView<T> extends StatelessWidget {
         Failed<T>(:final failure) => _Message(
           key: const ValueKey('error'),
           icon: Icons.error_outline,
+          // M22: the offline / something-went-wrong picture.
+          illustration: AppIllustrations.errorOffline,
           title: failureTitle(failure),
           message: failureMessage(failure),
           onRetry: failure.isRetryable ? onRetry : null,
@@ -95,8 +100,10 @@ class _Message extends StatelessWidget {
     required this.title,
     this.message,
     this.onRetry,
+    this.illustration,
   });
 
+  final String? illustration;
   final IconData icon;
   final String title;
   final String? message;
@@ -105,41 +112,53 @@ class _Message extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    final content = Padding(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (illustration != null)
+            Illustration(
+              illustration!,
+              fallback: icon,
+              size: AppSizes.emptyIllustration,
+              color: theme.colorScheme.onSurfaceVariant,
+            )
+          else
             Icon(icon, size: 48, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
+          if (message != null && message!.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
             Text(
-              title,
-              style: theme.textTheme.titleMedium,
+              message!,
+              style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
-            if (message != null && message!.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                message!,
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
-            if (onRetry != null) ...[
-              const SizedBox(height: AppSpacing.lg),
-              SizedBox(
-                width: 200,
-                child: AppButton(
-                  label: 'Try again',
-                  icon: Icons.refresh,
-                  onPressed: onRetry,
-                ),
-              ),
-            ],
           ],
-        ),
+          if (onRetry != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            SizedBox(
+              width: 200,
+              child: AppButton(
+                label: 'Try again',
+                icon: Icons.refresh,
+                onPressed: onRetry,
+              ),
+            ),
+          ],
+        ],
       ),
+    );
+    // Scrolls (large text, big picture) when the height is bounded.
+    return LayoutBuilder(
+      builder: (context, box) => box.maxHeight.isFinite
+          ? CenteredScrollable(padding: EdgeInsets.zero, child: content)
+          : Center(child: content),
     );
   }
 }

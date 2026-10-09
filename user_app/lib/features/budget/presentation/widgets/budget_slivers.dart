@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/error/result.dart';
+import '../../../event_vendors/domain/event_vendor.dart';
+import '../../../event_vendors/presentation/views/payments_view.dart';
 import '../../../../core/money/money.dart';
 import '../../../../core/theme/tokens.dart';
 import '../../../../core/widgets/async_state_view.dart';
@@ -9,6 +13,7 @@ import '../../../../core/state/view_state.dart';
 import '../../../../core/utils/date_format.dart';
 import '../../domain/budget.dart';
 import '../../domain/expense.dart';
+import '../../../../core/widgets/festive.dart';
 import '../controllers/budget_controller.dart';
 import 'expense_sheet.dart';
 import 'money_sheet.dart';
@@ -43,7 +48,7 @@ List<Widget> budgetSlivers(
           ),
           Text(
             budget.isEditable
-                ? 'Tap a category to plan an amount for it.'
+                ? 'Tap a category to see its details and plan an amount.'
                 : 'Planned amounts per category.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -52,14 +57,44 @@ List<Widget> budgetSlivers(
         ],
       ),
     ),
-    SliverList.builder(
-      itemCount: budget.lines.length,
-      itemBuilder: (context, index) => _LineTile(
-        line: budget.lines[index],
-        editable: budget.isEditable,
-        controller: controller,
+    SliverToBoxAdapter(
+      child: Obx(
+        () => PillTabs<String>(
+          items: const [
+            ('all', 'All'),
+            ('planned', 'Planned'),
+            ('spending', 'With spending'),
+            ('over', 'Over plan'),
+          ],
+          selected: controller.lineFilter.value,
+          onSelected: (v) => controller.lineFilter.value = v,
+        ),
       ),
     ),
+    Obx(() {
+      final lines = budget.lines
+          .where((l) => _matches(l, controller.lineFilter.value))
+          .toList(growable: false);
+      if (lines.isEmpty) {
+        return const SliverPadding(
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.page,
+            vertical: AppSpacing.sm,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: Text('No categories match this filter.'),
+          ),
+        );
+      }
+      return SliverList.builder(
+        itemCount: lines.length,
+        itemBuilder: (context, index) => _LineTile(
+          line: lines[index],
+          editable: budget.isEditable,
+          controller: controller,
+        ),
+      );
+    }),
     SliverPadding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.page,
@@ -101,6 +136,25 @@ List<Widget> budgetSlivers(
     ),
     _ExpenseSlivers(budget: budget, controller: controller),
   ];
+}
+
+/// Spent on a category: bookings plus the user's own expenses.
+BigInt _spentOn(BudgetLine l) => l.committed.minorUnits + l.expenses.minorUnits;
+
+bool _matches(BudgetLine l, String filter) => switch (filter) {
+  'planned' => l.planned != null,
+  'spending' => _spentOn(l) > BigInt.zero || l.paid.minorUnits > BigInt.zero,
+  'over' => l.planned != null && _spentOn(l) > l.planned!.minorUnits,
+  _ => true,
+};
+
+String _money(BigInt paise) {
+  final digits = paise.abs().toString().padLeft(3, '0');
+  return Money.parse(
+    '${digits.substring(0, digits.length - 2)}.'
+        '${digits.substring(digits.length - 2)}',
+    'INR',
+  ).format();
 }
 
 Set<String> _bookedCategories(Budget budget) => {
@@ -197,11 +251,22 @@ class _ExpenseSlivers extends StatelessWidget {
       Empty() => SliverPadding(
         padding: const EdgeInsets.all(AppSpacing.page),
         sliver: SliverToBoxAdapter(
-          child: Text(
-            budget.isEditable
-                ? 'No expenses yet. Tap Add to note one.'
-                : 'No expenses were noted for this event.',
-            style: theme.textTheme.bodyMedium,
+          child: Column(
+            children: [
+              const Illustration(
+                AppIllustrations.emptyBudget,
+                fallback: Icons.receipt_long_outlined,
+                size: 120,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                budget.isEditable
+                    ? 'No expenses yet. Tap Add to note one.'
+                    : 'No expenses were noted for this event.',
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       ),
@@ -418,147 +483,156 @@ class _Summary extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final total = budget.totalBudget;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: MergeSemantics(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total budget',
-                          style: theme.textTheme.labelMedium,
-                        ),
-                        Text(
-                          total?.format() ?? 'Not set',
-                          style: theme.textTheme.headlineSmall,
-                        ),
-                      ],
-                    ),
+    final spent = budget.spent.minorUnits.toDouble();
+    final totalValue = total?.minorUnits.toDouble() ?? 0;
+    final share = totalValue <= 0 ? null : spent / totalValue;
+    return SectionCard(
+      title: 'Balance',
+      icon: Icons.calculate_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              // At very large text the figures need the width.
+              if (MediaQuery.textScalerOf(context).scale(1) <= 1.4) ...[
+                DonutChart(
+                  size: 88,
+                  centerText: share == null ? '–' : '${(share * 100).round()}%',
+                  semanticsLabel: share == null
+                      ? 'No total budget set'
+                      : '${(share * 100).round()}% of the total spent',
+                  slices: share == null
+                      ? const []
+                      : [
+                          DonutSlice('Spent', spent, AppChartColors.first),
+                          DonutSlice(
+                            'Left',
+                            (totalValue - spent).clamp(0, double.infinity),
+                            AppChartColors.empty,
+                          ),
+                        ],
+                ),
+                const SizedBox(width: AppSpacing.sm),
+              ],
+              Expanded(
+                child: MergeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Total budget', style: theme.textTheme.labelMedium),
+                      Text(
+                        total?.format() ?? 'Not set',
+                        style: theme.textTheme.headlineSmall,
+                      ),
+                    ],
                   ),
                 ),
-                if (budget.isEditable)
-                  Obx(
-                    () => controller.busy.contains('total')
-                        ? const Padding(
-                            padding: EdgeInsets.all(AppSpacing.sm),
-                            child: SizedBox.square(
-                              dimension: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                semanticsLabel: 'Saving total budget',
-                              ),
-                            ),
-                          )
-                        : Semantics(
-                            label: total == null
-                                ? 'Set total budget'
-                                : 'Change total budget',
-                            excludeSemantics: true,
-                            button: true,
-                            child: TextButton(
-                              onPressed: () => _editTotal(context),
-                              child: Text(
-                                total == null ? 'Set total' : 'Change',
-                              ),
+              ),
+              if (budget.isEditable)
+                Obx(
+                  () => controller.busy.contains('total')
+                      ? const Padding(
+                          padding: EdgeInsets.all(AppSpacing.sm),
+                          child: SizedBox.square(
+                            dimension: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              semanticsLabel: 'Saving total budget',
                             ),
                           ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              total == null
-                  ? 'Planned so far: ${budget.planned.format()}'
-                  : 'Planned ${budget.planned.format()} of ${total.format()}',
-              style: theme.textTheme.bodyMedium,
-            ),
-            if (budget.plannedShare != null) ...[
-              const SizedBox(height: AppSpacing.xs),
-              ClipRRect(
-                borderRadius: const BorderRadius.all(AppRadii.sm),
-                child: LinearProgressIndicator(
-                  value: budget.plannedShare,
-                  minHeight: 8,
-                  color: budget.isOverPlanned ? scheme.error : null,
-                  backgroundColor: scheme.surfaceContainerHighest,
-                  semanticsLabel: 'Share of the total budget planned',
-                ),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.xs),
-            if (budget.overPlannedBy != null)
-              Semantics(
-                liveRegion: true,
-                child: Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded, color: scheme.error),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        'Over budget by ${budget.overPlannedBy!.format()}: '
-                        'planned more than your total.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: scheme.error,
-                          fontWeight: FontWeight.w600,
+                        )
+                      : Semantics(
+                          label: total == null
+                              ? 'Set total budget'
+                              : 'Change total budget',
+                          excludeSemantics: true,
+                          button: true,
+                          child: TextButton(
+                            onPressed: () => _editTotal(context),
+                            child: Text(total == null ? 'Set total' : 'Change'),
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
                 ),
-              )
-            else if (budget.unplanned != null)
-              Text(
-                'Not yet planned: ${budget.unplanned!.format()}',
-                style: theme.textTheme.bodyMedium,
-              ),
-            const Divider(height: AppSpacing.lg),
-            _Figure(label: 'Booked (committed)', value: budget.committed),
-            _Figure(label: 'Paid', value: budget.paid),
-            if ((budget.paidToCancelled?.minorUnits ?? BigInt.zero) >
-                BigInt.zero)
-              _Figure(
-                label: '  of which to cancelled vendors',
-                value: budget.paidToCancelled!,
-              ),
-            if ((budget.outstanding?.minorUnits ?? BigInt.zero) > BigInt.zero)
-              _Figure(
-                label: 'Still to pay vendors',
-                value: budget.outstanding!,
-              ),
-            _Figure(label: 'My expenses', value: budget.expenses),
-            if (budget.overspentBy != null)
-              Semantics(
-                liveRegion: true,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
-                  child: Text(
-                    'Bookings and expenses are '
-                    '${budget.overspentBy!.format()} over your total.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.error,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              )
-            else if (budget.remaining != null)
-              _Figure(label: 'Left to spend', value: budget.remaining!),
-            Text(
-              'Booked amounts come from accepted quotes; Paid is what you '
-              'noted under each booking’s Payments.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            total == null
+                ? 'Planned so far: ${budget.planned.format()}'
+                : 'Planned ${budget.planned.format()} of ${total.format()}',
+            style: theme.textTheme.bodyMedium,
+          ),
+          if (budget.plannedShare != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            GradientProgressBar(
+              value: budget.plannedShare!,
+              color: budget.isOverPlanned ? scheme.error : null,
+              semanticsLabel: 'Share of the total budget planned',
             ),
           ],
-        ),
+          const SizedBox(height: AppSpacing.xs),
+          if (budget.overPlannedBy != null)
+            Semantics(
+              liveRegion: true,
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: scheme.error),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      'Over budget by ${budget.overPlannedBy!.format()}: '
+                      'planned more than your total.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (budget.unplanned != null)
+            Text(
+              'Not yet planned: ${budget.unplanned!.format()}',
+              style: theme.textTheme.bodyMedium,
+            ),
+          const Divider(height: AppSpacing.lg),
+          _Figure(label: 'Booked (committed)', value: budget.committed),
+          _Figure(label: 'Paid', value: budget.paid),
+          if ((budget.paidToCancelled?.minorUnits ?? BigInt.zero) > BigInt.zero)
+            _Figure(
+              label: '  of which to cancelled vendors',
+              value: budget.paidToCancelled!,
+            ),
+          if ((budget.outstanding?.minorUnits ?? BigInt.zero) > BigInt.zero)
+            _Figure(label: 'Still to pay vendors', value: budget.outstanding!),
+          _Figure(label: 'My expenses', value: budget.expenses),
+          if (budget.overspentBy != null)
+            Semantics(
+              liveRegion: true,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xxs),
+                child: Text(
+                  'Bookings and expenses are '
+                  '${budget.overspentBy!.format()} over your total.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            )
+          else if (budget.remaining != null)
+            _Figure(label: 'Left to spend', value: budget.remaining!),
+          Text(
+            'Booked amounts come from accepted quotes; Paid is what you '
+            'noted under each booking’s Payments.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -668,36 +742,106 @@ class _LineTile extends StatelessWidget {
     final hasBookings =
         line.committed.minorUnits > BigInt.zero ||
         line.paid.minorUnits > BigInt.zero;
-    // A retired category with only expenses has nothing to change here.
-    final tappable = editable && (!line.isArchived || line.planned != null);
+    final spent = _spentOn(line);
+    final planned = line.planned?.minorUnits;
+    final over = planned != null && spent > planned;
     return Obx(() {
       final busy = controller.busy.contains(line.categoryId);
-      return ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
-        title: Text(line.name),
-        subtitle: _subtitle(hasBookings),
-        trailing: busy
-            ? const SizedBox.square(
-                dimension: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  semanticsLabel: 'Saving',
+      return Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.page,
+          vertical: AppSpacing.xxs,
+        ),
+        child: Material(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.all(AppRadii.lg),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => BudgetCategoryView(
+                  controller: controller,
+                  categoryId: line.categoryId,
                 ),
-              )
-            : Text(
-                line.planned?.format() ?? (editable ? 'Add' : '—'),
-                semanticsLabel: line.planned == null
-                    ? (editable ? 'Not planned, add amount' : 'Not planned')
-                    : null,
-                style: line.planned == null
-                    ? theme.textTheme.labelLarge?.copyWith(
-                        color: editable
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurfaceVariant,
-                      )
-                    : theme.textTheme.titleSmall,
               ),
-        onTap: tappable && !busy ? () => _edit(context) : null,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          line.name,
+                          style: theme.textTheme.titleMedium,
+                        ),
+                      ),
+                      if (busy)
+                        const SizedBox.square(
+                          dimension: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            semanticsLabel: 'Saving',
+                          ),
+                        )
+                      else
+                        Text(
+                          line.planned?.format() ?? (editable ? 'Add' : '—'),
+                          semanticsLabel: line.planned == null
+                              ? (editable
+                                    ? 'Not planned, add amount'
+                                    : 'Not planned')
+                              : null,
+                          style: line.planned == null
+                              ? theme.textTheme.labelLarge?.copyWith(
+                                  color: editable
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurfaceVariant,
+                                )
+                              : theme.textTheme.titleSmall,
+                        ),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
+                  if (planned != null && planned > BigInt.zero) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    GradientProgressBar(
+                      value: spent.toDouble() / planned.toDouble(),
+                      color: over ? theme.colorScheme.error : null,
+                      semanticsLabel: 'Spent of the plan for ${line.name}',
+                    ),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Spent: ${_money(spent)}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: over ? theme.colorScheme.error : null,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'Plan: ${line.planned!.format()}',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (_subtitle(hasBookings) case final sub?)
+                    DefaultTextStyle.merge(
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      child: sub,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
       );
     });
   }
@@ -711,5 +855,254 @@ class _LineTile extends StatelessWidget {
         'My expenses ${line.expenses.format()}',
     ];
     return parts.isEmpty ? null : Text(parts.join(' · '));
+  }
+}
+
+/// Budget details for one category (M22): plan, balance, expenses and the
+/// booked vendors with their payments.
+class BudgetCategoryView extends StatefulWidget {
+  const BudgetCategoryView({
+    super.key,
+    required this.controller,
+    required this.categoryId,
+  });
+
+  final BudgetController controller;
+  final String categoryId;
+
+  @override
+  State<BudgetCategoryView> createState() => _BudgetCategoryViewState();
+}
+
+class _BudgetCategoryViewState extends State<BudgetCategoryView> {
+  Future<Result<EventVendorList>>? _vendors;
+
+  BudgetController get c => widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<EventVendorsRepository>()) {
+      _vendors = Get.find<EventVendorsRepository>().list(c.eventId);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Obx(() {
+    final budget = c.budget;
+    final line = budget?.lines
+        .where((l) => l.categoryId == widget.categoryId)
+        .firstOrNull;
+    final expenses = switch (c.expenses.value) {
+      Content(:final data) =>
+        data.expenses
+            .where((e) => e.categoryId == widget.categoryId)
+            .toList(growable: false),
+      _ => const <Expense>[],
+    };
+    return Scaffold(
+      appBar: AppBar(title: Text(line?.name ?? 'Budget')),
+      floatingActionButton: budget != null && budget.isEditable
+          ? GradientFab(
+              tooltip: 'Add expense',
+              onPressed: () => _addExpense(context, budget, c),
+            )
+          : null,
+      body: budget == null || line == null
+          ? const Center(
+              child: Text('This category is no longer in the budget.'),
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.xs,
+                AppSpacing.page,
+                96,
+              ),
+              children: [
+                _details(context, budget, line),
+                const SizedBox(height: AppSpacing.md),
+                _balance(context, line),
+                const SizedBox(height: AppSpacing.md),
+                _bookings(context, line),
+                SectionCard(
+                  title: 'Expenses',
+                  icon: Icons.receipt_long_outlined,
+                  child: expenses.isEmpty
+                      ? const Text('No expenses in this category yet.')
+                      : Column(
+                          children: [
+                            for (final e in expenses)
+                              _ExpenseTile(
+                                expense: e,
+                                budget: budget,
+                                controller: c,
+                              ),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+    );
+  });
+
+  Widget _row(BuildContext context, String label, String value, [Color? dot]) =>
+      MergeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              if (dot != null)
+                Flexible(
+                  child: LegendDot(color: dot, label: value),
+                )
+              else
+                Flexible(child: Text(value, textAlign: TextAlign.end)),
+            ],
+          ),
+        ),
+      );
+
+  Widget _details(BuildContext context, Budget budget, BudgetLine line) =>
+      SectionCard(
+        title: 'Details',
+        icon: Icons.info_outline,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _row(context, 'Category', line.name),
+            if (line.isArchived) _row(context, 'Status', 'No longer offered'),
+            _row(context, 'Plan', line.planned?.format() ?? 'Not planned'),
+            if (budget.isEditable &&
+                (!line.isArchived || line.planned != null)) ...[
+              const SizedBox(height: AppSpacing.sm),
+              GradientButton(
+                label: line.isArchived
+                    ? 'Remove plan'
+                    : line.planned == null
+                    ? 'Plan an amount'
+                    : 'Change plan',
+                icon: Icons.edit_outlined,
+                onPressed: () => _LineTile(
+                  line: line,
+                  editable: true,
+                  controller: c,
+                )._edit(context),
+              ),
+            ],
+          ],
+        ),
+      );
+
+  Widget _balance(BuildContext context, BudgetLine line) {
+    final theme = Theme.of(context);
+    final spent = _spentOn(line);
+    final planned = line.planned?.minorUnits;
+    final left = planned == null ? null : planned - spent;
+    return SectionCard(
+      title: 'Balance',
+      icon: Icons.calculate_outlined,
+      actionLabel: null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _row(
+            context,
+            'Plan',
+            line.planned?.format() ?? '—',
+            AppChartColors.empty,
+          ),
+          _row(
+            context,
+            'Booked',
+            line.committed.format(),
+            AppChartColors.third,
+          ),
+          _row(context, 'Paid', line.paid.format(), AppChartColors.first),
+          _row(
+            context,
+            'My expenses',
+            line.expenses.format(),
+            AppChartColors.second,
+          ),
+          if (left != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              left.isNegative
+                  ? 'Over the plan by ${_money(-left)}'
+                  : 'Left in the plan: ${_money(left)}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: left.isNegative
+                    ? theme.colorScheme.error
+                    : AppColors.success,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            GradientProgressBar(
+              value: planned! == BigInt.zero
+                  ? 1
+                  : spent.toDouble() / planned.toDouble(),
+              color: left.isNegative ? theme.colorScheme.error : null,
+              semanticsLabel: 'Spent of the plan',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _bookings(BuildContext context, BudgetLine line) {
+    final vendors = _vendors;
+    if (vendors == null) return const SizedBox.shrink();
+    return FutureBuilder<Result<EventVendorList>>(
+      future: vendors,
+      builder: (context, snap) {
+        final booked = switch (snap.data) {
+          Ok(:final value) =>
+            value.vendors
+                .where(
+                  (v) =>
+                      v.listing.category.id == line.categoryId &&
+                      v.booking != null,
+                )
+                .toList(growable: false),
+          _ => const <EventVendor>[],
+        };
+        if (booked.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: SectionCard(
+            title: 'Bookings',
+            icon: Icons.handshake_outlined,
+            child: Column(
+              children: [
+                for (final v in booked)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(v.listing.vendorName),
+                    subtitle: Text(
+                      'Agreed ${v.booking!.agreedAmount.format()}'
+                      '${v.booking!.paid == null ? '' : ' · Paid ${v.booking!.paid!.format()}'}',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => PaymentsView.open(
+                      context,
+                      eventId: c.eventId,
+                      bookingId: v.booking!.id,
+                      vendorName: v.listing.vendorName,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../../core/theme/tokens.dart';
 import '../../../../core/widgets/async_state_view.dart';
+import '../../../../core/widgets/festive.dart';
 import '../../../events/domain/repositories/events_repository.dart';
 import '../../domain/budget.dart';
 import '../controllers/budget_controller.dart';
@@ -25,7 +26,12 @@ class BudgetView extends StatelessWidget {
     ),
     global: false,
     builder: (c) => Scaffold(
-      appBar: AppBar(title: const Text('Budget')),
+      appBar: AppBar(
+        title: const ScreenTitle(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'Budget',
+        ),
+      ),
       body: Obx(
         () => AsyncStateView<Budget>(
           state: c.state.value,

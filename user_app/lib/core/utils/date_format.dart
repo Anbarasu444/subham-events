@@ -46,6 +46,14 @@ String formatLongDate(DateTime date) =>
     '${_weekdays[date.weekday - 1]}, ${date.day} ${_months[date.month - 1]} '
     '${date.year}';
 
+/// `14 Dec` (compact lists, M22).
+String formatShortDate(DateTime date) =>
+    '${date.day} ${_months[date.month - 1]}';
+
+/// `December 2026` style month label for pill tabs (M22): `Dec 2026`.
+String formatMonthYear(DateTime date) =>
+    '${_months[date.month - 1]} ${date.year}';
+
 /// `18:30` → `6:30 PM`; returns the input unchanged if it is not `HH:mm`.
 String formatTimeOfDay(String hhmm) {
   final match = RegExp(r'^(\d{2}):(\d{2})$').firstMatch(hhmm);

@@ -1,7 +1,7 @@
 import '../../../core/error/result.dart';
 
 /// Home dashboard sections, in display order (M7, Option A).
-enum DashboardSectionId { upcomingEvent, checklist, budget, explore }
+enum DashboardSectionId { upcomingEvent, checklist, charts, budget, explore }
 
 /// Data for one section. `null` means "nothing to show yet" (empty state).
 /// Later milestones return their own content types (event summary, checklist

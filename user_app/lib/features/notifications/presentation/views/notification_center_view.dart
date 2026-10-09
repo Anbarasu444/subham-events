@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/state/view_state.dart';
@@ -66,6 +67,7 @@ class NotificationCenterView extends StatelessWidget {
         if (state is Empty<List<AppNotification>>) {
           return const EmptyStateView(
             icon: Icons.notifications_none,
+            illustration: AppIllustrations.emptyNotifications,
             title: 'No notifications yet',
             message: 'Quotes, bookings and reminders will show up here.',
           );

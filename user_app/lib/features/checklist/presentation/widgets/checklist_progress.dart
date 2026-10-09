@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/tokens.dart';
+import '../../../../core/widgets/festive.dart';
 import '../../../events/domain/entities/planner_event.dart';
 
 /// "3 of 10 done", a progress bar and the overdue count.
@@ -38,13 +39,9 @@ class ChecklistProgress extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.xs),
-          ClipRRect(
-            borderRadius: const BorderRadius.all(AppRadii.sm),
-            child: LinearProgressIndicator(
-              value: summary.progress,
-              minHeight: 8,
-              backgroundColor: scheme.surfaceContainerHighest,
-            ),
+          GradientProgressBar(
+            value: summary.progress,
+            semanticsLabel: 'Checklist progress',
           ),
         ],
       ),

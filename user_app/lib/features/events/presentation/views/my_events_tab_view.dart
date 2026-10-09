@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:get/get.dart';
 
 import '../../../../app/routes/app_routes.dart';
@@ -33,6 +34,7 @@ class MyEventsTabView extends StatelessWidget {
           body: switch (state) {
             GuestSession(message: final reason) => EmptyStateView(
               icon: Icons.event_note_outlined,
+              illustration: AppIllustrations.signInSecure,
               title: 'Plan your events',
               message:
                   'Sign in to create events and keep everything in one place.',
@@ -145,6 +147,7 @@ class _EventList extends GetView<MyEventsController> {
           child: scope == EventScope.upcoming
               ? EmptyStateView(
                   icon: Icons.event_available_outlined,
+                  illustration: AppIllustrations.emptyEvents,
                   title: 'No upcoming events',
                   message: 'Create an event to start planning.',
                   action: AppButton(
@@ -157,6 +160,7 @@ class _EventList extends GetView<MyEventsController> {
                 )
               : const EmptyStateView(
                   icon: Icons.history,
+                  illustration: AppIllustrations.emptyEvents,
                   title: 'No past events',
                   message: 'Completed and cancelled events appear here.',
                 ),

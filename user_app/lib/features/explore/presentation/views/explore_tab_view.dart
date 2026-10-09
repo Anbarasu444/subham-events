@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/festive.dart';
+import '../../../../core/assets/app_illustrations.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/error/failure.dart';
@@ -267,6 +269,7 @@ class _Results extends StatelessWidget {
       required String title,
       String? body,
       Widget? action,
+      String? illustration,
     }) => SliverFillRemaining(
       hasScrollBody: false,
       child: Padding(
@@ -274,7 +277,14 @@ class _Results extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 48, color: theme.colorScheme.onSurfaceVariant),
+            if (illustration != null)
+              Illustration(
+                illustration,
+                fallback: icon,
+                size: AppSizes.emptyIllustration,
+              )
+            else
+              Icon(icon, size: 48, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(height: AppSpacing.sm),
             Text(
               title,
@@ -319,6 +329,7 @@ class _Results extends StatelessWidget {
       ),
       Empty() => message(
         icon: Icons.search_off,
+        illustration: AppIllustrations.emptySearch,
         title: 'No vendors match',
         body: controller.query.value.hasFilters
             ? 'Try another city, category or price range.'

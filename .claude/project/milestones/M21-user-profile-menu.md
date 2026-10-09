@@ -96,3 +96,4 @@ The user can see and edit their profile, see their reviews, find help, and delet
 | 2026-10-09 | CONFIRMED by `START MILESTONE M21`. The follow-up on answer 7 was not answered → **assumption: option A** (signing in again restores the old account; its cancelled events stay cancelled). Documented per CLAUDE.md §31; the user can switch to B before approval | User / Claude |
 | 2026-10-09 | User confirmed follow-up 7 = **A**: signing in again restores the old account (cancelled events stay cancelled). A8 updated accordingly | User |
 | 2026-10-09 | Implemented; AC-2 wording amended to the user's answers (no Firebase disable; restore on sign-in). Set IN_REVIEW | Claude |
+| 2026-10-09 | **COMPLETED** — `APPROVE MILESTONE M21` | User |

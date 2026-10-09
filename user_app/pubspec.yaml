@@ -50,6 +50,7 @@ dependencies:
   url_launcher: ^6.3.3
   share_plus: ^13.3.1
   firebase_messaging: ^16.7.0
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:
@@ -73,6 +74,22 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # M22: illustrations supplied by the user (icon fallbacks when missing).
+  assets:
+    - assets/illustrations/
+
+  # M22: Kalam (SIL OFL 1.1, assets/fonts/kalam/OFL.txt). The family name
+  # lives in lib/core/theme/app_style.dart.
+  fonts:
+    - family: Kalam
+      fonts:
+        - asset: assets/fonts/kalam/Kalam-Light.ttf
+          weight: 300
+        - asset: assets/fonts/kalam/Kalam-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/kalam/Kalam-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:
