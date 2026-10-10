@@ -126,9 +126,10 @@ flutter:
 # so the splash is colour-only (Android 12+ shows the launcher icon).
 # Regenerate after changes: dart run flutter_native_splash:create
 flutter_native_splash:
-  color: "#FF7E7E"
+  # M23: festive deep saffron (AppColors.saffronDeep in app_style.dart).
+  color: "#BF5418"
   color_dark: "#3A1F1F"
   android_12:
-    color: "#FF7E7E"
+    color: "#BF5418"
     color_dark: "#3A1F1F"
   web: false

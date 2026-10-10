@@ -4,64 +4,68 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M22** |
-| Milestone name | User App Hardening (+ festive visual refresh, proposed) |
-| Phase | User App (M3–M23) |
-| Status | **IN_REVIEW** |
-| Spec | `.claude/project/milestones/M22-user-app-hardening.md` (status: CONFIRMED 2026-10-09) |
+| Milestone ID | **M23** |
+| Milestone name | USER APP FREEZE |
+| Phase | User App (M3–M23) — last User App milestone |
+| Status | **IN_PROGRESS** |
+| Spec | `.claude/project/milestones/M23-user-app-freeze.md` (status: CONFIRMED 2026-10-09) |
 | Started date | 2026-10-09 |
 | Completed date | — |
-| Approval status | **Awaiting `APPROVE MILESTONE M22`** |
+| Approval status | In progress — `START MILESTONE M23` issued 2026-10-09 |
 
 ## Objective
-Festive, consistent look driven by one style file; redesigned Home (charts), Checklist, Budget, Budget details and Menu; redesigned screens hardened (broader hardening at the M23 freeze, answer 6).
+Verify the User App on a real phone, finish hardening (offline, performance, accessibility, security), regression, freeze record and release-blockers list.
 
-## Completed work
-- **One style file** `lib/core/theme/app_style.dart` (font, colours, gradients, chart colours, radii, spacing, shadows); theme built only from it; guard test against hard-coded colours/fonts.
-- **Kalam** font (OFL) bundled; **fl_chart** added (approved).
-- **Festive components** (`core/widgets/festive.dart`) and gradient primary buttons app-wide.
-- **Home**: countdown hero, quick-action grid, checklist card, Vendors/Replies donuts (new `EventChartsSource`), Budget donut card, Explore card, guest sign-in card.
-- **Checklist**: month pills, card rows, gradient "+". **Budget**: Balance donut card, filter pills, category cards with progress, **new Budget details page** (details + plan, balance, bookings with payments, expenses, "+"). **Menu**: profile card, grouped cards, about card.
-- Illustrations from the user wired through **one file** `lib/core/assets/app_illustrations.dart` (Home grid, event pictures, empty screens, offline/error, invitation banner, avatar, logo); decoded at display size; guard test for missing files and raw paths. Source-file issues tracked in GI-39.
-
-## In-progress work
-- None.
-
-## Blocked work
-- Android APK build: the disk fills up during Gradle (≈4.9 GB free now; GI-40). Not deleting Gradle/Xcode caches without the user's permission.
+## Completed work / In-progress work / Blocked work
+- Contrast pass: white text on the bright gold/orange/rose failed WCAG AA (1.6–3.2:1) → added AA-safe deep saffron/rose (`AppColors.saffronDeep/roseDeep`) for text-bearing fills (buttons, pills, countdown, FAB); the user's gold → orange gradient kept for decoration (`AppGradients.festive`, progress bars, charts); contrast test added.
+- Security pass: no secrets in the app; debug prints only debug-safe; cleartext HTTP only in the debug manifest; **Android backup disabled** (`allowBackup=false`) so tokens/prefs are not copied to cloud backups; release signing still debug key (GI-11).
+- Consistency: native splash colour updated to the festive saffron (was the old pink); Explore error state shows the offline picture.
+- Freeze docs: `.claude/project/user-app-freeze.md` (freeze record, change policy, feature summary, release-blockers list), `.claude/project/m23-smoke-test.md` (user checklist).
+- Repo hygiene: `user_app/.gitignore` ignores `test/goldens/failures/` and `android/.kotlin/`.
+- Started 2026-10-09. Answers: user runs the Android smoke test; quick iOS simulator check; blockers listed for M72; version 1.0.0+1; freeze policy OK. Blocker to clear first: disk space for builds (GI-40) — user to clear Gradle/Xcode caches.
 
 ## Tests completed
-- `flutter analyze` clean; `flutter test` 326/326 (13 new: style-file guard, theme source, pill tabs, donut semantics, illustration fallback, gradient button, charts source, checklist month filter, budget details, 4 screenshot tests); existing Home/Checklist/Budget/Menu/shell tests updated to the new design.
-- Screenshots: `user_app/test/goldens/goldens/*.png` (reviewed by Claude).
-- Backend unchanged (no cross-layer change needed).
+- Regression 2026-10-09: backend lint/typecheck clean, unit 74/74, e2e 148/148; Flutter analyze clean, 328/328 (incl. screenshot tests; new contrast test).
+- iOS simulator quick check (iPhone 16, staging, debug via `flutter run`): app starts, Home (guest) renders with fonts, gradient and illustrations; Explore shows the offline state with retry (no backend running). Real iPhone blocked until the real app id (GI-5).
+- Android: staging **debug** APK built for the user's phone (API `http://192.168.80.72:3000`; debug is required because release builds block plain HTTP) — awaiting the user's smoke test (`.claude/project/m23-smoke-test.md`).
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security review | DONE — UI only; no new data, endpoints or storage; fonts and chart package from trusted sources (Google Fonts OFL; fl_chart, pub.dev). |
-| Performance review | DONE — charts animate once (250 ms) and are static after; countdown is one 1-second timer, cancelled on dispose; Home sections rebuild independently; the charts source reuses the events list and adds 2 requests per refresh (vendors, invitation). |
-| Notification review | DONE — no notification changes. |
-| Documentation | DONE — flutter.md §11 + §6o, known-issues GI-39/GI-40, spec ACs, progress. |
+| Security review | NOT_STARTED |
+| Performance review | NOT_STARTED |
+| Notification review | NOT_STARTED |
+| Documentation | NOT_STARTED |
 
 ## Known issues
 - See `known-issues.md`: GI-4…GI-40.
 
 ## Files changed
-- User App (illustrations, added during review): `lib/core/assets/app_illustrations.dart` (new), `lib/core/widgets/{empty_state_view.dart, async_state_view.dart}`, empty states in my_reviews, my_events, planning picker, notification center, saved vendors, checklist, rsvp list, explore, event vendors, budget, invitation section; `assets/illustrations/*` (user-supplied).
-- User App: `pubspec.yaml` (fl_chart, Kalam fonts, illustrations assets), `assets/fonts/kalam/*` (new), `assets/illustrations/.gitkeep` (new), `lib/core/theme/{app_style.dart (new), tokens.dart, app_theme.dart}`, `lib/core/widgets/{festive.dart (new), app_button.dart}`, `lib/core/utils/date_format.dart`, `lib/features/home/{domain/dashboard_section.dart, data/event_charts_source.dart (new), data/empty_section_source.dart, presentation/views/home_tab_view.dart; removed presentation/widgets/dashboard_section_card.dart}`, `lib/features/checklist/presentation/{controllers/checklist_controller.dart, views/checklist_view.dart, widgets/checklist_progress.dart}`, `lib/features/budget/presentation/{controllers/budget_controller.dart, views/budget_view.dart, widgets/budget_slivers.dart}`, `lib/features/menu/presentation/views/menu_tab_view.dart`, `lib/features/shell/presentation/bindings/shell_binding.dart`; tests `test/features/design/festive_test.dart` (new), `test/goldens/**` (new), updated `test/features/{home,shell,explore,events,checklist,budget}/…`.
-- Docs: listed under Documentation, plus `current-milestone.md`, `milestones.md`.
+- User App: `lib/core/theme/{app_style.dart, app_theme.dart}`, `lib/features/explore/presentation/views/explore_tab_view.dart`, `pubspec.yaml` (splash colour), native splash resources (android drawable/background.png ×2, values-v31/styles.xml, iOS LaunchBackground), `android/app/src/main/AndroidManifest.xml` (backup off), `ios/Podfile.lock` (firebase_messaging pods from M18), `.gitignore`, tests `test/features/design/festive_test.dart`, `test/goldens/goldens/*.png`.
+- Docs: `user-app-freeze.md` (new), `m23-smoke-test.md` (new).
 
 ## Files pending approval
-- All M22 files above, and M19–M21 files unless already committed (the user commits).
+- M19–M22 files unless already committed (the user commits).
 
 ## Next milestone
-- M23 — USER APP FREEZE (spec drafted at the M22 gate).
+- M23 (this one), then M24 — Vendor App (unlocked only after `APPROVE MILESTONE M23`).
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M22 User App Hardening + festive refresh: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** |
+| Started | 2026-10-09 |
+| Completed / approved | 2026-10-09 — `APPROVE MILESTONE M22` issued by the user |
+| Spec | `milestones/M22-user-app-hardening.md` (CONFIRMED) |
+
+Evidence at approval: one style file (`app_style.dart`, Kalam, festive gradient), one illustrations file (`app_illustrations.dart`), festive components, redesigned Home (countdown, quick actions, donut charts), Checklist (month tabs), Budget (+ category details), Menu; user illustrations wired; Flutter 327 tests incl. screenshot tests. Not verified: APK build (disk, GI-40). Broader hardening moved to M23.
 
 ## Previous milestone — M21 User Profile / Menu: COMPLETED
 

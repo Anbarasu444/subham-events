@@ -345,6 +345,7 @@ class _Results extends StatelessWidget {
       ),
       Failed(:final failure) => message(
         icon: Icons.error_outline,
+        illustration: AppIllustrations.errorOffline,
         title: failureTitle(failure),
         body: failureMessage(failure),
         action: failure.isRetryable

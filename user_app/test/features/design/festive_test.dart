@@ -58,6 +58,23 @@ void main() {
       );
     });
 
+    test('white text on brand fills meets WCAG AA (4.5:1)', () {
+      double ratio(Color a, Color b) {
+        final la = a.computeLuminance(), lb = b.computeLuminance();
+        final hi = la > lb ? la : lb, lo = la > lb ? lb : la;
+        return (hi + 0.05) / (lo + 0.05);
+      }
+
+      for (final c in [
+        ...AppGradients.brand.colors,
+        ...AppGradients.hero.colors,
+      ]) {
+        expect(ratio(AppColors.onGradient, c), greaterThanOrEqualTo(4.5));
+      }
+      expect(ratio(AppColors.primary, AppColors.background), greaterThan(4.5));
+      expect(ratio(AppColors.textMuted, AppColors.surface), greaterThan(4.5));
+    });
+
     test('no screen hard-codes colours or font families', () {
       final offenders = <String>[];
       final literal = RegExp(

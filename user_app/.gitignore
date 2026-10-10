@@ -49,3 +49,5 @@ app.*.map.json
 
 # Local flavor overrides (may contain LAN IPs)
 /config/*.local.json
+test/goldens/failures/
+/android/.kotlin/

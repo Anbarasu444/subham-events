@@ -33,6 +33,13 @@ abstract final class AppColors {
   /// Accent used next to the gradient (pink, like a marigold garland).
   static const rose = Color(0xFFE5677E);
 
+  /// Deeper saffron and rose for fills that carry white text: white on
+  /// them passes WCAG AA (≥ 4.5:1). The bright colours above fail with white
+  /// text (gold 1.6:1, orange 2.6:1), so they are used for decoration only
+  /// (M23 accessibility pass).
+  static const saffronDeep = Color(0xFFBF5418);
+  static const roseDeep = Color(0xFFB83E5C);
+
   /// Seeds the Material colour scheme.
   static const seed = orange;
 
@@ -63,15 +70,23 @@ abstract final class AppColors {
 
 /// Gradients built from [AppColors].
 abstract final class AppGradients {
-  /// Buttons, selected tabs, floating "+".
+  /// Buttons, selected tabs, floating "+" (white text: AA-safe shades).
   static const brand = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
-    colors: [AppColors.orange, AppColors.rose],
+    colors: [AppColors.saffronDeep, AppColors.roseDeep],
   );
 
-  /// Big hero cards (event countdown).
+  /// Big hero cards with white text (event countdown).
   static const hero = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [AppColors.saffronDeep, AppColors.deepOrange, AppColors.roseDeep],
+  );
+
+  /// The user's festive gold → orange → deep orange, for decoration
+  /// without text (banners, glows).
+  static const festive = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [AppColors.gold, AppColors.orange, AppColors.deepOrange],

@@ -67,7 +67,7 @@ abstract final class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: AppColors.orange,
+        backgroundColor: AppColors.saffronDeep,
         foregroundColor: AppColors.onGradient,
         shape: const StadiumBorder(),
       ),

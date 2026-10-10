@@ -119,3 +119,4 @@ The User App looks festive, consistent and polished. All visual style comes from
 | 2026-10-09 | CONFIRMED by `START MILESTONE M22` | User |
 | 2026-10-09 | Implemented; AC-4 narrowed per answer 6; AC-5 build check blocked by disk (GI-40). Set IN_REVIEW | Claude |
 | 2026-10-09 | **Scope addition (user, during review):** illustrations supplied; all picture paths kept in one file `lib/core/assets/app_illustrations.dart` (`AppIllustrations`) so any picture is replaced in one place; empty screens, offline/error, invitation banner, avatar, logo and event pictures wired; guard test against raw asset paths and missing files | User |
+| 2026-10-09 | **COMPLETED** — `APPROVE MILESTONE M22` | User |

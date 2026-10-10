@@ -87,6 +87,8 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-09 | M21 User Profile / Menu | APPROVE MILESTONE M21 | Status → **COMPLETED**. M22 User App Hardening set to NOT_STARTED; spec DRAFT created including the user's festive redesign request (open questions: fonts, colours, bottom navigation, charts, pictures, scope) | See M21 IN_REVIEW entry | Dev DB migration `1792800000000-ProfilePhoto` to be run; APK build re-check pending disk space | `APPROVE MILESTONE M21` issued by user |
 | 2026-10-09 | M22 User App Hardening + festive refresh | START MILESTONE M22 | Validation passed (M21 COMPLETED and approved; spec exists; answers: Kalam, gradient colours, keep bottom bar, fl_chart, user illustrations, redesign focus). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M22` issued by user |
 | 2026-10-09 | M22 User App Hardening + festive refresh | Set IN_REVIEW | One style file (Kalam, festive gradient, chart colours), festive components, redesigned Home (countdown, quick actions, donuts), Checklist (month pills), Budget (+ category details page), Menu; screenshot tests | Flutter 326; analyze clean; reviews done | APK build blocked by disk (GI-40); illustrations pending (GI-39) | Awaiting `APPROVE MILESTONE M22` |
+| 2026-10-09 | M22 User App Hardening + festive refresh | APPROVE MILESTONE M22 | Status → **COMPLETED**. M23 USER APP FREEZE set to NOT_STARTED; spec DRAFT created (open questions: device test, iOS, release blockers, version, freeze policy) | See M22 IN_REVIEW entry | APK build pending disk space (GI-40); illustrations to be replaced (GI-39) | `APPROVE MILESTONE M22` issued by user |
+| 2026-10-09 | M23 USER APP FREEZE | START MILESTONE M23 | Validation passed (M22 COMPLETED and approved; spec exists; answers: Android smoke test by the user, quick iOS simulator check, blockers listed for M72, version 1.0.0+1, freeze policy). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M23` issued by user |
 
 ## Status summary
 - Governance initialization: **complete**.
@@ -97,4 +99,5 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 - M19: **COMPLETED** 2026-10-09 (the user commits).
 - M20: **COMPLETED** 2026-10-09 (the user commits).
 - M21: **COMPLETED** 2026-10-09 (the user commits).
-- Active milestone: **M22 — User App Hardening + festive visual refresh** (IN_REVIEW since 2026-10-09; awaiting `APPROVE MILESTONE M22`).
+- M22: **COMPLETED** 2026-10-09 (the user commits).
+- Active milestone: **M23 — USER APP FREEZE** (IN_PROGRESS since 2026-10-09).
