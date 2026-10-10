@@ -28,8 +28,8 @@ Each milestone has (or must have, before START) a spec in `milestones/` with sco
 | M20 | Reviews | User App | [M20](milestones/M20-reviews.md) (CONFIRMED) — **COMPLETED** 2026-10-09 |
 | M21 | User Profile / Menu | User App | [M21](milestones/M21-user-profile-menu.md) (CONFIRMED) — **COMPLETED** 2026-10-09 |
 | M22 | User App Hardening (+ festive visual refresh, proposed) | User App | [M22](milestones/M22-user-app-hardening.md) (CONFIRMED) — **COMPLETED** 2026-10-09 |
-| M23 | USER APP FREEZE | User App | [M23](milestones/M23-user-app-freeze.md) (CONFIRMED) — IN_PROGRESS |
-| M24 | Vendor Foundation | Vendor App | — |
+| M23 | USER APP FREEZE | User App | [M23](milestones/M23-user-app-freeze.md) (CONFIRMED) — **COMPLETED** 2026-10-10 — **USER APP FROZEN** |
+| M24 | Vendor Foundation | Vendor App | [M24](milestones/M24-vendor-foundation.md) (CONFIRMED) — **IN_REVIEW** |
 | M25 | Vendor Authentication | Vendor App | — |
 | M26 | Vendor Profile | Vendor App | — |
 | M27 | Admin Category Discovery | Vendor App | — |

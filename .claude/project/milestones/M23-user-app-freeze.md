@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Spec status | **CONFIRMED** — ratified by `START MILESTONE M23` on 2026-10-09 (answers received 2026-10-09) |
+| Spec status | **CONFIRMED** — ratified by `START MILESTONE M23` on 2026-10-09; milestone COMPLETED 2026-10-10 |
 | Phase | User App (last User App milestone) |
 | Depends on | M22 COMPLETED and approved (`APPROVE MILESTONE M22`) |
 | Primary owner agent | qa-manager + user-app-manager (security-manager, performance-manager, ui-manager, notification-manager, code-reviewer reviewers) |
@@ -73,12 +73,12 @@ The User App is verified end to end on a real Android phone, robust offline and 
 | database | None expected | — |
 | Firebase | None, unless the user completes APNs (GI-35) | 3 |
 
-## Acceptance criteria (proposed)
-- [ ] AC-1 The app is built and run on a real Android phone; every smoke-test flow passes (evidence: the user's confirmation and screenshots).
-- [ ] AC-2 A real push is received and routes correctly.
-- [ ] AC-3 Offline, performance, accessibility and security passes are done, with findings fixed or logged.
-- [ ] AC-4 Full regression is green; the freeze record, feature summary and blockers list are written.
-- [ ] AC-5 Reviews are done, the docs are updated, and the status is IN_REVIEW.
+## Acceptance criteria
+- [~] AC-1 The app is built and run on a real Android phone; every smoke-test flow passes (evidence: the user's confirmation and screenshots). — **Partial, deferred by the user (2026-10-10):** Google and phone sign-in verified on the user's Redmi M2101K7AI (server: `POST /auth/session` 200, events/reminders/notifications load, FCM device registered). Remaining smoke-test flows → **M64 Full QA** (GI-41).
+- [~] AC-2 A real push is received and routes correctly. — **Deferred to M64** (GI-41): device registered for push (`PUT /me/devices` 204); a real push receipt and tap-through not yet observed.
+- [x] AC-3 Offline, performance, accessibility and security passes are done, with findings fixed or logged. — Evidence: contrast fix + test (AA-safe brand gradients); security pass (no secrets, Android backup off, cleartext debug-only); offline states checked on iOS simulator and in tests; performance: cold start not measured on device (stays GI-16, M64).
+- [x] AC-4 Full regression is green; the freeze record, feature summary and blockers list are written. — Evidence: backend 74 unit + 148 e2e, Flutter 328 incl. screenshot tests; `user-app-freeze.md` (freeze record, policy, feature summary, 14 release blockers).
+- [x] AC-5 Reviews are done, the docs are updated, and the status is IN_REVIEW. — Evidence: reviews and docs in `current-milestone.md`; approved by the user without a separate IN_REVIEW step (see change log).
 
 ## Smoke-test checklist (draft)
 Sign in (Google / phone) · create, edit, cancel and reopen an event · cover photo · checklist (add, done, month tabs, reorder, remind me) · budget (total, plan, expense, category details) · explore (search, filters, vendor details) · save vendor · add to event · enquiry · accept a (sample) quote · payments · complete booking · review · reminder push · invitation (create, publish, share link and picture, guest RSVP on another phone, replies) · notifications centre · profile (name, photo) · help · delete account and restore by signing in · sign out.
@@ -100,3 +100,5 @@ Sign in (Google / phone) · create, edit, cancel and reopen an event · cover ph
 | 2026-10-09 | Initial DRAFT created at the M22 approval gate | CLAUDE.md Rule 4 |
 | 2026-10-09 | User answers: 1 **yes** — the user runs the Android smoke test on their phone (Claude builds the APK, gives steps, reads logs); 2 **quick iOS simulator check now**; a real iPhone stays blocked until the real app id is set (GI-5); 3 **list release blockers now, fix in M72** — no confirmed real app id/name exists yet (still `com.example.user_app`, GI-5), so nothing is changed; 4 version **1.0.0+1**; 5 freeze policy **OK** (after M23 only bug fixes and integration changes) | User |
 | 2026-10-09 | CONFIRMED by `START MILESTONE M23` | User |
+| 2026-10-10 | **Scope change (user):** after sign-in passed on the device, the user issued `APPROVE MILESTONE M23` in reply to the choice "1 = finish the device test now / 2 = sign-in is enough, move the rest to M64" — recorded as option 2: remaining Android smoke-test flows and the real-push check moved to M64 Full QA (GI-41). | User |
+| 2026-10-10 | **COMPLETED** — `APPROVE MILESTONE M23` (issued while IN_PROGRESS; the user's explicit approval overrides the IN_REVIEW step) | User |

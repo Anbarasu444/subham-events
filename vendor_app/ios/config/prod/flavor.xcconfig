@@ -1,0 +1,7 @@
+// Flavor "prod" (ADR-0012). No prod iOS Firebase app yet: add config/prod/GoogleService-Info.plist before prod builds (M72).
+FLAVOR=prod
+PRODUCT_BUNDLE_IDENTIFIER=com.example.vendorApp
+APP_DISPLAY_NAME=Subam Vendor
+// URL schemes: Google sign-in callback and Firebase phone-auth reCAPTCHA fallback.
+GOOGLE_REVERSED_CLIENT_ID=com.googleusercontent.apps.prod-google-sign-in-not-configured
+FIREBASE_ENCODED_APP_ID=prod-firebase-ios-app-not-registered

@@ -6,11 +6,11 @@ Tick each line on your phone. Write ✗ and a short note (or a screenshot) for a
 1. Mac and phone on the **same Wi-Fi**.
 2. Start the backend on the Mac (`cd backend && npm run start:dev`), with migrations run (`npm run migration:run`).
 3. Optional sample data: `npm run seed:dev-samples` and `npm run seed:dev-quotes`.
-4. Install the APK Claude builds (it points at your Mac's address).
+4. Phone plugged in by USB. Run `~/Library/Android/sdk/platform-tools/adb reverse tcp:3000 tcp:3000`, then from `user_app/`: `flutter run --flavor staging -t lib/main_staging.dart --dart-define=API_BASE_URL=http://localhost:3000 --dart-define=SUPPORT_EMAIL=test@gmail.com --dart-define=SUPPORT_PHONE=1234554321 --dart-define=PROFILE_PHOTO_ENABLED=true` (USB avoids the unreliable Wi-Fi path).
 5. Timing: from tapping the app icon to seeing Home, note the seconds (cold start).
 
 ## Flows
-- [ ] Sign in with Google · [ ] sign in with phone (OTP)
+- [x] Sign in with Google · [x] sign in with phone (OTP) — verified 2026-10-10
 - [ ] Home: countdown, quick menu, charts, budget card look right
 - [ ] Create an event · edit it · add a cover photo
 - [ ] Checklist: add tasks with dates · month tabs · tick done/undo · reorder · "Remind me"

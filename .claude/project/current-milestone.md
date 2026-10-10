@@ -4,57 +4,78 @@
 
 | Field | Value |
 |---|---|
-| Milestone ID | **M23** |
-| Milestone name | USER APP FREEZE |
-| Phase | User App (M3–M23) — last User App milestone |
-| Status | **IN_PROGRESS** |
-| Spec | `.claude/project/milestones/M23-user-app-freeze.md` (status: CONFIRMED 2026-10-09) |
-| Started date | 2026-10-09 |
+| Milestone ID | **M24** |
+| Milestone name | Vendor Foundation |
+| Phase | Vendor App (M24–M39) — first Vendor App milestone |
+| Status | **IN_REVIEW** |
+| Spec | `.claude/project/milestones/M24-vendor-foundation.md` (status: CONFIRMED 2026-10-10) |
+| Started date | 2026-10-10 |
 | Completed date | — |
-| Approval status | In progress — `START MILESTONE M23` issued 2026-10-09 |
+| Approval status | **Awaiting `APPROVE MILESTONE M24`** |
 
 ## Objective
-Verify the User App on a real phone, finish hardening (offline, performance, accessibility, security), regression, freeze record and release-blockers list.
+Turn the stock `vendor_app` template into the reference architecture (flavors, core layer, one style file, one illustrations file, splash, bootstrap, placeholder home).
 
-## Completed work / In-progress work / Blocked work
-- Contrast pass: white text on the bright gold/orange/rose failed WCAG AA (1.6–3.2:1) → added AA-safe deep saffron/rose (`AppColors.saffronDeep/roseDeep`) for text-bearing fills (buttons, pills, countdown, FAB); the user's gold → orange gradient kept for decoration (`AppGradients.festive`, progress bars, charts); contrast test added.
-- Security pass: no secrets in the app; debug prints only debug-safe; cleartext HTTP only in the debug manifest; **Android backup disabled** (`allowBackup=false`) so tokens/prefs are not copied to cloud backups; release signing still debug key (GI-11).
-- Consistency: native splash colour updated to the festive saffron (was the old pink); Explore error state shows the offline picture.
-- Freeze docs: `.claude/project/user-app-freeze.md` (freeze record, change policy, feature summary, release-blockers list), `.claude/project/m23-smoke-test.md` (user checklist).
-- Repo hygiene: `user_app/.gitignore` ignores `test/goldens/failures/` and `android/.kotlin/`.
-- Started 2026-10-09. Answers: user runs the Android smoke test; quick iOS simulator check; blockers listed for M72; version 1.0.0+1; freeze policy OK. Blocker to clear first: disk space for builds (GI-40) — user to clear Gradle/Xcode caches.
+## Completed work
+- `vendor_app` turned into the reference architecture by **copying the User App core** (answer 3; `user_app/` untouched): `app/` (bootstrap, bootstrapper + start-failure screen, config, routes, initial binding), `core/` (network/Dio client + interceptors, error/Result, ViewState + state views, crash reporting + redaction, secure store, cache manager, FreeRASP wrapper, theme, festive widgets, utils), `features/diagnostics` (staging).
+- Removed for now (arrive later): auth/session, auth interceptor, auth middleware, money, media/picker.
+- **Subam Vendor** branding (answer 1): app name "Subam Vendor" / "Subam Vendor STG", `X-Client: vendor_app/…`.
+- **One style file** `lib/core/theme/app_style.dart` (answer 2): Kalam font, the user's gradient **#11998E → #38EF7D** for decoration, AA-safe deeper teal/green (#0B6E66 → #1B7F4B) for white-text fills, mint background; native splash deep teal.
+- **One illustrations file** `lib/core/assets/app_illustrations.dart` with the 26 vendor pictures (answer 4; icon fallbacks until supplied, GI-43).
+- Flavors: Android `staging` (`.stg`) / `prod` (copied Gradle setup, `google-services.json` moved to `android/app/`); iOS `staging`/`prod` schemes, `config/<flavor>/flavor.xcconfig`, staging `GoogleService-Info.plist` moved to `ios/config/staging/` with matching Google/Firebase ids. iOS prod Firebase app missing (GI-42).
+- Placeholder **vendor home**: welcome card, live server-connection card (check again, offline message), coming-soon grid, staging Diagnostics link.
+- Android backup off; cleartext HTTP only in the debug manifest; unused iOS photo/camera prompts removed.
+
+## In-progress work
+- None.
+
+## Blocked work
+- None.
 
 ## Tests completed
-- Regression 2026-10-09: backend lint/typecheck clean, unit 74/74, e2e 148/148; Flutter analyze clean, 328/328 (incl. screenshot tests; new contrast test).
-- iOS simulator quick check (iPhone 16, staging, debug via `flutter run`): app starts, Home (guest) renders with fonts, gradient and illustrations; Explore shows the offline state with retry (no backend running). Real iPhone blocked until the real app id (GI-5).
-- Android: staging **debug** APK built for the user's phone (API `http://192.168.80.72:3000`; debug is required because release builds block plain HTTP) — awaiting the user's smoke test (`.claude/project/m23-smoke-test.md`).
+- `flutter analyze` clean; `flutter test` **55/55** (copied core tests: config, bootstrapper/start-failure, error handlers, redaction, API client, runtime protection, dates, state views, diagnostics; new: `vendor_style_test.dart` 6, `vendor_home_test.dart` 3 incl. offline + retry and 200 % text).
+- Device runs: iOS simulator (iPhone 16) and the user's Android phone (USB `adb reverse`): splash → home → "Connected" (backend `GET /health/ready` 200).
+- User App: no changes (git status), so its 328 tests are unaffected.
+- Screenshots: `vendor_app/build/subam_vendor_ios_home.png`, `vendor_app/build/subam_vendor_android_home.png`.
 
 ## Reviews
 | Review | Status |
 |---|---|
-| Security review | NOT_STARTED |
-| Performance review | NOT_STARTED |
-| Notification review | NOT_STARTED |
-| Documentation | NOT_STARTED |
+| Security review | DONE — no secrets in the app (Firebase client configs are public identifiers); release builds HTTPS-only (cleartext debug-only, prod config requires https); Android backup off; logging interceptor redacts and is off in prod; FreeRASP wired but off until GI-14; no auth yet (M25). |
+| Performance review | DONE — same start-up path as the User App (non-blocking Crashlytics, splash removed on first frame); home makes one health request on open; illustrations decoded at display size; no timers or continuous animations. |
+| Notification review | DONE — no notifications in M24 (FCM arrives in M36). |
+| Documentation | DONE — spec ACs + change log, `milestones.md`, `progress.md`, `known-issues.md` GI-42/GI-43, `vendor_app/config/README.md`. |
 
 ## Known issues
-- See `known-issues.md`: GI-4…GI-40.
+- See `known-issues.md`: GI-4…GI-43 (new: GI-42 vendor ids/prod Firebase/signing, GI-43 vendor illustrations).
 
 ## Files changed
-- User App: `lib/core/theme/{app_style.dart, app_theme.dart}`, `lib/features/explore/presentation/views/explore_tab_view.dart`, `pubspec.yaml` (splash colour), native splash resources (android drawable/background.png ×2, values-v31/styles.xml, iOS LaunchBackground), `android/app/src/main/AndroidManifest.xml` (backup off), `ios/Podfile.lock` (firebase_messaging pods from M18), `.gitignore`, tests `test/features/design/festive_test.dart`, `test/goldens/goldens/*.png`.
-- Docs: `user-app-freeze.md` (new), `m23-smoke-test.md` (new).
+- `vendor_app/`: `pubspec.yaml`, `pubspec.lock`, `analysis_options.yaml`, `.gitignore`; `lib/` (new: `main_staging.dart`, `main_prod.dart`, `app/**`, `core/**`, `features/diagnostics/**`, `features/home/**`; removed template `main.dart`); `test/` (new suite; removed template `widget_test.dart`); `config/` (README, staging/prod json, local example); `assets/fonts/kalam/*`, `assets/illustrations/.gitkeep`; Android: `settings.gradle.kts`, `app/build.gradle.kts`, `app/google-services.json` (moved), debug/main manifests, splash resources; iOS: `Runner.xcodeproj/project.pbxproj`, `xcschemes/{staging,prod}`, `Runner/Info.plist`, `Podfile`, `Flutter/*.xcconfig`, `config/{staging,prod}/flavor.xcconfig`, `config/staging/GoogleService-Info.plist` (moved), splash assets; generated plugin registrants (linux/macos/windows).
+- Docs: `.claude/project/{current-milestone.md, milestones.md, progress.md, known-issues.md, milestones/M24-vendor-foundation.md}`.
+- No backend, database or `user_app/` changes.
 
 ## Files pending approval
-- M19–M22 files unless already committed (the user commits).
+- All M24 files above (the user commits).
 
 ## Next milestone
-- M23 (this one), then M24 — Vendor App (unlocked only after `APPROVE MILESTONE M23`).
+- M24 (this one), then M25 — Vendor Authentication.
 
 ## Do NOT start
 - Vendor App work (locked until M23 approved)
 - Admin CMS work (locked until M39 approved)
 
 ---
+
+## Previous milestone — M23 USER APP FREEZE: COMPLETED
+
+| Field | Value |
+|---|---|
+| Status | **COMPLETED** — **User App frozen** (version 1.0.0+1) |
+| Started | 2026-10-09 |
+| Completed / approved | 2026-10-10 — `APPROVE MILESTONE M23` issued by the user (while IN_PROGRESS; recorded as option 2: rest of the device test moved to M64, GI-41) |
+| Spec | `milestones/M23-user-app-freeze.md` (CONFIRMED) |
+
+Evidence at approval: regression green (backend 74 unit + 148 e2e, Flutter 328); iOS simulator check; Android Google + phone sign-in verified on the user's phone; contrast (AA-safe brand gradients), security (backup off) and offline passes; freeze record, policy, feature summary and 14 release blockers in `user-app-freeze.md`. Local setup fixes: pending M21 migration applied; `adb reverse` for device testing. Not verified on device: remaining flows and real push (GI-41).
 
 ## Previous milestone — M22 User App Hardening + festive refresh: COMPLETED
 

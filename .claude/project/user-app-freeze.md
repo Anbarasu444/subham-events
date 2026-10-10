@@ -1,6 +1,6 @@
 # User App Freeze (M23)
 
-> Status: **draft until `APPROVE MILESTONE M23`**. On approval this becomes the frozen record of the User App.
+> Status: **FROZEN** — `APPROVE MILESTONE M23` issued 2026-10-10.
 
 ## Freeze record
 | Field | Value |
@@ -9,7 +9,7 @@
 | Version | `1.0.0+1` (user answer 4) |
 | Package id | `com.example.user_app` (staging `.stg`) — **placeholder** (GI-5, fix in M72) |
 | Suggested git tag | `M23-user-app-freeze` (the user commits and tags) |
-| Frozen on | — (date of `APPROVE MILESTONE M23`) |
+| Frozen on | 2026-10-10 |
 | Milestones included | M3–M23 |
 
 ### Change policy after the freeze (user answer 5)
@@ -49,4 +49,4 @@
 | 14 | Vendors can reply to enquiries only with the Vendor App (M32/M33) | GI-34 | Roadmap |
 
 ## Verification status
-See `current-milestone.md` (M23) for evidence: regression, contrast, security and offline passes, device smoke test, iOS simulator check.
+Regression green; contrast, security and offline passes done; iOS simulator check done; Android: sign-in verified on device, remaining smoke test deferred to M64 (GI-41).

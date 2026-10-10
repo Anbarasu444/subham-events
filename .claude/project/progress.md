@@ -89,6 +89,9 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 | 2026-10-09 | M22 User App Hardening + festive refresh | Set IN_REVIEW | One style file (Kalam, festive gradient, chart colours), festive components, redesigned Home (countdown, quick actions, donuts), Checklist (month pills), Budget (+ category details page), Menu; screenshot tests | Flutter 326; analyze clean; reviews done | APK build blocked by disk (GI-40); illustrations pending (GI-39) | Awaiting `APPROVE MILESTONE M22` |
 | 2026-10-09 | M22 User App Hardening + festive refresh | APPROVE MILESTONE M22 | Status → **COMPLETED**. M23 USER APP FREEZE set to NOT_STARTED; spec DRAFT created (open questions: device test, iOS, release blockers, version, freeze policy) | See M22 IN_REVIEW entry | APK build pending disk space (GI-40); illustrations to be replaced (GI-39) | `APPROVE MILESTONE M22` issued by user |
 | 2026-10-09 | M23 USER APP FREEZE | START MILESTONE M23 | Validation passed (M22 COMPLETED and approved; spec exists; answers: Android smoke test by the user, quick iOS simulator check, blockers listed for M72, version 1.0.0+1, freeze policy). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M23` issued by user |
+| 2026-10-10 | M23 USER APP FREEZE | Device sign-in fix + APPROVE MILESTONE M23 | Fixed local test setup (backend started; pending M21 migration applied; USB `adb reverse` instead of flaky Wi-Fi) → Google and phone sign-in pass on Android. User approved with the rest of the device test moved to M64 (GI-41). Status → **COMPLETED**; **User App frozen** (version 1.0.0+1; policy in `user-app-freeze.md`). M24 Vendor Foundation set NOT_STARTED; spec DRAFT created | Regression green (backend 74/148, Flutter 328) | GI-41 device test deferred | `APPROVE MILESTONE M23` issued by user |
+| 2026-10-10 | M24 Vendor Foundation | START MILESTONE M24 | Validation passed (M23 COMPLETED and approved; spec exists; answers: name "Subam Vendor", festive style with `#11998E → #38EF7D`, copy User App core, illustrations later). Spec → CONFIRMED; status → IN_PROGRESS | — | — | `START MILESTONE M24` issued by user |
+| 2026-10-10 | M24 Vendor Foundation | Set IN_REVIEW | Vendor App skeleton copied from the User App core; Subam Vendor branding; teal → green style file; illustrations file; Android/iOS flavors; placeholder home with live server check | Vendor 55 tests; analyze clean; runs on iOS simulator and the user's Android phone | GI-42, GI-43 | Awaiting `APPROVE MILESTONE M24` |
 
 ## Status summary
 - Governance initialization: **complete**.
@@ -100,4 +103,5 @@ Format: `Date | Item | Event | Result | Tests | Blockers | Approval`
 - M20: **COMPLETED** 2026-10-09 (the user commits).
 - M21: **COMPLETED** 2026-10-09 (the user commits).
 - M22: **COMPLETED** 2026-10-09 (the user commits).
-- Active milestone: **M23 — USER APP FREEZE** (IN_PROGRESS since 2026-10-09).
+- M23: **COMPLETED** 2026-10-10 — **User App frozen** (bug fixes, integration and release changes only).
+- Active milestone: **M24 — Vendor Foundation** (IN_REVIEW since 2026-10-10; awaiting `APPROVE MILESTONE M24`).

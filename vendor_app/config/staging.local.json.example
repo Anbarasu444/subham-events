@@ -1,0 +1,5 @@
+{
+  "API_BASE_URL": "http://10.0.2.2:3000",
+  "SUPPORT_EMAIL": "test@gmail.com",
+  "SUPPORT_PHONE": "1234554321"
+}
